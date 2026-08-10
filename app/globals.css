@@ -1,26 +1,105 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f6f9f7;
+  --foreground: #1a1a1a;
+  --primary: #16a34a;
+  --primary-dark: #15803d;
+  --primary-light: #f0fdf4;
+  --primary-muted: #86efac;
+  --primary-ring: rgba(22, 163, 74, 0.15);
+  --main-surface: #f6f9f7;
+  --card: #ffffff;
+  --charcoal: #1a1a1a;
+  --muted: #8b8b8b;
+  --surface: #f5f5f7;
+  --border: rgba(0, 0, 0, 0.06);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-primary: var(--primary);
+  --color-primary-light: var(--primary-light);
+  --color-charcoal: var(--charcoal);
+  --font-sans: var(--font-plus-jakarta);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-plus-jakarta), system-ui, sans-serif;
+  margin: 0;
+  padding: 0;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+input[type="checkbox"] {
+  accent-color: var(--primary);
+  width: 15px;
+  height: 15px;
+  cursor: pointer;
+}
+
+.text-primary {
+  color: var(--primary);
+}
+
+.bg-primary {
+  background-color: var(--primary);
+}
+
+.bg-primary-light {
+  background-color: var(--primary-light);
+}
+
+.hover-primary-light:hover {
+  background-color: var(--primary-light);
+}
+
+.panel-card {
+  background: var(--card);
+  border-radius: 20px;
+  border: 1px solid var(--border);
+}
+
+.lime-card {
+  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+  border-radius: 20px;
+  color: #ffffff;
+}
+
+.dark-card {
+  background: var(--charcoal);
+  border-radius: 16px;
+  color: #ffffff;
+}
+
+.status-pill-success {
+  background: #ecfdf5;
+  color: #059669;
+}
+
+.status-pill-pending {
+  background: #fefce8;
+  color: #ca8a04;
+}
+
+.status-pill-rejected {
+  background: #fef2f2;
+  color: #dc2626;
+}
+
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
 }
