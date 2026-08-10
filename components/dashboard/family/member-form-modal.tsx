@@ -57,7 +57,7 @@ export function MemberFormModal({
   }, [open, onClose]);
 
   const relationshipChoices = useMemo(() => {
-    const values = [...relationshipOptions];
+    const values: string[] = [...relationshipOptions];
     if (
       form.relationship &&
       !values.some((rel) => rel.toLowerCase() === form.relationship.toLowerCase())
