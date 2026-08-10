@@ -35,8 +35,11 @@ jobs:
           zip -rq ../../deploy.zip .
 
       - name: Deploy to Azure Web App
-        uses: azure/webapps-deploy@v3
-        with:
-          app-name: kavach-care-web
-          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
-          package: deploy.zip
+        env:
+          PUBLISH_USER: ${{ secrets.WEBAPP_PUBLISH_USER }}
+          PUBLISH_PASS: ${{ secrets.WEBAPP_PUBLISH_PASS }}
+        run: |
+          curl -fsS -X POST \
+            -u "$PUBLISH_USER:$PUBLISH_PASS" \
+            --data-binary @deploy.zip \
+            "https://kavach-care-web.scm.azurewebsites.net/api/zipdeploy?isAsync=true"
