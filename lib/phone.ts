@@ -22,3 +22,9 @@ export function formatPhoneDisplay(countryCode: string, number: string): string 
 }
 
 export const MOCK_PHONE_OTP = "123456";
+
+export const INTERNAL_PHONE_COUNTRY_CODE = "+99";
+
+export function isInternalPhone(countryCode?: string | null): boolean {
+  return countryCode === INTERNAL_PHONE_COUNTRY_CODE;
+}

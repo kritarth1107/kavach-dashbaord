@@ -1,4 +1,5 @@
 import type { ApiFamilyMember } from "@/lib/family-types";
+import { isInternalPhone } from "@/lib/phone";
 
 export type FamilyMemberRole =
   | "care_recipient"
@@ -108,6 +109,9 @@ export function normalizePhoneFields(
   }
 
   if (typeof phone === "object") {
+    if (isInternalPhone(phone.countryCode)) {
+      return { phoneCountryCode };
+    }
     return {
       phone: phone.number?.trim(),
       phoneCountryCode: phone.countryCode?.trim() ?? phoneCountryCode,
