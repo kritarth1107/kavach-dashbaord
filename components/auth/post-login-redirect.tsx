@@ -6,12 +6,33 @@ import { useEffect } from "react";
 import { getMe } from "@/lib/api";
 import { setStoredFamilyId } from "@/lib/family-storage";
 
+async function ensureSessionCookie() {
+  const res = await fetch("/api/auth/establish-session", {
+    method: "POST",
+    credentials: "include",
+  });
+
+  if (res.status === 401) {
+    return false;
+  }
+
+  if (!res.ok) {
+    const json = (await res.json().catch(() => null)) as { message?: string } | null;
+    throw new Error(json?.message ?? "Failed to establish session");
+  }
+
+  return true;
+}
+
 export function PostLoginRedirect() {
   const router = useRouter();
 
   useEffect(() => {
-    getMe()
-      .then(({ data }) => {
+    void (async () => {
+      try {
+        await ensureSessionCookie();
+
+        const { data } = await getMe();
         if (!data?.user?.userId) {
           router.replace("/auth/login");
           return;
@@ -27,10 +48,10 @@ export function PostLoginRedirect() {
         }
 
         router.replace("/dashboard");
-      })
-      .catch(() => {
+      } catch {
         router.replace("/auth/login");
-      });
+      }
+    })();
   }, [router]);
 
   return (

@@ -1,11 +1,6 @@
 import NextAuth from "next-auth";
 import Google from "next-auth/providers/google";
-import { cookies } from "next/headers";
-import {
-  getBackendUrl,
-  SESSION_COOKIE,
-  sessionCookieOptions,
-} from "@/lib/session-cookie";
+import { getBackendUrl } from "@/lib/session-cookie";
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   trustHost: true,
@@ -37,21 +32,24 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             body: JSON.stringify({ idToken: account.id_token }),
           });
 
-          if (res.ok) {
-            const json = await res.json();
-            const cookieStore = await cookies();
-            cookieStore.set(
-              SESSION_COOKIE,
-              json.data.token,
-              sessionCookieOptions,
-            );
-            token.userId = json.data.user.userId;
-            token.name = json.data.user.fullName;
-            token.email = json.data.user.email;
-            token.picture = json.data.user.avatarUrl;
+          if (!res.ok) {
+            token.error = "GoogleSignInFailed";
+            return token;
           }
+
+          const json = await res.json();
+          if (!json?.data?.token) {
+            token.error = "GoogleSignInFailed";
+            return token;
+          }
+
+          token.backendToken = json.data.token;
+          token.userId = json.data.user.userId;
+          token.name = json.data.user.fullName;
+          token.email = json.data.user.email;
+          token.picture = json.data.user.avatarUrl;
         } catch {
-          return token;
+          token.error = "GoogleSignInFailed";
         }
       }
 
@@ -59,17 +57,18 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     },
     async session({ session, token }) {
       if (session.user) {
-        session.user.userId = token.userId;
-        session.user.name = token.name ?? null;
-        (session.user as { email?: string | null }).email = token.email ?? null;
-        session.user.image = token.picture ?? null;
+        session.user.userId = token.userId as string | undefined;
+        session.user.name = (token.name as string | null) ?? null;
+        (session.user as { email?: string | null }).email =
+          (token.email as string | null) ?? null;
+        session.user.image = (token.picture as string | null) ?? null;
       }
       return session;
     },
     redirect({ url, baseUrl }) {
       if (url.startsWith("/")) return `${baseUrl}${url}`;
       if (new URL(url).origin === baseUrl) return url;
-      return `${baseUrl}/dashboard`;
+      return `${baseUrl}/auth/post-login`;
     },
   },
 });

@@ -1,8 +1,13 @@
 export const SESSION_COOKIE = "kavach_session";
 
+function useSecureCookies() {
+  if (process.env.NODE_ENV === "production") return true;
+  return process.env.AUTH_URL?.startsWith("https://") ?? false;
+}
+
 export const sessionCookieOptions = {
   httpOnly: true,
-  secure: process.env.NODE_ENV === "production",
+  secure: useSecureCookies(),
   sameSite: "lax" as const,
   path: "/",
   maxAge: 60 * 60 * 24, // 24 hours
