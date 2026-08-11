@@ -35,28 +35,59 @@ async function parseResponse<T>(res: Response): Promise<ApiResponse<T>> {
   return json;
 }
 
-export async function sendOtp(email: string) {
+export type OtpChannel = "email" | "phone";
+
+export type OtpIdentifier =
+  | { channel: "email"; email: string }
+  | { channel: "phone"; phone: string; phoneCountryCode: string };
+
+function otpRequestBody(identifier: OtpIdentifier) {
+  if (identifier.channel === "phone") {
+    return {
+      channel: "phone" as const,
+      phone: identifier.phone,
+      phoneCountryCode: identifier.phoneCountryCode,
+    };
+  }
+
+  return {
+    channel: "email" as const,
+    email: identifier.email,
+  };
+}
+
+export async function sendOtp(identifier: OtpIdentifier) {
   const res = await fetch("/api/auth/otp/send", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     credentials: "include",
-    body: JSON.stringify({ email }),
+    body: JSON.stringify(otpRequestBody(identifier)),
   });
-  return parseResponse<{ email: string; otpToken: string }>(res);
+  return parseResponse<{
+    channel: OtpChannel;
+    email?: string;
+    phone?: string;
+    phoneCountryCode?: string;
+    otpToken: string;
+  }>(res);
 }
 
-export async function verifyOtp(email: string, code: string, otpToken: string) {
+export async function verifyOtp(
+  identifier: OtpIdentifier,
+  code: string,
+  otpToken: string,
+) {
   const res = await fetch("/api/auth/otp/verify", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     credentials: "include",
-    body: JSON.stringify({ email, code, otpToken }),
+    body: JSON.stringify({ ...otpRequestBody(identifier), code, otpToken }),
   });
   return parseResponse<LoginSessionData>(res);
 }
 
 export async function registerWithOtp(
-  email: string,
+  identifier: OtpIdentifier,
   code: string,
   name: string,
   otpToken: string,
@@ -65,7 +96,7 @@ export async function registerWithOtp(
     method: "POST",
     headers: { "Content-Type": "application/json" },
     credentials: "include",
-    body: JSON.stringify({ email, code, name, otpToken }),
+    body: JSON.stringify({ ...otpRequestBody(identifier), code, name, otpToken }),
   });
   return parseResponse<LoginSessionData & { user: AuthUser }>(res);
 }

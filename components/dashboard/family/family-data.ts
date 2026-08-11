@@ -140,7 +140,10 @@ export function apiMemberToFamilyMember(
     inviteId: member.inviteId,
     prefix: parsedName.prefix,
     name: parsedName.name || rawName,
-    email: member.email || "—",
+    email:
+      member.email && !member.email.endsWith("@pending.kavach")
+        ? member.email
+        : "—",
     phone: phoneFields.phone,
     phoneCountryCode: phoneFields.phoneCountryCode,
     relationship: member.relationship || "—",

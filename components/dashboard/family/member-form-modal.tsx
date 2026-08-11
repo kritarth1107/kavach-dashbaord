@@ -77,6 +77,15 @@ export function MemberFormModal({
     e.preventDefault();
     setError("");
 
+    if (!isEdit && form.role === "care_recipient") {
+      const hasEmail = form.email.trim().length > 0;
+      const hasPhone = form.phone.replace(/\D/g, "").length >= 6;
+      if (!hasEmail && !hasPhone) {
+        setError("Add an email or mobile number for this care recipient");
+        return;
+      }
+    }
+
     try {
       if (isEdit) {
         await onSave?.(form);
@@ -94,8 +103,10 @@ export function MemberFormModal({
     }
   }
 
-  const showEmail = form.role !== "care_recipient";
-  const emailRequired = form.role !== "care_recipient";
+  const isCareRecipient = form.role === "care_recipient";
+  const showEmailField = !isEdit;
+  const emailRequired = !isCareRecipient;
+  const contactHint = isCareRecipient && !isEdit;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -114,7 +125,9 @@ export function MemberFormModal({
             <p className="text-[11px] text-[#9ca3af]">
               {isEdit
                 ? "Update role and contact details for this member"
-                : "They'll receive an invite and must accept to join"}
+                : isCareRecipient
+                  ? "Care recipients are added immediately — email or mobile required"
+                  : "They'll receive an invite and must accept to join"}
             </p>
           </div>
           <button
@@ -181,7 +194,7 @@ export function MemberFormModal({
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <FieldLabel>Phone</FieldLabel>
+                <FieldLabel>{contactHint ? "Mobile (or use email above)" : "Phone"}</FieldLabel>
                 <div className="flex gap-1.5">
                   <Select
                     value={form.phoneCountryCode}
@@ -215,9 +228,11 @@ export function MemberFormModal({
               </div>
             </div>
 
-            {(showEmail || form.role === "care_recipient") && !isEdit && (
+            {showEmailField && (
               <div>
-                <FieldLabel>{emailRequired ? "Email" : "Email (optional)"}</FieldLabel>
+                <FieldLabel>
+                  {contactHint ? "Email (or use mobile below)" : emailRequired ? "Email" : "Email (optional)"}
+                </FieldLabel>
                 <input
                   type="email"
                   value={form.email}
@@ -227,6 +242,12 @@ export function MemberFormModal({
                   className={inputClass}
                 />
               </div>
+            )}
+
+            {!isEdit && isCareRecipient && (
+              <p className="text-[11px] font-medium text-[#6b7280]">
+                Provide at least one contact — email or mobile — so they can be reached or sign in later.
+              </p>
             )}
 
             <div>

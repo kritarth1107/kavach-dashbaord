@@ -233,7 +233,7 @@ export function FamilyMembersPage() {
             Family members
           </h1>
           <p className="mt-1 max-w-md text-[13px] leading-relaxed text-[#6b7280]">
-            Invite people to your care circle. They must accept before joining.
+            Add care recipients directly. Co-caregivers, view-only members, and doctors must accept an invite.
           </p>
         </div>
         {canManageMembers && (

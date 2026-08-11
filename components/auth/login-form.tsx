@@ -1,13 +1,26 @@
 "use client";
 
-import { ArrowRight, Loader2, Mail, Shield } from "lucide-react";
+import { ArrowRight, Loader2, Mail, Shield, Smartphone, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { countryCodeOptions } from "@/components/dashboard/family/form-options";
+import {
+  registerWithOtp,
+  sendOtp,
+  verifyOtp,
+  type OtpChannel,
+  type OtpIdentifier,
+} from "@/lib/api";
+import {
+  formatPhoneDisplay,
+  maskPhoneNumber,
+  MOCK_PHONE_OTP,
+  normalizePhoneDigits,
+} from "@/lib/phone";
 import { cn } from "@/lib/utils";
 import { OtpInput } from "./otp-input";
-import { registerWithOtp, sendOtp, verifyOtp } from "@/lib/api";
 
 function routeAfterLogin() {
   return "/auth/post-login";
@@ -24,45 +37,66 @@ function GoogleIcon() {
   );
 }
 
-function GitHubIcon() {
+type LoginMethod = OtpChannel;
+type Step = "identifier" | "otp" | "register";
+
+function MethodToggle({
+  value,
+  onChange,
+}: {
+  value: LoginMethod;
+  onChange: (method: LoginMethod) => void;
+}) {
   return (
-    <svg viewBox="0 0 24 24" className="h-4 w-4 fill-[#111827]" aria-hidden>
-      <path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.44 9.8 8.21 11.39.6.11.82-.26.82-.58 0-.29-.01-1.04-.02-2.04-3.34.73-4.04-1.61-4.04-1.61-.54-1.38-1.33-1.75-1.33-1.75-1.09-.75.08-.73.08-.73 1.2.09 1.84 1.24 1.84 1.24 1.07 1.84 2.82 1.31 3.51 1 .11-.78.42-1.31.76-1.61-2.67-.3-5.47-1.33-5.47-5.93 0-1.31.47-2.38 1.24-3.22-.12-.3-.54-1.52.12-3.17 0 0 1.01-.32 3.3 1.23a11.5 11.5 0 0 1 3-.4c1.02.01 2.05.14 3 .4 2.29-1.55 3.3-1.23 3.3-1.23.66 1.65.24 2.87.12 3.17.77.84 1.24 1.91 1.24 3.22 0 4.61-2.8 5.63-5.48 5.92.43.37.81 1.1.81 2.22 0 1.61-.01 2.9-.01 3.29 0 .32.21.7.82.58A12.01 12.01 0 0 0 24 12c0-6.63-5.37-12-12-12z" />
-    </svg>
+    <div className="relative grid grid-cols-2 rounded-xl border border-[#e5e7eb] bg-[#f3f4f6] p-1">
+      <span
+        aria-hidden
+        className={cn(
+          "absolute inset-y-1 w-[calc(50%-4px)] rounded-lg bg-white shadow-[0_1px_3px_rgba(15,23,42,0.08)] transition-transform duration-200 ease-out",
+          value === "phone" ? "translate-x-[calc(100%+4px)]" : "translate-x-1",
+        )}
+      />
+      {(
+        [
+          { id: "email" as const, label: "Email", icon: Mail },
+          { id: "phone" as const, label: "Mobile", icon: Smartphone },
+        ] as const
+      ).map(({ id, label, icon: Icon }) => {
+        const selected = value === id;
+        return (
+          <button
+            key={id}
+            type="button"
+            onClick={() => onChange(id)}
+            className={cn(
+              "relative z-[1] flex items-center justify-center gap-1.5 rounded-lg py-2 text-[12px] font-bold transition-colors",
+              selected ? "text-primary" : "text-[#6b7280] hover:text-[#374151]",
+            )}
+          >
+            <Icon className="h-3.5 w-3.5" strokeWidth={2.25} />
+            {label}
+          </button>
+        );
+      })}
+    </div>
   );
 }
-
-function LinkedInIcon() {
-  return (
-    <svg viewBox="0 0 24 24" className="h-4 w-4 fill-[#0A66C2]" aria-hidden>
-      <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 0 1-2.063-2.065 2.062 2.062 0 1 1 2.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
-    </svg>
-  );
-}
-
-function XIcon() {
-  return (
-    <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 fill-[#111827]" aria-hidden>
-      <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
-    </svg>
-  );
-}
-
-const comingSoonProviders = [
-  { label: "GitHub", icon: GitHubIcon },
-  { label: "LinkedIn", icon: LinkedInIcon },
-  { label: "X", icon: XIcon },
-];
-
-type Step = "email" | "otp" | "register";
 
 export function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const declinedInvite = searchParams.get("declined") === "1";
   const emailFromQuery = searchParams.get("email") ?? "";
-  const [step, setStep] = useState<Step>("email");
+  const phoneFromQuery = searchParams.get("phone") ?? "";
+
+  const [step, setStep] = useState<Step>("identifier");
+  const [loginMethod, setLoginMethod] = useState<LoginMethod>(
+    phoneFromQuery ? "phone" : "email",
+  );
+  const [channel, setChannel] = useState<OtpChannel>("email");
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [phoneCountryCode, setPhoneCountryCode] = useState("+91");
   const [otp, setOtp] = useState("");
   const [otpToken, setOtpToken] = useState("");
   const [name, setName] = useState("");
@@ -70,6 +104,24 @@ export function LoginForm() {
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
+
+  const identifier = useMemo<OtpIdentifier>(() => {
+    if (channel === "phone") {
+      return {
+        channel: "phone",
+        phone: normalizePhoneDigits(phone),
+        phoneCountryCode,
+      };
+    }
+    return { channel: "email", email: email.trim().toLowerCase() };
+  }, [channel, email, phone, phoneCountryCode]);
+
+  const identifierLabel = useMemo(() => {
+    if (channel === "phone") {
+      return maskPhoneNumber(phoneCountryCode, phone);
+    }
+    return email.trim().toLowerCase();
+  }, [channel, email, phone, phoneCountryCode]);
 
   useEffect(() => {
     if (resendCooldown <= 0) return;
@@ -80,8 +132,29 @@ export function LoginForm() {
   useEffect(() => {
     if (emailFromQuery && !email) {
       setEmail(emailFromQuery);
+      setLoginMethod("email");
     }
   }, [emailFromQuery, email]);
+
+  useEffect(() => {
+    if (phoneFromQuery && !phone) {
+      setPhone(phoneFromQuery.replace(/\D/g, ""));
+      setLoginMethod("phone");
+    }
+  }, [phoneFromQuery, phone]);
+
+  function switchLoginMethod(method: LoginMethod) {
+    setLoginMethod(method);
+    setError("");
+  }
+
+  function resetToIdentifier() {
+    setStep("identifier");
+    setOtp("");
+    setOtpToken("");
+    setError("");
+    setResendCooldown(0);
+  }
 
   async function handleGoogleSignIn() {
     setGoogleLoading(true);
@@ -93,9 +166,26 @@ export function LoginForm() {
     e.preventDefault();
     setLoading(true);
     setError("");
+
+    const payload: OtpIdentifier =
+      loginMethod === "phone"
+        ? {
+            channel: "phone",
+            phone: normalizePhoneDigits(phone),
+            phoneCountryCode,
+          }
+        : { channel: "email", email: email.trim().toLowerCase() };
+
+    if (payload.channel === "phone" && payload.phone.length < 6) {
+      setError("Enter a valid mobile number");
+      setLoading(false);
+      return;
+    }
+
     try {
-      const { data } = await sendOtp(email);
+      const { data } = await sendOtp(payload);
       if (!data?.otpToken) throw new Error("Unexpected response");
+      setChannel(data.channel ?? payload.channel);
       setOtpToken(data.otpToken);
       setOtp("");
       setStep("otp");
@@ -112,7 +202,7 @@ export function LoginForm() {
     setLoading(true);
     setError("");
     try {
-      const { data } = await verifyOtp(email, otp, otpToken);
+      const { data } = await verifyOtp(identifier, otp, otpToken);
       if (!data) throw new Error("Unexpected response");
 
       if (data.registered) {
@@ -133,7 +223,7 @@ export function LoginForm() {
     setLoading(true);
     setError("");
     try {
-      const { data } = await sendOtp(email);
+      const { data } = await sendOtp(identifier);
       if (!data?.otpToken) throw new Error("Unexpected response");
       setOtpToken(data.otpToken);
       setOtp("");
@@ -150,7 +240,7 @@ export function LoginForm() {
     setLoading(true);
     setError("");
     try {
-      const { data } = await registerWithOtp(email, otp, name, otpToken);
+      const { data } = await registerWithOtp(identifier, otp, name, otpToken);
       if (!data?.user) throw new Error("Registration failed");
 
       router.push(routeAfterLogin());
@@ -188,13 +278,14 @@ export function LoginForm() {
 
         <div className="mb-6 text-center">
           <h1 className="text-[22px] font-extrabold tracking-[-0.02em] text-[#111827]">
-            {step === "otp" && "Check your email"}
+            {step === "otp" && channel === "phone" && "Check your phone"}
+            {step === "otp" && channel === "email" && "Check your email"}
             {step === "register" && "Create your account"}
-            {step === "email" && "Welcome back"}
+            {step === "identifier" && "Welcome back"}
           </h1>
-          {step === "email" && (
+          {step === "identifier" && (
             <p className="mt-1.5 text-[13px] text-[#6b7280]">
-              Enter your email to sign in or register
+              Sign in with email or mobile — we&apos;ll send a one-time code
             </p>
           )}
           {step === "register" && (
@@ -202,17 +293,25 @@ export function LoginForm() {
               Tell us your name to finish signing up
             </p>
           )}
-          {step === "otp" && (
+          {step === "otp" && channel === "email" && (
             <p className="mt-1.5 text-[13px] leading-relaxed text-[#6b7280]">
               Enter the code sent to{" "}
-              <span className="font-semibold text-[#111827]">{email}</span>
+              <span className="font-semibold text-[#111827]">{identifierLabel}</span>
               {" · "}
               <span className="text-[#9ca3af]">check spam if you don&apos;t see it</span>
             </p>
           )}
+          {step === "otp" && channel === "phone" && (
+            <p className="mt-1.5 text-[13px] leading-relaxed text-[#6b7280]">
+              Enter the code sent to{" "}
+              <span className="font-semibold text-[#111827]">
+                {formatPhoneDisplay(phoneCountryCode, phone)}
+              </span>
+            </p>
+          )}
         </div>
 
-        {declinedInvite && step === "email" && (
+        {declinedInvite && step === "identifier" && (
           <p className="mb-4 rounded-xl bg-[#f0fdf4] px-3 py-2 text-center text-[12px] font-medium text-[#15803d]">
             Invitation declined. Sign in again to set up your own family.
           </p>
@@ -224,28 +323,80 @@ export function LoginForm() {
           </p>
         )}
 
-        {step === "email" && (
+        {step === "identifier" && (
           <form onSubmit={handleSendOtp} className="space-y-4">
-            <div className="relative">
-              <Mail
-                className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#9ca3af]"
-                strokeWidth={2}
-              />
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="name@example.com"
-                required
-                className="w-full rounded-xl border border-[#e5e7eb] bg-[#f9fafb] py-3 pl-10 pr-4 text-[13px] font-medium text-[#111827] placeholder:text-[#9ca3af] outline-none transition-colors focus:border-primary focus:bg-white focus:ring-2 focus:ring-[var(--primary-ring)]"
-              />
-            </div>
+            <MethodToggle value={loginMethod} onChange={switchLoginMethod} />
+
+            {loginMethod === "email" ? (
+              <div className="relative">
+                <Mail
+                  className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#9ca3af]"
+                  strokeWidth={2}
+                />
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="name@example.com"
+                  required
+                  autoComplete="email"
+                  className="w-full rounded-xl border border-[#e5e7eb] bg-[#f9fafb] py-3 pl-10 pr-4 text-[13px] font-medium text-[#111827] placeholder:text-[#9ca3af] outline-none transition-colors focus:border-primary focus:bg-white focus:ring-2 focus:ring-[var(--primary-ring)]"
+                />
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <div className="flex gap-2">
+                  <select
+                    value={phoneCountryCode}
+                    onChange={(e) => setPhoneCountryCode(e.target.value)}
+                    className="w-[92px] shrink-0 rounded-xl border border-[#e5e7eb] bg-[#f9fafb] px-2 py-3 text-[12px] font-semibold text-[#111827] outline-none transition-colors focus:border-primary focus:bg-white focus:ring-2 focus:ring-[var(--primary-ring)]"
+                  >
+                    {countryCodeOptions.map(({ code, flag }) => (
+                      <option key={code} value={code}>
+                        {flag} {code}
+                      </option>
+                    ))}
+                  </select>
+                  <div className="relative min-w-0 flex-1">
+                    <Smartphone
+                      className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#9ca3af]"
+                      strokeWidth={2}
+                    />
+                    <input
+                      type="tel"
+                      inputMode="numeric"
+                      value={phone}
+                      onChange={(e) => setPhone(normalizePhoneDigits(e.target.value))}
+                      placeholder="Mobile number"
+                      required
+                      autoComplete="tel-national"
+                      maxLength={15}
+                      className="w-full rounded-xl border border-[#e5e7eb] bg-[#f9fafb] py-3 pl-10 pr-4 text-[13px] font-medium text-[#111827] placeholder:text-[#9ca3af] outline-none transition-colors focus:border-primary focus:bg-white focus:ring-2 focus:ring-[var(--primary-ring)]"
+                    />
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 rounded-xl border border-dashed border-[#bbf7d0] bg-[#f0fdf4] px-3 py-2">
+                  <Sparkles className="h-3.5 w-3.5 shrink-0 text-primary" strokeWidth={2.25} />
+                  <p className="text-[11px] font-medium leading-snug text-[#166534]">
+                    Demo mode — use code{" "}
+                    <span className="font-extrabold tracking-widest">{MOCK_PHONE_OTP}</span>
+                  </p>
+                </div>
+              </div>
+            )}
+
             <button
               type="submit"
               disabled={loading}
               className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3 text-[13px] font-bold text-white transition-colors hover:bg-[var(--primary-dark)] disabled:opacity-60"
             >
-              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Continue with Email"}
+              {loading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : loginMethod === "phone" ? (
+                "Send code to mobile"
+              ) : (
+                "Continue with email"
+              )}
               {!loading && <ArrowRight className="h-4 w-4" strokeWidth={2.5} />}
             </button>
           </form>
@@ -253,6 +404,15 @@ export function LoginForm() {
 
         {step === "otp" && (
           <form onSubmit={handleVerifyOtp} className="space-y-4">
+            {channel === "phone" && (
+              <div className="flex items-center justify-center gap-2 rounded-xl bg-[#f0fdf4] px-3 py-2">
+                <Sparkles className="h-3.5 w-3.5 text-primary" strokeWidth={2.25} />
+                <p className="text-[11px] font-semibold text-[#166534]">
+                  Demo code: <span className="tracking-widest">{MOCK_PHONE_OTP}</span>
+                </p>
+              </div>
+            )}
+
             <OtpInput value={otp} onChange={setOtp} disabled={loading} />
 
             <button
@@ -275,16 +435,10 @@ export function LoginForm() {
               <span className="mx-2 text-[#d1d5db]">·</span>
               <button
                 type="button"
-                onClick={() => {
-                  setStep("email");
-                  setOtp("");
-                  setOtpToken("");
-                  setError("");
-                  setResendCooldown(0);
-                }}
+                onClick={resetToIdentifier}
                 className="font-semibold hover:text-[#111827]"
               >
-                Different email
+                {channel === "phone" ? "Different number" : "Different email"}
               </button>
             </p>
           </form>
@@ -311,7 +465,7 @@ export function LoginForm() {
           </form>
         )}
 
-        {step === "email" && (
+        {step === "identifier" && (
           <>
             <div className="my-6 flex items-center gap-3">
               <div className="h-px flex-1 bg-[#e5e7eb]" />
@@ -321,7 +475,7 @@ export function LoginForm() {
               <div className="h-px flex-1 bg-[#e5e7eb]" />
             </div>
 
-            <div className="flex justify-center gap-3 pb-2">
+            <div className="flex justify-center pb-2">
               <button
                 type="button"
                 onClick={handleGoogleSignIn}
@@ -329,7 +483,7 @@ export function LoginForm() {
                 aria-label="Continue with Google"
                 title="Continue with Google"
                 className={cn(
-                  "relative flex h-10 w-10 items-center justify-center rounded-full border border-[#e5e7eb] bg-white transition-colors hover:border-primary hover:bg-primary-light",
+                  "relative flex h-11 w-11 items-center justify-center rounded-full border border-[#e5e7eb] bg-white transition-colors hover:border-primary hover:bg-primary-light",
                   googleLoading && "opacity-60",
                 )}
               >
@@ -339,22 +493,6 @@ export function LoginForm() {
                   <GoogleIcon />
                 )}
               </button>
-
-              {comingSoonProviders.map(({ label, icon: Icon }) => (
-                <button
-                  key={label}
-                  type="button"
-                  disabled
-                  aria-label={`${label} — coming soon`}
-                  title={`${label} — coming soon`}
-                  className="relative flex h-10 w-10 cursor-not-allowed items-center justify-center rounded-full border border-[#e5e7eb] bg-[#fafafa] opacity-45"
-                >
-                  <Icon />
-                  <span className="absolute -bottom-5 left-1/2 -translate-x-1/2 whitespace-nowrap text-[8px] font-bold uppercase tracking-wide text-[#9ca3af]">
-                    Soon
-                  </span>
-                </button>
-              ))}
             </div>
           </>
         )}
