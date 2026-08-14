@@ -547,3 +547,182 @@ export async function deleteCareScheduleItem(
   );
   return parseResponse<null>(res);
 }
+
+export type SaheliMessage = {
+  role: string;
+  content: string;
+  createdAt?: string | null;
+};
+
+export type BriefingItem = {
+  title: string;
+  time: string;
+  dosage?: string;
+  type: string;
+};
+
+export type RecipientBriefing = {
+  recipientName: string;
+  lastHeardAt: string | null;
+  lastHeardLine: string | null;
+  lastCheckInAt: string | null;
+  todayItems: BriefingItem[];
+  unconfirmedItems: BriefingItem[];
+};
+
+export type LabDocument = {
+  document_id: string;
+  title: string;
+  kind: string;
+  record_date: string | null;
+  created_at: string | null;
+};
+
+export type FamilyOverview = {
+  careRecipientCount: number;
+  schedulesToday: number;
+  checkInsToday: number;
+  messagesToday: number;
+  pendingApprovals: number;
+  medAdherencePercent: number | null;
+  lastSaheliReply: string | null;
+  lastActivityAt: string | null;
+  recipients: Array<{ userId: string; name: string }>;
+  recentActivity: ActivityItem[];
+};
+
+export type ActivityItem = {
+  id: string;
+  type: "message" | "schedule" | "check_in";
+  title: string;
+  detail: string;
+  recipientUserId: string;
+  recipientName: string;
+  at: string;
+  status: "completed" | "scheduled" | "reported";
+};
+
+export async function getFamilyOverview(familyId: string) {
+  const res = await fetch(`/api/families/${familyId}/overview`, {
+    credentials: "include",
+  });
+  return parseResponse<FamilyOverview>(res);
+}
+
+export async function getFamilyActivity(familyId: string) {
+  const res = await fetch(`/api/families/${familyId}/activity`, {
+    credentials: "include",
+  });
+  return parseResponse<{ items: ActivityItem[] }>(res);
+}
+
+export async function getSaheliChat(familyId: string, recipientUserId: string) {
+  const res = await fetch(
+    `/api/families/${familyId}/recipients/${recipientUserId}/saheli/chat`,
+    { credentials: "include" },
+  );
+  return parseResponse<{
+    conversationId: string;
+    messages: SaheliMessage[];
+  }>(res);
+}
+
+export async function sendSaheliChat(
+  familyId: string,
+  recipientUserId: string,
+  message: string,
+) {
+  const res = await fetch(
+    `/api/families/${familyId}/recipients/${recipientUserId}/saheli/chat`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ message }),
+    },
+  );
+  return parseResponse<{ reply: string; conversationId: string }>(res);
+}
+
+export async function triggerSaheliCheckIn(
+  familyId: string,
+  recipientUserId: string,
+) {
+  const res = await fetch(
+    `/api/families/${familyId}/recipients/${recipientUserId}/saheli/check-in`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({}),
+    },
+  );
+  return parseResponse<{ reply: string; conversationId: string }>(res);
+}
+
+export async function getCaregiverSaheliChat(
+  familyId: string,
+  recipientUserId: string,
+) {
+  const res = await fetch(
+    `/api/families/${familyId}/recipients/${recipientUserId}/saheli/caregiver/chat`,
+    { credentials: "include" },
+  );
+  return parseResponse<{
+    conversationId: string;
+    messages: SaheliMessage[];
+  }>(res);
+}
+
+export async function sendCaregiverSaheliChat(
+  familyId: string,
+  recipientUserId: string,
+  message: string,
+) {
+  const res = await fetch(
+    `/api/families/${familyId}/recipients/${recipientUserId}/saheli/caregiver/chat`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ message }),
+    },
+  );
+  return parseResponse<{ reply: string; conversationId: string }>(res);
+}
+
+export async function getRecipientBriefing(
+  familyId: string,
+  recipientUserId: string,
+) {
+  const res = await fetch(
+    `/api/families/${familyId}/recipients/${recipientUserId}/briefing`,
+    { credentials: "include" },
+  );
+  return parseResponse<RecipientBriefing>(res);
+}
+
+export async function getRecipientLabs(familyId: string, recipientUserId: string) {
+  const res = await fetch(
+    `/api/families/${familyId}/recipients/${recipientUserId}/labs`,
+    { credentials: "include" },
+  );
+  return parseResponse<{ documents: LabDocument[] }>(res);
+}
+
+export async function uploadRecipientLab(
+  familyId: string,
+  recipientUserId: string,
+  payload: { title: string; rawText: string; kind?: string; recordDate?: string },
+) {
+  const res = await fetch(
+    `/api/families/${familyId}/recipients/${recipientUserId}/labs`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify(payload),
+    },
+  );
+  return parseResponse<{ document_id: string; title: string; kind: string }>(res);
+}

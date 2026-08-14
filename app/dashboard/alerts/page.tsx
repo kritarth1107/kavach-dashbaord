@@ -1,10 +1,5 @@
-import { DashboardSubPage } from "@/components/dashboard/dashboard-sub-page";
+import { ActivityLogPage } from "@/components/dashboard/alerts/activity-log-page";
 
-export default function AlertsPage() {
-  return (
-    <DashboardSubPage
-      title="Activity Log"
-      description="Daily alerts, escalations, and notification history will appear here."
-    />
-  );
+export default function Page() {
+  return <ActivityLogPage />;
 }

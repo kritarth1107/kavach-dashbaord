@@ -14,6 +14,7 @@ import {
 import type { FamilyMember } from "./family-data";
 import { formatDisplayName, formatPhone, getInitials } from "./family-data";
 import { useOptionalCareSchedule } from "./care-recipient-schedule-context";
+import { SaheliThreadPanel } from "./saheli-thread-panel";
 import {
   getActiveSchedulesForToday,
   getNextScheduleItem,
@@ -150,6 +151,14 @@ export function CareRecipientCaregiverRightPanel({ member }: { member: FamilyMem
         </div>
       </div>
 
+      {member.userId && (
+        <SaheliThreadPanel
+          recipientUserId={member.userId}
+          recipientName={firstName}
+          compact
+        />
+      )}
+
       <p className="mb-3 text-[12px] font-bold text-[#1a1a1a]">{firstName}&apos;s schedule today</p>
       <div className="panel-card mb-5 p-3">
         {scheduleCtx?.loading ? (
@@ -194,15 +203,15 @@ export function CareRecipientCaregiverRightPanel({ member }: { member: FamilyMem
           <ChevronRight className="h-4 w-4 text-[#c4c4c4]" strokeWidth={2} />
         </Link>
         <Link
-          href="/dashboard/chat"
+          href={`/dashboard/chat?recipient=${encodeURIComponent(member.userId ?? "")}`}
           className="flex items-center gap-3 rounded-xl p-2.5 transition-colors hover:bg-[#fafafa]"
         >
           <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#fef9c3]">
             <MessageSquare className="h-4 w-4 text-[#a16207]" strokeWidth={2} />
           </div>
           <div className="flex-1">
-            <p className="text-[12px] font-bold text-[#111827]">Message {firstName}</p>
-            <p className="text-[11px] text-[#9ca3af]">Care circle chat</p>
+            <p className="text-[12px] font-bold text-[#111827]">Ask Saheli about {firstName}</p>
+            <p className="text-[11px] text-[#9ca3af]">Chat as yourself</p>
           </div>
           <ChevronRight className="h-4 w-4 text-[#c4c4c4]" strokeWidth={2} />
         </Link>

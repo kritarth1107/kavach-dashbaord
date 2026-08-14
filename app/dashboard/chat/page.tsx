@@ -1,10 +1,10 @@
-import { DashboardSubPage } from "@/components/dashboard/dashboard-sub-page";
+import { Suspense } from "react";
+import { ChatPage } from "@/components/dashboard/chat/chat-page";
 
-export default function ChatPage() {
+export default function Page() {
   return (
-    <DashboardSubPage
-      title="Messages"
-      description="Family thread and Saheli activity log will be available here."
-    />
+    <Suspense fallback={null}>
+      <ChatPage />
+    </Suspense>
   );
 }

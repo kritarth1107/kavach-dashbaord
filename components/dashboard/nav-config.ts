@@ -38,10 +38,9 @@ export const navGroups: NavGroup[] = [
     items: [
       { label: "Family Members", href: "/dashboard/family", icon: Users },
       {
-        label: "Messages",
+        label: "Ask Saheli",
         href: "/dashboard/chat",
         icon: MessageSquare,
-        badge: "3",
       },
     ],
   },
@@ -87,7 +86,6 @@ export const recipientNavGroups: NavGroup[] = [
         label: "Messages",
         href: "/dashboard/chat",
         icon: MessageSquare,
-        badge: "3",
       },
     ],
   },

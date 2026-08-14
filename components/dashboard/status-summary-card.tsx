@@ -1,6 +1,14 @@
 import { Lock, Shield } from "lucide-react";
 
-export function StatusSummaryCard() {
+type StatusSummaryCardProps = {
+  statusLabel?: string;
+  detail?: string;
+};
+
+export function StatusSummaryCard({
+  statusLabel = "All Well",
+  detail = "Mrs. R · 2/2 meds · cheerful check-in",
+}: StatusSummaryCardProps) {
   return (
     <div className="lime-card relative flex h-full min-h-[220px] flex-col justify-between overflow-hidden p-6 shadow-[0_8px_24px_rgba(22,163,74,0.25)]">
       <div className="pointer-events-none absolute -right-8 -top-8 h-32 w-32 rounded-full bg-white/20 blur-2xl" />
@@ -14,19 +22,16 @@ export function StatusSummaryCard() {
         <p className="font-mono text-[13px] font-semibold tracking-[0.15em] text-white/70">
           SAHELI · CONNECTED
         </p>
-        <p className="mt-1 font-mono text-[14px] font-bold tracking-[0.2em] text-white/80">
-          •••• •••• 4891
-        </p>
       </div>
       <div className="relative">
         <p className="text-[11px] font-bold uppercase tracking-wider text-white/60">
           Today&apos;s status
         </p>
-        <p className="text-[2.4rem] font-extrabold leading-none tracking-[-0.04em] text-white">
-          All Well
+        <p className="text-[2rem] font-extrabold leading-none tracking-[-0.04em] text-white">
+          {statusLabel}
         </p>
-        <p className="mt-2 text-[12px] font-semibold text-white/75">
-          Mrs. R · 2/2 meds · cheerful check-in
+        <p className="mt-2 line-clamp-2 text-[12px] font-semibold text-white/75">
+          {detail}
         </p>
       </div>
     </div>

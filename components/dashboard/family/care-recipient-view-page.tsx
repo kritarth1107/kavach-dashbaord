@@ -8,6 +8,8 @@ import { getFamilyMembers } from "@/lib/api";
 import { useFamily } from "@/components/dashboard/family-context";
 import { RecipientDashboardHome } from "@/components/dashboard/recipient/recipient-dashboard-home";
 import { CareScheduleSection } from "@/components/dashboard/family/care-schedule-section";
+import { MorningBriefingCard } from "@/components/dashboard/family/morning-briefing-card";
+import { LabMemoryCard } from "@/components/dashboard/family/lab-memory-card";
 import {
   apiMemberToFamilyMember,
   isCareRecipientRole,
@@ -116,7 +118,21 @@ export function CareRecipientViewPage() {
         Family members
       </Link>
 
+      {member.userId && (
+        <MorningBriefingCard
+          recipientUserId={member.userId}
+          recipientName={subjectName}
+        />
+      )}
+
       <CareScheduleSection subjectName={subjectName} />
+
+      {member.userId && (
+        <LabMemoryCard
+          recipientUserId={member.userId}
+          recipientName={subjectName}
+        />
+      )}
 
       <RecipientDashboardHome
         subjectName={subjectName}
