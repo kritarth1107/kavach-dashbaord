@@ -47,7 +47,10 @@ export function ChatPage() {
 
     const list = data.members
       .map(apiMemberToFamilyMember)
-      .filter((m) => m.role === "care_recipient" && m.status === "joined")
+      .filter(
+        (m): m is typeof m & { userId: string } =>
+          m.role === "care_recipient" && m.status === "joined" && Boolean(m.userId),
+      )
       .map((m) => ({ userId: m.userId, name: m.name }));
 
     setRecipients(list);
