@@ -5,7 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import { getRecipientBriefing, type RecipientBriefing } from "@/lib/api";
 import { useFamily } from "@/components/dashboard/family-context";
 
-function formatWhen(iso: string | null) {
+export function formatWhen(iso: string | null) {
   if (!iso) return "Not yet";
   const at = new Date(iso);
   if (Number.isNaN(at.getTime())) return "Not yet";

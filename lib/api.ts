@@ -10,6 +10,32 @@ type ApiResponse<T> = {
   data?: T;
 };
 
+const GET_TIMEOUT_MS = 12_000;
+const WRITE_TIMEOUT_MS = 25_000;
+
+async function timedFetch(
+  input: string,
+  init: RequestInit = {},
+  timeoutMs = GET_TIMEOUT_MS,
+): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(input, {
+      ...init,
+      credentials: init.credentials ?? "include",
+      signal: controller.signal,
+    });
+  } catch (err) {
+    if (err instanceof Error && err.name === "AbortError") {
+      throw new Error("Saheli is taking too long. Memory may be offline.");
+    }
+    throw err;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 async function parseResponse<T>(res: Response): Promise<ApiResponse<T>> {
   const text = await res.text();
 
@@ -576,24 +602,28 @@ export type LabDocument = {
   kind: string;
   record_date: string | null;
   created_at: string | null;
+  snippet?: string | null;
 };
 
 export type FamilyOverview = {
   careRecipientCount: number;
   schedulesToday: number;
   checkInsToday: number;
+  completedToday: number;
   messagesToday: number;
   pendingApprovals: number;
   medAdherencePercent: number | null;
   lastSaheliReply: string | null;
+  lastHeardLine: string | null;
   lastActivityAt: string | null;
+  labCount: number;
   recipients: Array<{ userId: string; name: string }>;
   recentActivity: ActivityItem[];
 };
 
 export type ActivityItem = {
   id: string;
-  type: "message" | "schedule" | "check_in";
+  type: "message" | "schedule" | "check_in" | "lab";
   title: string;
   detail: string;
   recipientUserId: string;
@@ -603,23 +633,18 @@ export type ActivityItem = {
 };
 
 export async function getFamilyOverview(familyId: string) {
-  const res = await fetch(`/api/families/${familyId}/overview`, {
-    credentials: "include",
-  });
+  const res = await timedFetch(`/api/families/${familyId}/overview`);
   return parseResponse<FamilyOverview>(res);
 }
 
 export async function getFamilyActivity(familyId: string) {
-  const res = await fetch(`/api/families/${familyId}/activity`, {
-    credentials: "include",
-  });
+  const res = await timedFetch(`/api/families/${familyId}/activity`);
   return parseResponse<{ items: ActivityItem[] }>(res);
 }
 
 export async function getSaheliChat(familyId: string, recipientUserId: string) {
-  const res = await fetch(
+  const res = await timedFetch(
     `/api/families/${familyId}/recipients/${recipientUserId}/saheli/chat`,
-    { credentials: "include" },
   );
   return parseResponse<{
     conversationId: string;
@@ -632,14 +657,14 @@ export async function sendSaheliChat(
   recipientUserId: string,
   message: string,
 ) {
-  const res = await fetch(
+  const res = await timedFetch(
     `/api/families/${familyId}/recipients/${recipientUserId}/saheli/chat`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      credentials: "include",
       body: JSON.stringify({ message }),
     },
+    WRITE_TIMEOUT_MS,
   );
   return parseResponse<{ reply: string; conversationId: string }>(res);
 }
@@ -648,14 +673,14 @@ export async function triggerSaheliCheckIn(
   familyId: string,
   recipientUserId: string,
 ) {
-  const res = await fetch(
+  const res = await timedFetch(
     `/api/families/${familyId}/recipients/${recipientUserId}/saheli/check-in`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      credentials: "include",
       body: JSON.stringify({}),
     },
+    WRITE_TIMEOUT_MS,
   );
   return parseResponse<{ reply: string; conversationId: string }>(res);
 }
@@ -664,9 +689,8 @@ export async function getCaregiverSaheliChat(
   familyId: string,
   recipientUserId: string,
 ) {
-  const res = await fetch(
+  const res = await timedFetch(
     `/api/families/${familyId}/recipients/${recipientUserId}/saheli/caregiver/chat`,
-    { credentials: "include" },
   );
   return parseResponse<{
     conversationId: string;
@@ -679,14 +703,14 @@ export async function sendCaregiverSaheliChat(
   recipientUserId: string,
   message: string,
 ) {
-  const res = await fetch(
+  const res = await timedFetch(
     `/api/families/${familyId}/recipients/${recipientUserId}/saheli/caregiver/chat`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      credentials: "include",
       body: JSON.stringify({ message }),
     },
+    WRITE_TIMEOUT_MS,
   );
   return parseResponse<{ reply: string; conversationId: string }>(res);
 }
@@ -695,17 +719,15 @@ export async function getRecipientBriefing(
   familyId: string,
   recipientUserId: string,
 ) {
-  const res = await fetch(
+  const res = await timedFetch(
     `/api/families/${familyId}/recipients/${recipientUserId}/briefing`,
-    { credentials: "include" },
   );
   return parseResponse<RecipientBriefing>(res);
 }
 
 export async function getRecipientLabs(familyId: string, recipientUserId: string) {
-  const res = await fetch(
+  const res = await timedFetch(
     `/api/families/${familyId}/recipients/${recipientUserId}/labs`,
-    { credentials: "include" },
   );
   return parseResponse<{ documents: LabDocument[] }>(res);
 }
@@ -715,14 +737,14 @@ export async function uploadRecipientLab(
   recipientUserId: string,
   payload: { title: string; rawText: string; kind?: string; recordDate?: string },
 ) {
-  const res = await fetch(
+  const res = await timedFetch(
     `/api/families/${familyId}/recipients/${recipientUserId}/labs`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      credentials: "include",
       body: JSON.stringify(payload),
     },
+    WRITE_TIMEOUT_MS,
   );
   return parseResponse<{ document_id: string; title: string; kind: string }>(res);
 }

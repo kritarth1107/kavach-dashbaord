@@ -37,24 +37,41 @@ async function parseBackendJson(res: Response): Promise<BackendJson> {
   }
 }
 
+const GET_TIMEOUT_MS = 12_000;
+const WRITE_TIMEOUT_MS = 25_000;
+
 export async function fetchBackend(
   path: string,
   init?: RequestInit,
+  timeoutMs?: number,
 ): Promise<{ ok: boolean; status: number; json: BackendJson }> {
+  const method = (init?.method ?? "GET").toUpperCase();
+  const waitMs =
+    timeoutMs ?? (method === "GET" || method === "HEAD" ? GET_TIMEOUT_MS : WRITE_TIMEOUT_MS);
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), waitMs);
+
   try {
-    const res = await fetch(`${getBackendUrl()}${path}`, init);
+    const res = await fetch(`${getBackendUrl()}${path}`, {
+      ...init,
+      signal: controller.signal,
+    });
     const json = await parseBackendJson(res);
     return { ok: res.ok, status: res.status, json };
-  } catch {
+  } catch (err) {
+    const timedOut = err instanceof Error && err.name === "AbortError";
     return {
       ok: false,
       status: 503,
       json: {
         success: false,
-        message:
-          "Cannot reach the API server. Make sure the backend is running on port 5000.",
+        message: timedOut
+          ? "Saheli is taking too long. Memory may be offline."
+          : "Cannot reach the API server. Make sure the backend is running on port 5000.",
       },
     };
+  } finally {
+    clearTimeout(timer);
   }
 }
 

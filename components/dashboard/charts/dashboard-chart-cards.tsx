@@ -91,7 +91,7 @@ export function VitalsGridCard() {
   return (
     <div className="panel-card p-5">
       <p className="text-[13px] font-bold text-[#1a1a1a]">Vitals snapshot</p>
-      <p className="mb-4 text-[11px] text-[#9ca3af]">Latest readings · updated 2h ago</p>
+      <p className="mb-4 text-[11px] text-[#9ca3af]">Latest readings · this morning</p>
       <div className="grid grid-cols-2 gap-3">
         <MiniVitalBar label="Blood pressure" value="118/76" unit="mmHg" pct={72} color="#16a34a" />
         <MiniVitalBar label="Heart rate" value="72" unit="bpm" pct={65} color="#0d9488" />

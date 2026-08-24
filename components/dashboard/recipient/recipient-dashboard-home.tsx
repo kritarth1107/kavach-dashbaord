@@ -72,7 +72,7 @@ const personalLog = [
     icon: Sun,
     iconBg: "bg-[#fef9c3]",
     name: "Morning check-in",
-    date: "10 Aug 2026",
+    date: "25 Aug 2026",
     detail: "Cheerful · via Saheli",
     status: "Done",
   },
@@ -80,7 +80,7 @@ const personalLog = [
     icon: Pill,
     iconBg: "bg-[#ede9fe]",
     name: "Morning medicines",
-    date: "10 Aug 2026",
+    date: "25 Aug 2026",
     detail: "2 of 2 taken",
     status: "Done",
   },
@@ -96,7 +96,7 @@ const personalLog = [
     icon: Activity,
     iconBg: "bg-[#dcfce7]",
     name: "Blood pressure log",
-    date: "10 Aug 2026",
+    date: "25 Aug 2026",
     detail: "118/76 mmHg · normal",
     status: "Logged",
   },
@@ -257,9 +257,9 @@ export function RecipientDashboardHome({
         />
         <StatMetricCard
           label="Reports"
-          value="6"
+          value="39"
           sub={copy.reportsSub}
-          trend="2 new"
+          trend="Labs · scans · notes"
           icon={FileText}
           iconBg="bg-[#dbeafe] text-[#2563eb]"
         />

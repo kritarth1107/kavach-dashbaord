@@ -1,10 +1,5 @@
-import { DashboardSubPage } from "@/components/dashboard/dashboard-sub-page";
+import { ReportsPage } from "@/components/dashboard/reports-page";
 
-export default function ReportsPage() {
-  return (
-    <DashboardSubPage
-      title="Reports"
-      description="Medical reports, bills, and uploaded documents will appear here."
-    />
-  );
+export default function ReportsRoutePage() {
+  return <ReportsPage />;
 }

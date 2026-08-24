@@ -1,5 +1,6 @@
 import {
   ChevronDown,
+  FileText,
   Loader2,
   MessageSquare,
   MoreHorizontal,
@@ -15,13 +16,17 @@ function rowFromActivity(item: ActivityItem) {
       ? MessageSquare
       : item.type === "check_in"
         ? Sun
-        : Pill;
+        : item.type === "lab"
+          ? FileText
+          : Pill;
   const iconBg =
     item.type === "message"
       ? "bg-[#dcfce7]"
       : item.type === "check_in"
         ? "bg-[#fef9c3]"
-        : "bg-[#ede9fe]";
+        : item.type === "lab"
+          ? "bg-[#dbeafe]"
+          : "bg-[#ede9fe]";
   const statusClass =
     item.status === "scheduled" ? "status-pill-pending" : "status-pill-success";
   const status =
@@ -36,7 +41,9 @@ function rowFromActivity(item: ActivityItem) {
       ? "Saheli"
       : item.type === "check_in"
         ? "Check-in"
-        : "Schedule";
+        : item.type === "lab"
+          ? "Lab"
+          : "Schedule";
 
   return {
     icon,

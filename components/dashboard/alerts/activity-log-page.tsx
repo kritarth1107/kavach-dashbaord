@@ -1,6 +1,6 @@
 "use client";
 
-import { Loader2, MessageSquare, Pill, Sun } from "lucide-react";
+import { FileText, Loader2, MessageSquare, Pill, Sun } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { getFamilyActivity, type ActivityItem } from "@/lib/api";
@@ -9,12 +9,14 @@ import { useFamily } from "@/components/dashboard/family-context";
 function activityIcon(type: ActivityItem["type"]) {
   if (type === "message") return MessageSquare;
   if (type === "check_in") return Sun;
+  if (type === "lab") return FileText;
   return Pill;
 }
 
 function activityIconBg(type: ActivityItem["type"]) {
   if (type === "message") return "bg-[#dcfce7]";
   if (type === "check_in") return "bg-[#fef9c3]";
+  if (type === "lab") return "bg-[#dbeafe]";
   return "bg-[#ede9fe]";
 }
 
@@ -67,7 +69,7 @@ export function ActivityLogPage() {
       <div className="border-b border-[#f0f0f2] px-5 py-4">
         <h1 className="text-[16px] font-extrabold text-[#111827]">Activity Log</h1>
         <p className="text-[12px] text-[#9ca3af]">
-          Saheli messages and today&apos;s care schedule · reported only
+          Check-ins, medicines, labs, and Saheli messages for this family
         </p>
       </div>
 
