@@ -6,15 +6,26 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import { getFamilyMembers } from "@/lib/api";
 import { useFamily } from "@/components/dashboard/family-context";
-import { RecipientDashboardHome } from "@/components/dashboard/recipient/recipient-dashboard-home";
 import { CareScheduleSection } from "@/components/dashboard/family/care-schedule-section";
-import { MorningBriefingCard } from "@/components/dashboard/family/morning-briefing-card";
-import { LabMemoryCard } from "@/components/dashboard/family/lab-memory-card";
+import { CareRecipientOverview } from "@/components/dashboard/family/care-recipient-overview";
+import { SaheliThreadPanel } from "@/components/dashboard/family/saheli-thread-panel";
+import { HealthRecordsPanel } from "@/components/dashboard/health-records/health-records-panel";
 import {
   apiMemberToFamilyMember,
+  formatDisplayName,
   isCareRecipientRole,
   type FamilyMember,
 } from "./family-data";
+import { cn } from "@/lib/utils";
+
+const TABS = [
+  { id: "overview", label: "Overview" },
+  { id: "schedule", label: "Schedule" },
+  { id: "health", label: "Health records" },
+  { id: "saheli", label: "Saheli" },
+] as const;
+
+type TabId = (typeof TABS)[number]["id"];
 
 export function CareRecipientViewPage() {
   const params = useParams();
@@ -23,6 +34,7 @@ export function CareRecipientViewPage() {
   const [member, setMember] = useState<FamilyMember | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [tab, setTab] = useState<TabId>("overview");
 
   const loadMember = useCallback(async () => {
     if (!activeFamilyId || !userId) return;
@@ -66,6 +78,8 @@ export function CareRecipientViewPage() {
     if (!member) return "";
     return member.name.split(/\s+/)[0] || member.name;
   }, [member]);
+
+  const displayName = member ? formatDisplayName(member.prefix, member.name) : "";
 
   if (familyLoading || loading) {
     return (
@@ -112,32 +126,66 @@ export function CareRecipientViewPage() {
     <>
       <Link
         href="/dashboard/family"
-        className="mb-5 inline-flex items-center gap-1.5 text-[13px] font-semibold text-[#6b7280] transition-colors hover:text-primary"
+        className="mb-4 inline-flex items-center gap-1.5 text-[13px] font-semibold text-[#6b7280] transition-colors hover:text-primary"
       >
         <ArrowLeft className="h-4 w-4" strokeWidth={2.25} />
         Family members
       </Link>
 
-      {member.userId && (
-        <MorningBriefingCard
+      <div className="mb-5">
+        <h1 className="text-[1.35rem] font-extrabold tracking-[-0.02em] text-[#111827]">
+          {displayName}
+        </h1>
+        <p className="mt-1 text-[13px] text-[#6b7280]">
+          Care overview · {member.relationship !== "—" ? member.relationship : "Care recipient"}
+        </p>
+      </div>
+
+      <div className="mb-6 flex gap-1 overflow-x-auto rounded-xl border border-[#e5e7eb] bg-[#fafafa] p-1">
+        {TABS.map((t) => (
+          <button
+            key={t.id}
+            type="button"
+            onClick={() => setTab(t.id)}
+            className={cn(
+              "shrink-0 rounded-lg px-4 py-2 text-[13px] font-semibold transition-colors",
+              tab === t.id
+                ? "bg-white text-[#111827] shadow-sm"
+                : "text-[#6b7280] hover:text-[#111827]",
+            )}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {tab === "overview" && member.userId && (
+        <CareRecipientOverview
+          recipientUserId={member.userId}
+          recipientName={subjectName}
+          onOpenSchedule={() => setTab("schedule")}
+          onOpenHealth={() => setTab("health")}
+          onOpenSaheli={() => setTab("saheli")}
+        />
+      )}
+
+      {tab === "schedule" && <CareScheduleSection subjectName={subjectName} />}
+
+      {tab === "health" && member.userId && (
+        <HealthRecordsPanel
+          embedded
+          fixedRecipientUserId={member.userId}
+          fixedRecipientName={subjectName}
+          showAddForm
+        />
+      )}
+
+      {tab === "saheli" && member.userId && (
+        <SaheliThreadPanel
           recipientUserId={member.userId}
           recipientName={subjectName}
         />
       )}
-
-      <CareScheduleSection subjectName={subjectName} />
-
-      {member.userId && (
-        <LabMemoryCard
-          recipientUserId={member.userId}
-          recipientName={subjectName}
-        />
-      )}
-
-      <RecipientDashboardHome
-        subjectName={subjectName}
-        viewAsCaregiver
-      />
     </>
   );
 }

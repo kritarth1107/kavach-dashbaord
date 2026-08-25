@@ -603,6 +603,11 @@ export type LabDocument = {
   record_date: string | null;
   created_at: string | null;
   snippet?: string | null;
+  raw_text?: string | null;
+};
+
+export type LabDocumentDetail = LabDocument & {
+  raw_text: string;
 };
 
 export type FamilyOverview = {
@@ -747,4 +752,28 @@ export async function uploadRecipientLab(
     WRITE_TIMEOUT_MS,
   );
   return parseResponse<{ document_id: string; title: string; kind: string }>(res);
+}
+
+export async function getRecipientLabDetail(
+  familyId: string,
+  recipientUserId: string,
+  documentId: string,
+) {
+  const res = await timedFetch(
+    `/api/families/${familyId}/recipients/${recipientUserId}/labs/${documentId}`,
+  );
+  return parseResponse<LabDocumentDetail>(res);
+}
+
+export async function deleteRecipientLab(
+  familyId: string,
+  recipientUserId: string,
+  documentId: string,
+) {
+  const res = await timedFetch(
+    `/api/families/${familyId}/recipients/${recipientUserId}/labs/${documentId}`,
+    { method: "DELETE" },
+    WRITE_TIMEOUT_MS,
+  );
+  return parseResponse<{ deleted: boolean }>(res);
 }

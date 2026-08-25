@@ -45,7 +45,7 @@ function SaheliReply({ content }: { content: string }) {
   return (
     <div className="space-y-2.5">
       {chunks.map((chunk, i) => {
-        const fromMatch = chunk.match(/^(.*)\nFrom: “(.+)”\s*$/s);
+        const fromMatch = chunk.match(/^(.*)\nFrom: “(.+)”\s*$/);
         if (fromMatch) {
           return (
             <div key={i} className="space-y-1.5">

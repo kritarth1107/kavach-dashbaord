@@ -20,6 +20,7 @@ import type { FamilyMember, MemberFormData } from "./family-data";
 import { uiRoleToApi } from "./family-data";
 import { CareRecipientCard, MemberRow } from "./member-row";
 import { MemberFormModal } from "./member-form-modal";
+import { cn } from "@/lib/utils";
 import { useFamily } from "../family-context";
 
 function matchesSearch(member: FamilyMember, q: string) {
@@ -40,6 +41,7 @@ export function FamilyMembersPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
+  const [sectionFilter, setSectionFilter] = useState<"all" | "recipients" | "circle">("all");
   const [modalOpen, setModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<"invite" | "edit">("invite");
   const [editingMember, setEditingMember] = useState<FamilyMember | null>(null);
@@ -81,6 +83,9 @@ export function FamilyMembersPage() {
     () => (q ? circleMembers.filter((m) => matchesSearch(m, q)) : circleMembers),
     [circleMembers, q],
   );
+
+  const showRecipients = sectionFilter === "all" || sectionFilter === "recipients";
+  const showCircle = sectionFilter === "all" || sectionFilter === "circle";
 
   async function handleInvite(data: MemberFormData) {
     if (!activeFamilyId) return;
@@ -255,6 +260,31 @@ export function FamilyMembersPage() {
         </p>
       )}
 
+      <div className="mb-4 flex flex-wrap gap-2">
+        {(
+          [
+            { id: "all", label: "Everyone", count: members.length },
+            { id: "recipients", label: "Being cared for", count: careRecipients.length },
+            { id: "circle", label: "Care circle", count: circleMembers.length },
+          ] as const
+        ).map((chip) => (
+          <button
+            key={chip.id}
+            type="button"
+            onClick={() => setSectionFilter(chip.id)}
+            className={cn(
+              "rounded-full px-3.5 py-1.5 text-[12px] font-semibold transition-colors",
+              sectionFilter === chip.id
+                ? "bg-primary text-white"
+                : "bg-[#f3f4f6] text-[#6b7280] hover:bg-[#e5e7eb]",
+            )}
+          >
+            {chip.label}
+            <span className="ml-1 opacity-80">({chip.count})</span>
+          </button>
+        ))}
+      </div>
+
       <div className="mb-8 flex items-center gap-2 rounded-xl border border-[#e5e7eb] bg-[#fafafa] px-3.5 py-2.5 focus-within:border-primary focus-within:bg-white focus-within:ring-2 focus-within:ring-[var(--primary-ring)]">
         <Search className="h-4 w-4 shrink-0 text-[#9ca3af]" strokeWidth={2.25} />
         <input
@@ -266,6 +296,7 @@ export function FamilyMembersPage() {
         />
       </div>
 
+      {showRecipients && (
       <section className="mb-10">
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-[12px] font-bold uppercase tracking-wider text-[#9ca3af]">
@@ -307,7 +338,9 @@ export function FamilyMembersPage() {
           )}
         </div>
       </section>
+      )}
 
+      {showCircle && (
       <section>
         <div className="mb-3">
           <h2 className="text-[12px] font-bold uppercase tracking-wider text-[#9ca3af]">
@@ -340,6 +373,7 @@ export function FamilyMembersPage() {
           )}
         </div>
       </section>
+      )}
 
       <MemberFormModal
         key={editingMember?.id ?? "invite"}
