@@ -604,6 +604,12 @@ export type LabDocument = {
   created_at: string | null;
   snippet?: string | null;
   raw_text?: string | null;
+  source?: "text" | "file";
+  file_url?: string | null;
+  file_name?: string | null;
+  mime_type?: string | null;
+  file_size?: number | null;
+  storage_key?: string | null;
 };
 
 export type LabDocumentDetail = LabDocument & {
@@ -752,6 +758,35 @@ export async function uploadRecipientLab(
     WRITE_TIMEOUT_MS,
   );
   return parseResponse<{ document_id: string; title: string; kind: string }>(res);
+}
+
+export async function uploadRecipientLabFile(
+  familyId: string,
+  recipientUserId: string,
+  file: File,
+  payload: { title?: string; kind?: string; recordDate?: string },
+) {
+  const formData = new FormData();
+  formData.append("file", file);
+  if (payload.title) formData.append("title", payload.title);
+  if (payload.kind) formData.append("kind", payload.kind);
+  if (payload.recordDate) formData.append("recordDate", payload.recordDate);
+
+  const res = await timedFetch(
+    `/api/families/${familyId}/recipients/${recipientUserId}/labs/upload`,
+    {
+      method: "POST",
+      body: formData,
+    },
+    60_000,
+  );
+  return parseResponse<{
+    document_id: string;
+    title: string;
+    kind: string;
+    file_url?: string;
+    storage_key?: string;
+  }>(res);
 }
 
 export async function getRecipientLabDetail(

@@ -158,6 +158,30 @@ export async function proxyAuthGet(req: NextRequest, backendPath: string) {
   return NextResponse.json(json, { status: ok ? status : status === 503 ? 503 : status });
 }
 
+export async function proxyAuthFormPost(
+  req: NextRequest,
+  backendPath: string,
+  timeoutMs = 60_000,
+) {
+  const token = req.cookies.get(SESSION_COOKIE)?.value;
+  const formData = await req.formData();
+
+  const { ok, status, json } = await fetchBackend(
+    backendPath,
+    {
+      method: "POST",
+      headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        "x-fingerprint": "N/A",
+      },
+      body: formData,
+    },
+    timeoutMs,
+  );
+
+  return NextResponse.json(json, { status: ok ? status : status === 503 ? 503 : status });
+}
+
 export function clearSessionCookie(response: NextResponse) {
   response.cookies.set(SESSION_COOKIE, "", {
     ...sessionCookieOptions,

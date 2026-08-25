@@ -6,6 +6,7 @@ import {
   Plus,
   Search,
   Trash2,
+  Upload,
   X,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
@@ -15,6 +16,7 @@ import {
   getRecipientLabDetail,
   getRecipientLabs,
   uploadRecipientLab,
+  uploadRecipientLabFile,
   type LabDocument,
   type LabDocumentDetail,
 } from "@/lib/api";
@@ -89,6 +91,8 @@ export function HealthRecordsPanel({
   const [kind, setKind] = useState("lab");
   const [saving, setSaving] = useState(false);
   const [saveOk, setSaveOk] = useState("");
+  const [addMode, setAddMode] = useState<"file" | "text">("file");
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   const [detail, setDetail] = useState<LabDocumentDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
@@ -197,6 +201,32 @@ export function HealthRecordsPanel({
     }
   }
 
+  async function handleFileUpload(e: FormEvent) {
+    e.preventDefault();
+    if (!activeFamilyId || !addRecipientId || !selectedFile || saving) return;
+    setSaving(true);
+    setError("");
+    setSaveOk("");
+    try {
+      await uploadRecipientLabFile(activeFamilyId, addRecipientId, selectedFile, {
+        title: title.trim() || undefined,
+        kind,
+        recordDate: recordDate.trim() || undefined,
+      });
+      setTitle("");
+      setRecordDate("");
+      setKind("lab");
+      setSelectedFile(null);
+      setSaveOk("File uploaded to Cloudflare R2. Text was extracted when possible.");
+      if (!fixedRecipientUserId) setAddOpen(false);
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not upload file");
+    } finally {
+      setSaving(false);
+    }
+  }
+
   async function openDetail(row: HealthRecordRow) {
     if (!activeFamilyId) return;
     setDetailLoading(true);
@@ -298,17 +328,35 @@ export function HealthRecordsPanel({
         </div>
 
         {addOpen && showAddForm && (
-          <form onSubmit={(e) => void handleAdd(e)} className="rounded-xl border border-[#e5e7eb] bg-[#fafafa] p-4 space-y-3">
-            <div className="flex items-center justify-between">
+          <div className="rounded-xl border border-[#e5e7eb] bg-[#fafafa] p-4 space-y-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
               <p className="text-[13px] font-bold text-[#111827]">
                 Add for {addTargetName}
               </p>
-              {!fixedRecipientUserId && (
-                <button type="button" onClick={() => setAddOpen(false)} className="text-[#9ca3af]">
-                  <X className="h-4 w-4" />
+              <div className="flex gap-1 rounded-lg bg-white p-1">
+                <button
+                  type="button"
+                  onClick={() => setAddMode("file")}
+                  className={cn(
+                    "rounded-md px-3 py-1.5 text-[11px] font-semibold",
+                    addMode === "file" ? "bg-primary text-white" : "text-[#6b7280]",
+                  )}
+                >
+                  Upload file
                 </button>
-              )}
+                <button
+                  type="button"
+                  onClick={() => setAddMode("text")}
+                  className={cn(
+                    "rounded-md px-3 py-1.5 text-[11px] font-semibold",
+                    addMode === "text" ? "bg-primary text-white" : "text-[#6b7280]",
+                  )}
+                >
+                  Paste text
+                </button>
+              </div>
             </div>
+
             {!fixedRecipientUserId && recipients.length > 1 && (
               <select
                 value={addRecipientId}
@@ -324,6 +372,59 @@ export function HealthRecordsPanel({
                 ))}
               </select>
             )}
+
+            {addMode === "file" ? (
+              <form onSubmit={(e) => void handleFileUpload(e)} className="space-y-3">
+                <label className="flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-[#d1d5db] bg-white px-4 py-8 transition-colors hover:border-primary">
+                  <Upload className="mb-2 h-8 w-8 text-primary" />
+                  <p className="text-[13px] font-semibold text-[#111827]">
+                    {selectedFile ? selectedFile.name : "Choose PDF, image, or text file"}
+                  </p>
+                  <p className="mt-1 text-[11px] text-[#9ca3af]">
+                    Stored at cdn.kavach.care / familyId / filename
+                  </p>
+                  <input
+                    type="file"
+                    accept=".pdf,.txt,.png,.jpg,.jpeg,.webp,application/pdf,text/plain,image/*"
+                    className="hidden"
+                    onChange={(e) => setSelectedFile(e.target.files?.[0] ?? null)}
+                  />
+                </label>
+                <div className="grid gap-3 sm:grid-cols-3">
+                  <input
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    placeholder="Title (optional)"
+                    className="rounded-xl border border-[#e5e7eb] bg-white px-3 py-2 text-[13px] outline-none sm:col-span-2"
+                  />
+                  <select
+                    value={kind}
+                    onChange={(e) => setKind(e.target.value)}
+                    className="rounded-xl border border-[#e5e7eb] bg-white px-3 py-2 text-[13px] outline-none"
+                  >
+                    {HEALTH_RECORD_KINDS.filter((k) => k.value !== "all").map((k) => (
+                      <option key={k.value} value={k.value}>
+                        {k.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <input
+                  value={recordDate}
+                  onChange={(e) => setRecordDate(e.target.value)}
+                  placeholder="Record date (optional)"
+                  className="w-full rounded-xl border border-[#e5e7eb] bg-white px-3 py-2 text-[13px] outline-none"
+                />
+                <button
+                  type="submit"
+                  disabled={saving || !selectedFile || !addRecipientId}
+                  className="rounded-lg bg-primary px-4 py-2 text-[12px] font-bold text-white disabled:opacity-50"
+                >
+                  {saving ? "Uploading…" : "Upload to Cloudflare R2"}
+                </button>
+              </form>
+            ) : (
+          <form onSubmit={(e) => void handleAdd(e)} className="space-y-3">
             <div className="grid gap-3 sm:grid-cols-3">
               <input
                 value={title}
@@ -377,6 +478,8 @@ export function HealthRecordsPanel({
               )}
             </div>
           </form>
+            )}
+          </div>
         )}
       </div>
 
@@ -424,6 +527,17 @@ export function HealthRecordsPanel({
                     {doc.snippet}
                   </p>
                 )}
+                {doc.file_url && (
+                  <a
+                    href={doc.file_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={(e) => e.stopPropagation()}
+                    className="mt-1 inline-block text-[11px] font-semibold text-primary hover:underline"
+                  >
+                    Open file on CDN
+                  </a>
+                )}
               </button>
               <button
                 type="button"
@@ -466,9 +580,21 @@ export function HealthRecordsPanel({
                   <Loader2 className="h-6 w-6 animate-spin text-primary" />
                 </div>
               ) : (
-                <pre className="whitespace-pre-wrap font-sans text-[13px] leading-relaxed text-[#374151]">
-                  {detail?.raw_text}
-                </pre>
+                <>
+                  {detail?.file_url && (
+                    <a
+                      href={detail.file_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mb-4 inline-flex items-center gap-2 rounded-lg bg-[#f0fdf4] px-3 py-2 text-[12px] font-semibold text-primary hover:underline"
+                    >
+                      Open uploaded file
+                    </a>
+                  )}
+                  <pre className="whitespace-pre-wrap font-sans text-[13px] leading-relaxed text-[#374151]">
+                    {detail?.raw_text}
+                  </pre>
+                </>
               )}
             </div>
           </div>
