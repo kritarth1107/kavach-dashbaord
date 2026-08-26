@@ -4,6 +4,7 @@ import { useFamily } from "@/components/dashboard/family-context";
 import { isCareRecipientRole } from "@/components/dashboard/family/family-data";
 import { CaregiverDashboardHome } from "@/components/dashboard/caregiver/caregiver-dashboard-home";
 import { RecipientDashboardHome } from "@/components/dashboard/recipient/recipient-dashboard-home";
+import { RecipientDateProvider } from "@/components/dashboard/recipient/recipient-date-context";
 
 export function DashboardHome() {
   const { activeFamily, loading } = useFamily();
@@ -18,7 +19,11 @@ export function DashboardHome() {
   }
 
   if (isRecipient) {
-    return <RecipientDashboardHome />;
+    return (
+      <RecipientDateProvider>
+        <RecipientDashboardHome />
+      </RecipientDateProvider>
+    );
   }
 
   return <CaregiverDashboardHome />;

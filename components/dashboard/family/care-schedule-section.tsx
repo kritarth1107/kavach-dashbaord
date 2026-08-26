@@ -8,9 +8,12 @@ import { useCareSchedule } from "./care-recipient-schedule-context";
 import { CareScheduleModal } from "./care-schedule-modal";
 import {
   formatScheduleDays,
+  getActiveSchedulesForDate,
   getScheduleTypeMeta,
   sortSchedules,
 } from "./care-schedule-data";
+import { useOptionalRecipientDate } from "@/components/dashboard/recipient/recipient-date-context";
+import { formatDayLabel } from "@/lib/date-utils";
 
 type CareScheduleSectionProps = {
   subjectName: string;
@@ -19,6 +22,9 @@ type CareScheduleSectionProps = {
 export function CareScheduleSection({ subjectName }: CareScheduleSectionProps) {
   const { schedules, loading, saving, canManage, addSchedule, updateSchedule, removeSchedule } =
     useCareSchedule();
+  const dateCtx = useOptionalRecipientDate();
+  const selectedDate = dateCtx?.selectedDate ?? new Date();
+  const dateLabel = formatDayLabel(selectedDate);
   const [modalOpen, setModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<"add" | "edit">("add");
   const [editingItem, setEditingItem] = useState<CareScheduleItem | null>(null);
@@ -26,6 +32,14 @@ export function CareScheduleSection({ subjectName }: CareScheduleSectionProps) {
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const sortedSchedules = useMemo(() => sortSchedules(schedules), [schedules]);
+  const daySchedules = useMemo(
+    () => getActiveSchedulesForDate(schedules, selectedDate),
+    [schedules, selectedDate],
+  );
+  const dayScheduleIds = useMemo(
+    () => new Set(daySchedules.map((item) => item.scheduleId)),
+    [daySchedules],
+  );
   const activeCount = schedules.filter((item) => item.active).length;
 
   function openAddModal() {
@@ -70,8 +84,8 @@ export function CareScheduleSection({ subjectName }: CareScheduleSectionProps) {
             </h2>
             <p className="mt-0.5 text-[12px] text-[#6b7280]">
               {canManage
-                ? `Manage ${subjectName}'s medicines, check-ins, and reminders`
-                : `${subjectName}'s daily care reminders`}
+                ? `Manage ${subjectName}'s medicines, check-ins, and reminders · ${dateLabel}: ${daySchedules.length} active`
+                : `${subjectName}'s daily care reminders · ${dateLabel}: ${daySchedules.length} active`}
             </p>
           </div>
           {canManage && (
@@ -112,9 +126,9 @@ export function CareScheduleSection({ subjectName }: CareScheduleSectionProps) {
             </div>
           ) : (
             <>
-              <div className="flex items-center justify-between border-b border-[#f0f0f2] px-4 py-2.5">
+              <div className="flex items-center justify-between border-b border-[#f0f0f2] bg-[#fafafa] px-4 py-2.5">
                 <p className="text-[11px] font-semibold text-[#6b7280]">
-                  {activeCount} active · {sortedSchedules.length} total
+                  {dateLabel}: {daySchedules.length} on calendar · {activeCount} active total
                 </p>
                 {canManage && (
                   <button
@@ -138,6 +152,8 @@ export function CareScheduleSection({ subjectName }: CareScheduleSectionProps) {
                       className={cn(
                         "flex items-start gap-3 px-4 py-3.5",
                         !item.active && "opacity-60",
+                        dayScheduleIds.has(item.scheduleId) && "bg-[#f0fdf4]/60",
+                        !dayScheduleIds.has(item.scheduleId) && "opacity-50",
                       )}
                     >
                       <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#f5f5f7]">

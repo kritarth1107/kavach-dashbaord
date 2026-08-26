@@ -152,7 +152,7 @@ export function RecipientRightPanel() {
           className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg border border-[#e5e7eb] py-2 text-[11px] font-bold text-[#374151] hover:bg-[#fafafa]"
         >
           <Users className="h-3.5 w-3.5" strokeWidth={2} />
-          Message your family
+          Message Saheli
         </Link>
       </div>
 

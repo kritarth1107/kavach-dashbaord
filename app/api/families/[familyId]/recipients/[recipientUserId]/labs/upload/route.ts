@@ -10,5 +10,6 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
   return proxyAuthFormPost(
     req,
     `/api/families/${familyId}/recipients/${recipientUserId}/labs/upload`,
+    120_000,
   );
 }

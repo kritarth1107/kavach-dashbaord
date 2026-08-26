@@ -2,11 +2,12 @@
 
 import {
   ArrowUp,
-  FileText,
+  ExternalLink,
   Loader2,
   MessageSquare,
   Sparkles,
 } from "lucide-react";
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import {
@@ -25,56 +26,8 @@ import {
   isCareRecipientRole,
 } from "@/components/dashboard/family/family-data";
 import { formatWhen } from "@/components/dashboard/family/morning-briefing-card";
-
-const CAREGIVER_PROMPTS = [
-  "How is she today?",
-  "Last TSH on file?",
-  "Latest creatinine?",
-  "What reports are saved?",
-  "Latest PET-CT?",
-];
-
-const ELDER_PROMPTS = [
-  "I took Shelcal after lunch.",
-  "Feeling okay this morning.",
-  "BP done — 118/76.",
-];
-
-function SaheliReply({ content }: { content: string }) {
-  const chunks = content.split(/\n\n+/);
-  return (
-    <div className="space-y-2.5">
-      {chunks.map((chunk, i) => {
-        const fromMatch = chunk.match(/^(.*)\nFrom: “(.+)”\s*$/);
-        if (fromMatch) {
-          return (
-            <div key={i} className="space-y-1.5">
-              <p className="text-[13px] leading-relaxed text-[#111827]">{fromMatch[1]}</p>
-              <div className="flex items-start gap-2 rounded-xl border border-[#dcfce7] bg-[#f0fdf4] px-3 py-2">
-                <FileText className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" strokeWidth={2.25} />
-                <p className="text-[11px] font-semibold leading-snug text-[#166534]">
-                  {fromMatch[2]}
-                </p>
-              </div>
-            </div>
-          );
-        }
-        if (chunk.startsWith("Reported only")) {
-          return (
-            <p key={i} className="text-[11px] font-medium text-[#9ca3af]">
-              {chunk}
-            </p>
-          );
-        }
-        return (
-          <p key={i} className="whitespace-pre-wrap text-[13px] leading-relaxed text-[#111827]">
-            {chunk}
-          </p>
-        );
-      })}
-    </div>
-  );
-}
+import { buildChatPrompts } from "@/components/dashboard/chat/chat-prompts";
+import { SaheliReply } from "@/components/dashboard/chat/saheli-reply";
 
 export function ChatPage() {
   const searchParams = useSearchParams();
@@ -165,23 +118,34 @@ export function ChatPage() {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, sending]);
 
+  useEffect(() => {
+    const el = boxRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${Math.min(el.scrollHeight, 128)}px`;
+  }, [input]);
+
   const selectedName = useMemo(
     () => recipients.find((r) => r.userId === selectedRecipientId)?.name ?? "",
     [recipients, selectedRecipientId],
   );
 
-  const prompts = isRecipient ? ELDER_PROMPTS : CAREGIVER_PROMPTS;
+  const prompts = useMemo(
+    () => buildChatPrompts(isRecipient, selectedName, labs),
+    [isRecipient, selectedName, labs],
+  );
 
   async function sendText(text: string) {
     if (!activeFamilyId || !selectedRecipientId || !text.trim() || sending) return;
     const trimmed = text.trim();
+    const outgoingRole = isRecipient ? "elder" : "family";
     setInput("");
     setSending(true);
     setError("");
     setMessages((prev) => [
       ...prev,
       {
-        role: isRecipient ? "elder" : "family",
+        role: outgoingRole,
         content: trimmed,
         createdAt: new Date().toISOString(),
       },
@@ -197,8 +161,18 @@ export function ChatPage() {
           ...prev,
           { role: "saheli", content: data.reply, createdAt: new Date().toISOString() },
         ]);
+      } else {
+        await loadChat();
       }
     } catch (err) {
+      setMessages((prev) => {
+        const last = prev[prev.length - 1];
+        if (last?.role === outgoingRole && last.content === trimmed) {
+          return prev.slice(0, -1);
+        }
+        return prev;
+      });
+      setInput(trimmed);
       setError(err instanceof Error ? err.message : "Failed to send message");
     } finally {
       setSending(false);
@@ -215,64 +189,75 @@ export function ChatPage() {
 
   if (!activeFamilyId) {
     return (
-      <p className="py-12 text-center text-[13px] text-[#6b7280]">
+      <p className="py-12 text-center text-[13px] text-[var(--text-secondary)]">
         Select a family to view messages.
       </p>
     );
   }
 
   return (
-    <div className="flex min-h-[calc(100vh-8.5rem)] flex-col overflow-hidden rounded-2xl border border-[#f0f0f2] bg-white shadow-[0_8px_30px_rgba(17,24,39,0.04)]">
-      <div className="flex shrink-0 items-center justify-between gap-3 border-b border-[#f0f0f2] px-5 py-3.5">
+    <div className="flex min-h-[calc(100vh-8.5rem)] flex-col overflow-hidden rounded-2xl border border-[var(--border-strong)] bg-[var(--card)] shadow-[var(--shadow-soft)]">
+      <div className="flex shrink-0 items-center justify-between gap-3 border-b border-[var(--border-strong)] px-5 py-3.5">
         <div className="flex min-w-0 items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary text-white shadow-[0_6px_16px_rgba(22,163,74,0.35)]">
             <Sparkles className="h-4 w-4" strokeWidth={2.25} />
           </div>
           <div className="min-w-0">
-            <div className="flex items-center gap-2">
-              <h1 className="text-[15px] font-extrabold text-[#111827]">
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className="text-[15px] font-extrabold text-[var(--text-primary)]">
                 {isRecipient ? "Saheli" : "Ask Saheli"}
               </h1>
-              <span className="inline-flex items-center gap-1 rounded-full bg-[#dcfce7] px-2 py-0.5 text-[10px] font-bold text-primary">
+              <span className="inline-flex items-center gap-1 rounded-full bg-primary-light px-2 py-0.5 text-[10px] font-bold text-primary">
                 <span className="h-1.5 w-1.5 rounded-full bg-primary" />
-                Cites the record
+                {isRecipient ? "Your companion" : "Cites the record"}
               </span>
             </div>
-            <p className="truncate text-[12px] text-[#9ca3af]">
+            <p className="truncate text-[12px] text-[var(--text-tertiary)]">
               {isRecipient
-                ? "Your companion · saved exactly as you said it"
+                ? "Warm check-ins · grounded in your family record"
                 : selectedName
                   ? `${selectedName} · ${labs.length} reports on file`
                   : "Ask a printed value or how they are today"}
             </p>
           </div>
         </div>
-        {!isRecipient && recipients.length > 1 && (
-          <select
-            value={selectedRecipientId ?? ""}
-            onChange={(e) => setSelectedRecipientId(e.target.value)}
-            className="rounded-xl border border-[#e5e7eb] bg-[#fafafa] px-3 py-2 text-[12px] font-semibold"
-          >
-            {recipients.map((r) => (
-              <option key={r.userId} value={r.userId}>
-                {r.name}
-              </option>
-            ))}
-          </select>
-        )}
+        <div className="flex shrink-0 items-center gap-2">
+          {!isRecipient && selectedRecipientId && (
+            <Link
+              href={`/dashboard/family/${selectedRecipientId}/health-record`}
+              className="hidden items-center gap-1 rounded-xl border border-[var(--border-strong)] bg-[var(--input-bg)] px-3 py-2 text-[11px] font-semibold text-[var(--text-secondary)] transition-colors hover:border-primary hover:text-primary sm:inline-flex"
+            >
+              Health records
+              <ExternalLink className="h-3 w-3" />
+            </Link>
+          )}
+          {!isRecipient && recipients.length > 1 && (
+            <select
+              value={selectedRecipientId ?? ""}
+              onChange={(e) => setSelectedRecipientId(e.target.value)}
+              className="rounded-xl border border-[var(--border-strong)] bg-[var(--input-bg)] px-3 py-2 text-[12px] font-semibold text-[var(--text-primary)]"
+            >
+              {recipients.map((r) => (
+                <option key={r.userId} value={r.userId}>
+                  {r.name}
+                </option>
+              ))}
+            </select>
+          )}
+        </div>
       </div>
 
       {error && (
-        <div className="mx-5 mt-3 rounded-lg border border-[#fecaca] bg-[#fef2f2] px-4 py-3 text-[12px] text-[#b91c1c]">
+        <div className="mx-5 mt-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-[12px] text-red-700 dark:border-red-900/50 dark:bg-red-950/40 dark:text-red-300">
           {error}
         </div>
       )}
 
       {recipients.length === 0 && !loading && (
         <div className="flex flex-1 flex-col items-center justify-center p-8 text-center">
-          <MessageSquare className="mb-3 h-8 w-8 text-[#d1d5db]" />
-          <p className="text-[14px] font-bold text-[#111827]">No care recipient yet</p>
-          <p className="mt-1 text-[13px] text-[#9ca3af]">
+          <MessageSquare className="mb-3 h-8 w-8 text-[var(--text-tertiary)]" />
+          <p className="text-[14px] font-bold text-[var(--text-primary)]">No care recipient yet</p>
+          <p className="mt-1 text-[13px] text-[var(--text-tertiary)]">
             Add a care recipient under Family Members to start Saheli chat.
           </p>
         </div>
@@ -290,12 +275,12 @@ export function ChatPage() {
                 <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary-light text-primary">
                   <Sparkles className="h-6 w-6" strokeWidth={2.25} />
                 </div>
-                <p className="text-[16px] font-extrabold text-[#111827]">
+                <p className="text-[16px] font-extrabold text-[var(--text-primary)]">
                   {isRecipient ? "Say namaste" : `Ask about ${selectedName || "your parent"}`}
                 </p>
-                <p className="mt-1 max-w-sm text-[13px] leading-relaxed text-[#9ca3af]">
+                <p className="mt-1 max-w-sm text-[13px] leading-relaxed text-[var(--text-tertiary)]">
                   {isRecipient
-                    ? "Saheli will save what you say — nothing extra."
+                    ? "Saheli remembers your schedule and health records — and saves what you say."
                     : "Saheli cites what they last said and printed values from the record. No interpretation."}
                 </p>
               </div>
@@ -304,7 +289,7 @@ export function ChatPage() {
                 if (msg.role === "system") {
                   return (
                     <div key={`system-${i}`} className="flex justify-center">
-                      <p className="rounded-full bg-[#f3f4f6] px-3 py-1 text-[10px] font-semibold text-[#6b7280]">
+                      <p className="rounded-full bg-[var(--surface)] px-3 py-1 text-[10px] font-semibold text-[var(--text-secondary)]">
                         {msg.content}
                         {msg.createdAt ? ` · ${formatWhen(msg.createdAt)}` : ""}
                       </p>
@@ -328,12 +313,12 @@ export function ChatPage() {
                         className={`rounded-2xl px-4 py-3 ${
                           mine
                             ? "bg-primary text-white"
-                            : "border border-[#f0f0f2] bg-[#fafafa] text-[#111827]"
+                            : "border border-[var(--border-strong)] bg-[var(--input-bg)] text-[var(--text-primary)]"
                         }`}
                       >
                         <p
                           className={`mb-1.5 text-[10px] font-bold uppercase tracking-wide ${
-                            mine ? "text-white/70" : "text-[#9ca3af]"
+                            mine ? "text-white/70" : "text-[var(--text-tertiary)]"
                           }`}
                         >
                           {mine
@@ -359,7 +344,7 @@ export function ChatPage() {
                 <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-[10px] font-extrabold text-white">
                   S
                 </div>
-                <div className="flex items-center gap-1 rounded-2xl border border-[#f0f0f2] bg-[#fafafa] px-4 py-3">
+                <div className="flex items-center gap-1 rounded-2xl border border-[var(--border-strong)] bg-[var(--input-bg)] px-4 py-3">
                   <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-primary [animation-delay:-0.2s]" />
                   <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-primary [animation-delay:-0.1s]" />
                   <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-primary" />
@@ -369,7 +354,7 @@ export function ChatPage() {
             <div ref={bottomRef} />
           </div>
 
-          <div className="shrink-0 border-t border-[#f0f0f2] bg-white px-4 py-3">
+          <div className="shrink-0 border-t border-[var(--border-strong)] bg-[var(--card)] px-4 py-3">
             <div className="mb-2 flex gap-2 overflow-x-auto pb-1">
               {prompts.map((prompt) => (
                 <button
@@ -377,7 +362,7 @@ export function ChatPage() {
                   type="button"
                   onClick={() => void sendText(prompt)}
                   disabled={sending}
-                  className="shrink-0 rounded-full border border-[#e5e7eb] bg-[#fafafa] px-3 py-1.5 text-[11px] font-semibold text-[#374151] transition-colors hover:border-primary hover:bg-primary-light hover:text-primary disabled:opacity-50"
+                  className="shrink-0 rounded-full border border-[var(--border-strong)] bg-[var(--input-bg)] px-3 py-1.5 text-[11px] font-semibold text-[var(--text-secondary)] transition-colors hover:border-primary hover:bg-primary-light hover:text-primary disabled:opacity-50"
                 >
                   {prompt}
                 </button>
@@ -388,7 +373,7 @@ export function ChatPage() {
                 e.preventDefault();
                 void sendText(input);
               }}
-              className="flex items-end gap-2 rounded-2xl border border-[#e5e7eb] bg-[#fafafa] px-3 py-2 focus-within:border-primary"
+              className="flex items-end gap-2 rounded-2xl border border-[var(--border-strong)] bg-[var(--input-bg)] px-3 py-2 focus-within:border-primary"
             >
               <textarea
                 ref={boxRef}
@@ -399,9 +384,9 @@ export function ChatPage() {
                 placeholder={
                   isRecipient
                     ? "Message Saheli…"
-                    : `Ask about ${selectedName || "your parent"} — TSH, creatinine, how she is…`
+                    : `Ask about ${selectedName || "your parent"} — TSH, creatinine, how they are…`
                 }
-                className="max-h-32 flex-1 resize-none bg-transparent py-2 text-[13px] outline-none"
+                className="max-h-32 flex-1 resize-none bg-transparent py-2 text-[13px] text-[var(--text-primary)] outline-none placeholder:text-[var(--text-tertiary)]"
                 disabled={sending}
               />
               <button
@@ -417,8 +402,8 @@ export function ChatPage() {
                 )}
               </button>
             </form>
-            <p className="mt-2 text-center text-[10px] text-[#c4c4c4]">
-              Enter to send · Shift+Enter for a new line · printed values only
+            <p className="mt-2 text-center text-[10px] text-[var(--text-tertiary)]">
+              Enter to send · Shift+Enter for a new line · grounded in your family record
             </p>
           </div>
         </>

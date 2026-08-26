@@ -102,19 +102,30 @@ export function sortSchedules(items: CareScheduleItem[]) {
   });
 }
 
-export function getActiveSchedulesForToday(items: CareScheduleItem[]) {
-  const today = new Date().getDay();
+export function getActiveSchedulesForDate(items: CareScheduleItem[], date: Date) {
+  const day = date.getDay();
   return sortSchedules(
-    items.filter((item) => item.active && (!item.daysOfWeek.length || item.daysOfWeek.includes(today))),
+    items.filter((item) => item.active && (!item.daysOfWeek.length || item.daysOfWeek.includes(day))),
   );
 }
 
-export function getNextScheduleItem(items: CareScheduleItem[]) {
-  const todayItems = getActiveSchedulesForToday(items);
+export function getActiveSchedulesForToday(items: CareScheduleItem[]) {
+  return getActiveSchedulesForDate(items, new Date());
+}
+
+export function getNextScheduleItem(items: CareScheduleItem[], referenceDate?: Date) {
+  const ref = referenceDate ?? new Date();
+  const todayItems = getActiveSchedulesForDate(items, ref);
   if (!todayItems.length) return null;
 
-  const now = new Date();
-  const nowMinutes = now.getHours() * 60 + now.getMinutes();
+  const isToday =
+    ref.getFullYear() === new Date().getFullYear() &&
+    ref.getMonth() === new Date().getMonth() &&
+    ref.getDate() === new Date().getDate();
+
+  if (!isToday) return todayItems[0];
+
+  const nowMinutes = ref.getHours() * 60 + ref.getMinutes();
 
   function toMinutes(time: string) {
     const match = time.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
@@ -126,4 +137,23 @@ export function getNextScheduleItem(items: CareScheduleItem[]) {
   }
 
   return todayItems.find((item) => toMinutes(item.time) >= nowMinutes) ?? todayItems[0];
+}
+
+export function countSchedulesForDateRange(
+  items: CareScheduleItem[],
+  endDate: Date,
+  days: number,
+) {
+  const counts: number[] = [];
+  for (let i = days - 1; i >= 0; i--) {
+    const date = new Date(endDate);
+    date.setDate(endDate.getDate() - i);
+    date.setHours(0, 0, 0, 0);
+    counts.push(getActiveSchedulesForDate(items, date).length);
+  }
+  return counts;
+}
+
+export function countMedicineSchedulesForDate(items: CareScheduleItem[], date: Date) {
+  return getActiveSchedulesForDate(items, date).filter((item) => item.type === "MEDICINE").length;
 }

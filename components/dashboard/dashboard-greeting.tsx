@@ -26,7 +26,7 @@ function getDisplayName(fullName: string, firstName?: string): string {
 
 const subtitles = {
   caregiver:
-    "Mama is doing well today — morning check-in was cheerful and both medicines are taken. One grocery payment needs your approval.",
+    "Mama's 10 o'clock check-in came through cheerful. 2 of 3 morning medicines are confirmed — Tab Perinorm 10mg is still unconfirmed after a second nudge. One Zepto payment needs your approval.",
   recipient:
     "Here is your care summary for today — check-ins, medicines, and reports in one place. Your family is kept in the loop automatically.",
 } as const;

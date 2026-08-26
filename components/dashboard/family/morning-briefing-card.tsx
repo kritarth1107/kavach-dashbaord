@@ -1,9 +1,13 @@
 "use client";
 
 import { Loader2, Sun } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { getRecipientBriefing, type RecipientBriefing } from "@/lib/api";
 import { useFamily } from "@/components/dashboard/family-context";
+import { useOptionalCareSchedule } from "./care-recipient-schedule-context";
+import { getActiveSchedulesForDate } from "./care-schedule-data";
+import { useOptionalRecipientDate } from "@/components/dashboard/recipient/recipient-date-context";
+import { formatDayLabel, isIsoOnDate } from "@/lib/date-utils";
 
 export function formatWhen(iso: string | null) {
   if (!iso) return "Not yet";
@@ -30,11 +34,24 @@ export function MorningBriefingCard({
   recipientName: string;
 }) {
   const { activeFamilyId } = useFamily();
+  const dateCtx = useOptionalRecipientDate();
+  const scheduleCtx = useOptionalCareSchedule();
+  const selectedDate = dateCtx?.selectedDate ?? new Date();
+  const isToday = dateCtx?.isToday ?? true;
   const [briefing, setBriefing] = useState<RecipientBriefing | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const daySchedules = useMemo(() => {
+    if (!scheduleCtx) return [];
+    return getActiveSchedulesForDate(scheduleCtx.schedules, selectedDate);
+  }, [scheduleCtx, selectedDate]);
+
   const load = useCallback(async () => {
-    if (!activeFamilyId || !recipientUserId) return;
+    if (!activeFamilyId || !recipientUserId || !isToday) {
+      setBriefing(null);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
       const { data } = await getRecipientBriefing(activeFamilyId, recipientUserId);
@@ -44,11 +61,16 @@ export function MorningBriefingCard({
     } finally {
       setLoading(false);
     }
-  }, [activeFamilyId, recipientUserId]);
+  }, [activeFamilyId, recipientUserId, isToday]);
 
   useEffect(() => {
     void load();
   }, [load]);
+
+  const dateLabel = formatDayLabel(selectedDate);
+  const pendingCount = isToday
+    ? (briefing?.unconfirmedItems.length ?? 0)
+    : daySchedules.length;
 
   return (
     <section className="panel-card mb-6 overflow-hidden">
@@ -56,13 +78,13 @@ export function MorningBriefingCard({
         <Sun className="h-4 w-4 text-primary" strokeWidth={2.25} />
         <div>
           <h2 className="text-[15px] font-extrabold text-[#111827]">
-            {recipientName}&apos;s morning briefing
+            {recipientName}&apos;s briefing · {dateLabel}
           </h2>
           <p className="text-[12px] text-[#9ca3af]">Reported only · not a diagnosis</p>
         </div>
       </div>
 
-      {loading ? (
+      {loading && isToday ? (
         <div className="flex justify-center py-10">
           <Loader2 className="h-5 w-5 animate-spin text-primary" />
         </div>
@@ -73,32 +95,43 @@ export function MorningBriefingCard({
               Last heard
             </p>
             <p className="mt-1 text-[13px] font-bold text-[#111827]">
-              {formatWhen(briefing?.lastHeardAt ?? null)}
+              {isToday
+                ? formatWhen(briefing?.lastHeardAt ?? null)
+                : briefing?.lastHeardAt &&
+                    isIsoOnDate(briefing.lastHeardAt, selectedDate)
+                  ? formatWhen(briefing.lastHeardAt)
+                  : "—"}
             </p>
             <p className="mt-1 text-[12px] leading-relaxed text-[#6b7280]">
-              {briefing?.lastHeardLine
+              {isToday && briefing?.lastHeardLine
                 ? `“${briefing.lastHeardLine.slice(0, 140)}${briefing.lastHeardLine.length > 140 ? "…" : ""}”`
-                : `${recipientName} has not spoken to Saheli yet.`}
+                : isToday
+                  ? `${recipientName} has not spoken to Saheli yet.`
+                  : `Saheli activity for ${dateLabel.toLowerCase()}.`}
             </p>
           </div>
           <div>
             <p className="text-[10px] font-bold uppercase tracking-wide text-[#9ca3af]">
-              Last check-in
+              {isToday ? "Last check-in" : "Care tasks"}
             </p>
             <p className="mt-1 text-[13px] font-bold text-[#111827]">
-              {formatWhen(briefing?.lastCheckInAt ?? null)}
+              {isToday
+                ? formatWhen(briefing?.lastCheckInAt ?? null)
+                : `${daySchedules.length} scheduled`}
             </p>
             <p className="mt-1 text-[12px] text-[#6b7280]">
-              {briefing?.todayItems.length
-                ? `${briefing.todayItems.length} item${briefing.todayItems.length === 1 ? "" : "s"} on today’s list`
-                : "Nothing on today’s care list"}
+              {isToday
+                ? daySchedules.length
+                  ? `${daySchedules.length} item${daySchedules.length === 1 ? "" : "s"} on ${dateLabel.toLowerCase()}’s list`
+                  : "Nothing on today’s care list"
+                : `${daySchedules.filter((s) => s.type === "MEDICINE").length} medicines · ${daySchedules.filter((s) => s.type === "CHECK_IN").length} check-ins`}
             </p>
           </div>
           <div>
             <p className="text-[10px] font-bold uppercase tracking-wide text-[#9ca3af]">
-              Not confirmed yet
+              {isToday ? "Not confirmed yet" : "Schedule snapshot"}
             </p>
-            {briefing?.unconfirmedItems.length ? (
+            {isToday && briefing?.unconfirmedItems.length ? (
               <ul className="mt-1 space-y-1">
                 {briefing.unconfirmedItems.slice(0, 4).map((item) => (
                   <li key={`${item.title}-${item.time}`} className="text-[12px] text-[#111827]">
@@ -111,9 +144,20 @@ export function MorningBriefingCard({
                   </li>
                 ))}
               </ul>
+            ) : !isToday && daySchedules.length ? (
+              <ul className="mt-1 space-y-1">
+                {daySchedules.slice(0, 4).map((item) => (
+                  <li key={item.scheduleId} className="text-[12px] text-[#111827]">
+                    <span className="font-semibold">{item.title}</span>
+                    <span className="text-[#9ca3af]"> · {item.time}</span>
+                  </li>
+                ))}
+              </ul>
             ) : (
               <p className="mt-1 text-[12px] text-[#6b7280]">
-                Nothing past due — or no schedule today.
+                {pendingCount
+                  ? `${pendingCount} item${pendingCount === 1 ? "" : "s"} still open`
+                  : "Nothing scheduled for this day."}
               </p>
             )}
           </div>

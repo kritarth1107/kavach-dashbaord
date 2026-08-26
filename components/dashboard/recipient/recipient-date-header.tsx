@@ -2,65 +2,20 @@
 
 import { Calendar, ChevronLeft, ChevronRight } from "lucide-react";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { getMe } from "@/lib/api";
 import { cn } from "@/lib/utils";
-
-function startOfDay(date: Date) {
-  const d = new Date(date);
-  d.setHours(0, 0, 0, 0);
-  return d;
-}
-
-function startOfToday() {
-  return startOfDay(new Date());
-}
-
-function addDays(date: Date, delta: number) {
-  const d = new Date(date);
-  d.setDate(d.getDate() + delta);
-  d.setHours(0, 0, 0, 0);
-  return d;
-}
-
-function isSameDay(a: Date, b: Date) {
-  return (
-    a.getFullYear() === b.getFullYear() &&
-    a.getMonth() === b.getMonth() &&
-    a.getDate() === b.getDate()
-  );
-}
-
-function isSameMonth(a: Date, b: Date) {
-  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth();
-}
-
-function isBeforeDay(a: Date, b: Date) {
-  return startOfDay(a).getTime() < startOfDay(b).getTime();
-}
-
-function isAfterDay(a: Date, b: Date) {
-  return startOfDay(a).getTime() > startOfDay(b).getTime();
-}
-
-function isDateSelectable(date: Date, minDate: Date | null, maxDate: Date) {
-  if (isAfterDay(date, maxDate)) return false;
-  if (minDate && isBeforeDay(date, minDate)) return false;
-  return true;
-}
-
-function startOfWeek(date: Date) {
-  const d = startOfDay(date);
-  const day = d.getDay();
-  const mondayOffset = day === 0 ? -6 : 1 - day;
-  d.setDate(d.getDate() + mondayOffset);
-  return d;
-}
+import {
+  addDays,
+  isDateSelectable,
+  isSameDay,
+  isSameMonth,
+  startOfDay,
+  startOfWeek,
+} from "@/lib/date-utils";
+import { useRecipientDate } from "./recipient-date-context";
 
 function buildMonthDays(year: number, month: number) {
   const count = new Date(year, month + 1, 0).getDate();
-  return Array.from({ length: count }, (_, i) => {
-    return startOfDay(new Date(year, month, i + 1));
-  });
+  return Array.from({ length: count }, (_, i) => startOfDay(new Date(year, month, i + 1)));
 }
 
 function buildMonthGrid(viewMonth: Date) {
@@ -71,12 +26,6 @@ function buildMonthGrid(viewMonth: Date) {
 
 function dateKey(date: Date) {
   return `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
-}
-
-function parseAccountMinDate(iso?: string) {
-  if (!iso) return null;
-  const parsed = startOfDay(new Date(iso));
-  return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
 
 function CalendarPopover({
@@ -135,9 +84,7 @@ function CalendarPopover({
         <button
           type="button"
           onClick={() =>
-            setViewMonth(
-              (prev) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1),
-            )
+            setViewMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1))
           }
           className="flex h-7 w-7 items-center justify-center rounded-lg text-[#6b7280] hover:bg-[#f5f5f7]"
           aria-label="Previous month"
@@ -148,9 +95,7 @@ function CalendarPopover({
         <button
           type="button"
           onClick={() =>
-            setViewMonth(
-              (prev) => new Date(prev.getFullYear(), prev.getMonth() + 1, 1),
-            )
+            setViewMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() + 1, 1))
           }
           className="flex h-7 w-7 items-center justify-center rounded-lg text-[#6b7280] hover:bg-[#f5f5f7]"
           aria-label="Next month"
@@ -207,45 +152,25 @@ function CalendarPopover({
 }
 
 export function RecipientDateHeader() {
-  const today = useMemo(startOfToday, []);
-  const [selected, setSelected] = useState(startOfToday);
-  const [minDate, setMinDate] = useState<Date | null>(null);
+  const { selectedDate, setSelectedDate, today, minDate, isToday, shiftDay, goToToday } =
+    useRecipientDate();
   const [calendarOpen, setCalendarOpen] = useState(false);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const dayRefs = useRef(new Map<string, HTMLButtonElement>());
 
-  useEffect(() => {
-    getMe()
-      .then(({ data }) => {
-        const accountMin = parseAccountMinDate(data?.user?.createdAt);
-        if (accountMin) {
-          setMinDate(accountMin);
-          setSelected((current) =>
-            isBeforeDay(current, accountMin)
-              ? accountMin
-              : isAfterDay(current, today)
-                ? today
-                : current,
-          );
-        }
-      })
-      .catch(() => undefined);
-  }, [today]);
-
-  const bounds = minDate;
   const days = useMemo(
-    () => buildMonthDays(selected.getFullYear(), selected.getMonth()),
-    [selected],
+    () => buildMonthDays(selectedDate.getFullYear(), selectedDate.getMonth()),
+    [selectedDate],
   );
 
-  const monthLabel = selected.toLocaleDateString("en-IN", {
+  const monthLabel = selectedDate.toLocaleDateString("en-IN", {
     month: "long",
     year: "numeric",
   });
 
-  const canGoPrev = isDateSelectable(addDays(selected, -1), bounds, today);
-  const canGoNext = isDateSelectable(addDays(selected, 1), bounds, today);
+  const canGoPrev = isDateSelectable(addDays(selectedDate, -1), minDate, today);
+  const canGoNext = isDateSelectable(addDays(selectedDate, 1), minDate, today);
 
   function centerDate(date: Date, smooth = true) {
     const el = dayRefs.current.get(dateKey(date));
@@ -260,23 +185,8 @@ export function RecipientDateHeader() {
   }
 
   useLayoutEffect(() => {
-    centerDate(selected, false);
-  }, [selected, days]);
-
-  function selectDate(date: Date) {
-    if (!isDateSelectable(date, bounds, today)) return;
-    setSelected(startOfDay(date));
-  }
-
-  function shiftDay(delta: number) {
-    const next = addDays(selected, delta);
-    if (!isDateSelectable(next, bounds, today)) return;
-    setSelected(next);
-  }
-
-  function goToToday() {
-    setSelected(today);
-  }
+    centerDate(selectedDate, false);
+  }, [selectedDate, days]);
 
   return (
     <div className="mb-6">
@@ -292,7 +202,7 @@ export function RecipientDateHeader() {
             <Calendar className="h-4 w-4 text-primary" strokeWidth={2.25} />
             {monthLabel}
           </button>
-          {!isSameDay(selected, today) && (
+          {!isToday && (
             <button
               type="button"
               onClick={goToToday}
@@ -305,10 +215,10 @@ export function RecipientDateHeader() {
         <CalendarPopover
           open={calendarOpen}
           onClose={() => setCalendarOpen(false)}
-          selected={selected}
-          minDate={bounds}
+          selected={selectedDate}
+          minDate={minDate}
           maxDate={today}
-          onSelect={selectDate}
+          onSelect={setSelectedDate}
         />
       </div>
 
@@ -333,9 +243,9 @@ export function RecipientDateHeader() {
           className="no-scrollbar flex min-w-0 flex-1 gap-0.5 overflow-x-auto scroll-smooth pb-0.5"
         >
           {days.map((date) => {
-            const active = isSameDay(date, selected);
-            const isToday = isSameDay(date, today);
-            const selectable = isDateSelectable(date, bounds, today);
+            const active = isSameDay(date, selectedDate);
+            const isTodayDate = isSameDay(date, today);
+            const selectable = isDateSelectable(date, minDate, today);
 
             return (
               <button
@@ -347,7 +257,7 @@ export function RecipientDateHeader() {
                 }}
                 type="button"
                 disabled={!selectable}
-                onClick={() => selectDate(date)}
+                onClick={() => setSelectedDate(date)}
                 className={cn(
                   "flex w-[46px] shrink-0 flex-col items-center rounded-xl py-2 transition-all",
                   !selectable && "cursor-not-allowed opacity-35",
@@ -368,7 +278,7 @@ export function RecipientDateHeader() {
                   {date.getDate()}
                 </span>
                 <span className="mt-1 flex h-1 w-1 items-center justify-center">
-                  {isToday && (
+                  {isTodayDate && (
                     <span
                       className={cn(
                         "h-1 w-1 rounded-full",

@@ -610,6 +610,10 @@ export type LabDocument = {
   mime_type?: string | null;
   file_size?: number | null;
   storage_key?: string | null;
+  ai_summary?: string | null;
+  tags?: string[];
+  highlights?: string[];
+  analysis_status?: "pending" | "ready" | "failed" | null;
 };
 
 export type LabDocumentDetail = LabDocument & {
@@ -746,7 +750,7 @@ export async function getRecipientLabs(familyId: string, recipientUserId: string
 export async function uploadRecipientLab(
   familyId: string,
   recipientUserId: string,
-  payload: { title: string; rawText: string; kind?: string; recordDate?: string },
+  payload: { title?: string; rawText: string; kind?: string; recordDate?: string },
 ) {
   const res = await timedFetch(
     `/api/families/${familyId}/recipients/${recipientUserId}/labs`,
@@ -758,6 +762,42 @@ export async function uploadRecipientLab(
     WRITE_TIMEOUT_MS,
   );
   return parseResponse<{ document_id: string; title: string; kind: string }>(res);
+}
+
+export async function uploadRecipientLabFiles(
+  familyId: string,
+  recipientUserId: string,
+  files: File[],
+  payload: { kind?: string; recordDate?: string },
+) {
+  const formData = new FormData();
+  for (const file of files) {
+    formData.append("files", file);
+  }
+  if (payload.kind) formData.append("kind", payload.kind);
+  if (payload.recordDate) formData.append("recordDate", payload.recordDate);
+
+  const res = await timedFetch(
+    `/api/families/${familyId}/recipients/${recipientUserId}/labs/upload`,
+    {
+      method: "POST",
+      body: formData,
+    },
+    120_000,
+  );
+  return parseResponse<{
+    uploaded: Array<{
+      document_id: string;
+      title: string;
+      kind: string;
+      file_url?: string;
+      ai_summary?: string | null;
+      tags?: string[];
+      analysis_status?: string;
+    }>;
+    failed: Array<{ file_name: string; error: string }>;
+    count: number;
+  }>(res);
 }
 
 export async function uploadRecipientLabFile(
@@ -786,7 +826,57 @@ export async function uploadRecipientLabFile(
     kind: string;
     file_url?: string;
     storage_key?: string;
+    ai_summary?: string | null;
+    tags?: string[];
+    analysis_status?: string;
   }>(res);
+}
+
+export function getRecipientLabDownloadPath(
+  familyId: string,
+  recipientUserId: string,
+  documentId: string,
+) {
+  return `/api/families/${familyId}/recipients/${recipientUserId}/labs/${documentId}/download`;
+}
+
+export async function downloadRecipientLabFile(
+  familyId: string,
+  recipientUserId: string,
+  documentId: string,
+  fileName?: string | null,
+) {
+  const res = await timedFetch(
+    getRecipientLabDownloadPath(familyId, recipientUserId, documentId),
+    { method: "GET" },
+    60_000,
+  );
+
+  if (!res.ok) {
+    let message = "Could not download file";
+    try {
+      const json = (await res.json()) as { message?: string };
+      message = json.message || message;
+    } catch {
+      /* binary error body */
+    }
+    throw new Error(message);
+  }
+
+  const blob = await res.blob();
+  const disposition = res.headers.get("content-disposition") || "";
+  const match = disposition.match(/filename=\"?([^\";\n]+)\"?/i);
+  const name = fileName || (match ? decodeURIComponent(match[1]) : "report");
+
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = name;
+  anchor.rel = "noopener";
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  URL.revokeObjectURL(url);
 }
 
 export async function getRecipientLabDetail(

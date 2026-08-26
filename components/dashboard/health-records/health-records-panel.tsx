@@ -7,16 +7,19 @@ import {
   Search,
   Trash2,
   Upload,
+  Download,
   X,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 import {
   deleteRecipientLab,
+  downloadRecipientLabFile,
   getFamilyMembers,
   getRecipientLabDetail,
   getRecipientLabs,
   uploadRecipientLab,
   uploadRecipientLabFile,
+  uploadRecipientLabFiles,
   type LabDocument,
   type LabDocumentDetail,
 } from "@/lib/api";
@@ -46,8 +49,12 @@ type HealthRecordsPanelProps = {
   fixedRecipientName?: string;
   /** Hide the page title block when embedded in a tab. */
   embedded?: boolean;
+  /** Tighter layout for member profile scroll view. */
+  compact?: boolean;
   /** Show compact add form at top. */
   showAddForm?: boolean;
+  /** Called after records are added, updated, or deleted. */
+  onRecordsChange?: () => void;
 };
 
 function kindLabel(kind: string) {
@@ -69,7 +76,9 @@ export function HealthRecordsPanel({
   fixedRecipientUserId,
   fixedRecipientName,
   embedded = false,
+  compact = false,
   showAddForm = true,
+  onRecordsChange,
 }: HealthRecordsPanelProps) {
   const { activeFamilyId, activeFamily, userId } = useFamily();
   const isRecipient = isCareRecipientRole(activeFamily?.role);
@@ -83,20 +92,21 @@ export function HealthRecordsPanel({
   const [kindFilter, setKindFilter] = useState("all");
   const [recipientFilter, setRecipientFilter] = useState(fixedRecipientUserId ?? "all");
 
-  const [addOpen, setAddOpen] = useState(showAddForm && Boolean(fixedRecipientUserId));
+  const [addOpen, setAddOpen] = useState(
+    showAddForm && Boolean(fixedRecipientUserId) && !compact,
+  );
   const [addRecipientId, setAddRecipientId] = useState(fixedRecipientUserId ?? "");
-  const [title, setTitle] = useState("");
   const [rawText, setRawText] = useState("");
-  const [recordDate, setRecordDate] = useState("");
-  const [kind, setKind] = useState("lab");
   const [saving, setSaving] = useState(false);
   const [saveOk, setSaveOk] = useState("");
   const [addMode, setAddMode] = useState<"file" | "text">("file");
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
 
   const [detail, setDetail] = useState<LabDocumentDetail | null>(null);
+  const [detailRecipientUserId, setDetailRecipientUserId] = useState("");
   const [detailLoading, setDetailLoading] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     if (!activeFamilyId) {
@@ -176,24 +186,19 @@ export function HealthRecordsPanel({
 
   async function handleAdd(e: FormEvent) {
     e.preventDefault();
-    if (!activeFamilyId || !addRecipientId || saving) return;
+    if (!activeFamilyId || !addRecipientId || !rawText.trim() || saving) return;
     setSaving(true);
     setError("");
     setSaveOk("");
     try {
       await uploadRecipientLab(activeFamilyId, addRecipientId, {
-        title: title.trim(),
         rawText: rawText.trim(),
-        kind,
-        recordDate: recordDate.trim() || undefined,
       });
-      setTitle("");
       setRawText("");
-      setRecordDate("");
-      setKind("lab");
-      setSaveOk("Saved. Saheli can now cite these printed values.");
+      setSaveOk("Saved. Saheli detected title, type, and date automatically.");
       if (!fixedRecipientUserId) setAddOpen(false);
       await load();
+      onRecordsChange?.();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not save record");
     } finally {
@@ -203,34 +208,71 @@ export function HealthRecordsPanel({
 
   async function handleFileUpload(e: FormEvent) {
     e.preventDefault();
-    if (!activeFamilyId || !addRecipientId || !selectedFile || saving) return;
+    if (!activeFamilyId || !addRecipientId || !selectedFiles.length || saving) return;
     setSaving(true);
     setError("");
     setSaveOk("");
     try {
-      await uploadRecipientLabFile(activeFamilyId, addRecipientId, selectedFile, {
-        title: title.trim() || undefined,
-        kind,
-        recordDate: recordDate.trim() || undefined,
-      });
-      setTitle("");
-      setRecordDate("");
-      setKind("lab");
-      setSelectedFile(null);
-      setSaveOk("File uploaded to Cloudflare R2. Text was extracted when possible.");
+      if (selectedFiles.length === 1) {
+        await uploadRecipientLabFile(activeFamilyId, addRecipientId, selectedFiles[0], {});
+        setSaveOk("Uploaded. Saheli detected title, type, and date automatically.");
+      } else {
+        const { data } = await uploadRecipientLabFiles(
+          activeFamilyId,
+          addRecipientId,
+          selectedFiles,
+          {},
+        );
+        const failed = data?.failed?.length ?? 0;
+        const count = data?.count ?? selectedFiles.length;
+        setSaveOk(
+          failed
+            ? `${count} file${count === 1 ? "" : "s"} uploaded. ${failed} failed.`
+            : `${count} files uploaded. Saheli auto-tagged each one.`,
+        );
+      }
+      setSelectedFiles([]);
       if (!fixedRecipientUserId) setAddOpen(false);
       await load();
+      onRecordsChange?.();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not upload file");
+      setError(err instanceof Error ? err.message : "Could not upload files");
     } finally {
       setSaving(false);
     }
+  }
+
+  async function handleDownload(
+    recipientUserId: string,
+    documentId: string,
+    fileName?: string | null,
+  ) {
+    if (!activeFamilyId || !recipientUserId) return;
+    setDownloadingId(documentId);
+    setError("");
+    try {
+      await downloadRecipientLabFile(
+        activeFamilyId,
+        recipientUserId,
+        documentId,
+        fileName,
+      );
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not download file");
+    } finally {
+      setDownloadingId(null);
+    }
+  }
+
+  function hasOriginalFile(doc: HealthRecordRow | LabDocumentDetail) {
+    return Boolean(doc.file_url || doc.source === "file");
   }
 
   async function openDetail(row: HealthRecordRow) {
     if (!activeFamilyId) return;
     setDetailLoading(true);
     setDetail(null);
+    setDetailRecipientUserId(row.recipientUserId);
     try {
       const { data } = await getRecipientLabDetail(
         activeFamilyId,
@@ -256,6 +298,7 @@ export function HealthRecordsPanel({
       await deleteRecipientLab(activeFamilyId, row.recipientUserId, row.document_id);
       if (detail?.document_id === row.document_id) setDetail(null);
       await load();
+      onRecordsChange?.();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not delete record");
     } finally {
@@ -268,10 +311,27 @@ export function HealthRecordsPanel({
     recipients.find((r) => r.userId === addRecipientId)?.name ??
     "care recipient";
 
+  const pad = compact ? "px-4" : "px-5";
+  const sectionPad = compact ? "py-3" : "py-4";
+
   return (
-    <div className={cn("panel-card overflow-hidden", embedded ? "mb-0" : "")}>
+    <div className={cn("panel-card overflow-hidden", embedded && compact ? "mb-6" : embedded ? "mb-0" : "")}>
+      {embedded && compact && fixedRecipientName && (
+        <div className={cn("flex items-center gap-2 border-b border-[#f0f0f2]", pad, sectionPad)}>
+          <FileText className="h-4 w-4 shrink-0 text-[#2563eb]" strokeWidth={2.25} />
+          <div>
+            <h2 className="text-[15px] font-extrabold text-[#111827]">
+              Health records for {fixedRecipientName}
+            </h2>
+            <p className="text-[12px] text-[#9ca3af]">
+              Labs, vitals, and files · Saheli cites printed values only
+            </p>
+          </div>
+        </div>
+      )}
+
       {!embedded && (
-        <div className="border-b border-[#f0f0f2] px-5 py-4">
+        <div className={cn("border-b border-[#f0f0f2]", pad, sectionPad)}>
           <h1 className="text-[16px] font-extrabold text-[#111827]">Health records</h1>
           <p className="text-[12px] text-[#9ca3af]">
             Labs, vitals, and notes on file · Saheli cites printed values only
@@ -279,7 +339,7 @@ export function HealthRecordsPanel({
         </div>
       )}
 
-      <div className="space-y-3 border-b border-[#f0f0f2] px-5 py-4">
+      <div className={cn("space-y-3 border-b border-[#f0f0f2]", pad, sectionPad)}>
         <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
           <div className="flex min-w-[200px] flex-1 items-center gap-2 rounded-xl border border-[#e5e7eb] bg-[#fafafa] px-3 py-2 focus-within:border-primary focus-within:bg-white">
             <Search className="h-4 w-4 shrink-0 text-[#9ca3af]" />
@@ -375,103 +435,95 @@ export function HealthRecordsPanel({
 
             {addMode === "file" ? (
               <form onSubmit={(e) => void handleFileUpload(e)} className="space-y-3">
-                <label className="flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-[#d1d5db] bg-white px-4 py-8 transition-colors hover:border-primary">
-                  <Upload className="mb-2 h-8 w-8 text-primary" />
-                  <p className="text-[13px] font-semibold text-[#111827]">
-                    {selectedFile ? selectedFile.name : "Choose PDF, image, or text file"}
+                <label
+                  className={cn(
+                    "flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-[#d1d5db] bg-white px-4 transition-colors hover:border-primary",
+                    compact ? "py-5" : "py-8",
+                  )}
+                >
+                  <Upload className={cn("text-primary", compact ? "mb-1.5 h-6 w-6" : "mb-2 h-8 w-8")} />
+                  <p className="text-[13px] font-semibold text-[var(--text-primary)]">
+                    {selectedFiles.length
+                      ? `${selectedFiles.length} file${selectedFiles.length === 1 ? "" : "s"} selected`
+                      : "Choose files or drag here"}
                   </p>
-                  <p className="mt-1 text-[11px] text-[#9ca3af]">
-                    Stored at cdn.kavach.care / familyId / filename
+                  <p className="mt-1 text-[11px] text-[var(--text-tertiary)]">
+                    PDF, Word, Excel, Markdown, text, CSV, images · up to 25 at once
+                  </p>
+                  <p className="mt-2 text-[11px] text-primary">
+                    Title, type, and date are detected automatically
                   </p>
                   <input
                     type="file"
-                    accept=".pdf,.txt,.png,.jpg,.jpeg,.webp,application/pdf,text/plain,image/*"
+                    multiple
+                    accept=".pdf,.txt,.md,.markdown,.csv,.xlsx,.xls,.docx,.doc,.json,.png,.jpg,.jpeg,.webp,application/pdf,text/plain,text/markdown,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/*"
                     className="hidden"
-                    onChange={(e) => setSelectedFile(e.target.files?.[0] ?? null)}
+                    onChange={(e) =>
+                      setSelectedFiles(Array.from(e.target.files ?? []))
+                    }
                   />
                 </label>
-                <div className="grid gap-3 sm:grid-cols-3">
-                  <input
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                    placeholder="Title (optional)"
-                    className="rounded-xl border border-[#e5e7eb] bg-white px-3 py-2 text-[13px] outline-none sm:col-span-2"
-                  />
-                  <select
-                    value={kind}
-                    onChange={(e) => setKind(e.target.value)}
-                    className="rounded-xl border border-[#e5e7eb] bg-white px-3 py-2 text-[13px] outline-none"
-                  >
-                    {HEALTH_RECORD_KINDS.filter((k) => k.value !== "all").map((k) => (
-                      <option key={k.value} value={k.value}>
-                        {k.label}
-                      </option>
+                {selectedFiles.length > 0 && (
+                  <ul className="max-h-32 space-y-1 overflow-y-auto rounded-lg border border-[var(--border-strong)] bg-[var(--input-bg)] p-2">
+                    {selectedFiles.map((file) => (
+                      <li
+                        key={`${file.name}-${file.size}`}
+                        className="flex items-center justify-between gap-2 text-[12px] text-[var(--text-secondary)]"
+                      >
+                        <span className="truncate">{file.name}</span>
+                        <button
+                          type="button"
+                          className="shrink-0 text-[var(--text-tertiary)] hover:text-[#dc2626]"
+                          onClick={() =>
+                            setSelectedFiles((prev) =>
+                              prev.filter((f) => f !== file),
+                            )
+                          }
+                        >
+                          Remove
+                        </button>
+                      </li>
                     ))}
-                  </select>
-                </div>
-                <input
-                  value={recordDate}
-                  onChange={(e) => setRecordDate(e.target.value)}
-                  placeholder="Record date (optional)"
-                  className="w-full rounded-xl border border-[#e5e7eb] bg-white px-3 py-2 text-[13px] outline-none"
-                />
+                  </ul>
+                )}
                 <button
                   type="submit"
-                  disabled={saving || !selectedFile || !addRecipientId}
+                  disabled={saving || !selectedFiles.length || !addRecipientId}
                   className="rounded-lg bg-primary px-4 py-2 text-[12px] font-bold text-white disabled:opacity-50"
                 >
-                  {saving ? "Uploading…" : "Upload to Cloudflare R2"}
+                  {saving
+                    ? "Uploading & analyzing…"
+                    : selectedFiles.length > 1
+                      ? `Upload ${selectedFiles.length} files`
+                      : "Upload"}
                 </button>
               </form>
             ) : (
           <form onSubmit={(e) => void handleAdd(e)} className="space-y-3">
-            <div className="grid gap-3 sm:grid-cols-3">
-              <input
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="Title e.g. TSH report"
-                className="rounded-xl border border-[#e5e7eb] bg-white px-3 py-2 text-[13px] outline-none sm:col-span-2"
-                required
-              />
-              <select
-                value={kind}
-                onChange={(e) => setKind(e.target.value)}
-                className="rounded-xl border border-[#e5e7eb] bg-white px-3 py-2 text-[13px] outline-none"
-              >
-                {HEALTH_RECORD_KINDS.filter((k) => k.value !== "all").map((k) => (
-                  <option key={k.value} value={k.value}>
-                    {k.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <input
-              value={recordDate}
-              onChange={(e) => setRecordDate(e.target.value)}
-              placeholder="Record date (optional) e.g. 8 Aug 2026"
-              className="w-full rounded-xl border border-[#e5e7eb] bg-white px-3 py-2 text-[13px] outline-none"
-            />
             <textarea
               value={rawText}
               onChange={(e) => setRawText(e.target.value)}
-              placeholder={"Paste printed values only:\nTSH 4.2 mIU/L\nFree T4 1.1 ng/dL"}
-              rows={4}
-              className="w-full rounded-xl border border-[#e5e7eb] bg-white px-3 py-2 text-[13px] outline-none"
+              placeholder={"Paste report text — Saheli will detect title, type, and date:\nTSH 4.2 mIU/L (8 Aug 2026)\nFree T4 1.1 ng/dL"}
+              rows={6}
+              className="w-full rounded-xl border border-[var(--border-strong)] bg-[var(--input-bg)] px-3 py-2 text-[13px] outline-none focus:border-primary"
               required
             />
+            <p className="text-[11px] text-[var(--text-tertiary)]">
+              No need to enter title or date — AI fills those in from the text.
+            </p>
             <div className="flex flex-wrap gap-2">
               <button
                 type="submit"
-                disabled={saving || !title.trim() || !rawText.trim() || !addRecipientId}
+                disabled={saving || !rawText.trim() || !addRecipientId}
                 className="rounded-lg bg-primary px-4 py-2 text-[12px] font-bold text-white disabled:opacity-50"
               >
-                {saving ? "Saving…" : "Save record"}
+                {saving ? "Analyzing…" : "Save record"}
               </button>
               {!fixedRecipientUserId && (
                 <button
                   type="button"
                   onClick={() => setAddOpen(false)}
-                  className="rounded-lg border border-[#e5e7eb] px-4 py-2 text-[12px] font-semibold text-[#6b7280]"
+                  className="rounded-lg border border-[var(--border-strong)] px-4 py-2 text-[12px] font-semibold text-[var(--text-secondary)]"
                 >
                   Cancel
                 </button>
@@ -484,12 +536,12 @@ export function HealthRecordsPanel({
       </div>
 
       {error && (
-        <div className="mx-5 mt-4 rounded-lg border border-[#fecaca] bg-[#fef2f2] px-4 py-3 text-[12px] text-[#b91c1c]">
+        <div className={cn("mt-4 rounded-lg border border-[#fecaca] bg-[#fef2f2] px-4 py-3 text-[12px] text-[#b91c1c]", pad, "mx-0")}>
           {error}
         </div>
       )}
       {saveOk && (
-        <div className="mx-5 mt-4 rounded-lg border border-[#bbf7d0] bg-[#f0fdf4] px-4 py-3 text-[12px] text-primary">
+        <div className={cn("mt-4 rounded-lg border border-[#bbf7d0] bg-[#f0fdf4] px-4 py-3 text-[12px] text-primary", pad, "mx-0")}>
           {saveOk}
         </div>
       )}
@@ -499,7 +551,7 @@ export function HealthRecordsPanel({
           <Loader2 className="h-6 w-6 animate-spin text-primary" />
         </div>
       ) : filtered.length === 0 ? (
-        <p className="px-5 py-16 text-center text-[13px] text-[#9ca3af]">
+        <p className={cn(pad, compact ? "py-10" : "py-16", "text-center text-[13px] text-[#9ca3af]")}>
           {records.length === 0
             ? "No health records yet. Add a lab report or vitals reading above."
             : "No records match your filters."}
@@ -507,7 +559,10 @@ export function HealthRecordsPanel({
       ) : (
         <ul className="divide-y divide-[#f5f5f7]">
           {filtered.map((doc) => (
-            <li key={`${doc.recipientUserId}-${doc.document_id}`} className="flex items-start gap-3 px-5 py-4">
+            <li
+              key={`${doc.recipientUserId}-${doc.document_id}`}
+              className={cn("flex items-start gap-3", pad, compact ? "py-3" : "py-4")}
+            >
               <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#dbeafe]">
                 <FileText className="h-4 w-4 text-[#2563eb]" />
               </div>
@@ -522,23 +577,80 @@ export function HealthRecordsPanel({
                   {doc.record_date ? ` · ${doc.record_date}` : doc.created_at ? ` · ${formatWhen(doc.created_at)}` : ""}
                   {` · ${kindLabel(doc.kind)}`}
                 </p>
-                {doc.snippet && (
-                  <p className="mt-1 line-clamp-2 text-[12px] leading-relaxed text-[#6b7280]">
-                    {doc.snippet}
+                {doc.tags && doc.tags.length > 0 && (
+                  <div className="mt-1.5 flex flex-wrap gap-1">
+                    {doc.tags.slice(0, 5).map((tag) => (
+                      <span
+                        key={tag}
+                        className="rounded-md bg-primary-light px-1.5 py-0.5 text-[10px] font-semibold text-primary"
+                      >
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                )}
+                {(doc.ai_summary || doc.snippet) && (
+                  <p className="mt-1 line-clamp-2 text-[12px] leading-relaxed text-[var(--text-secondary)]">
+                    {doc.ai_summary || doc.snippet}
                   </p>
                 )}
-                {doc.file_url && (
-                  <a
-                    href={doc.file_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={(e) => e.stopPropagation()}
-                    className="mt-1 inline-block text-[11px] font-semibold text-primary hover:underline"
-                  >
-                    Open file on CDN
-                  </a>
+                {hasOriginalFile(doc) && (
+                  <div className="mt-2 flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        void handleDownload(
+                          doc.recipientUserId,
+                          doc.document_id,
+                          doc.file_name,
+                        );
+                      }}
+                      disabled={downloadingId === doc.document_id}
+                      className="inline-flex items-center gap-1 rounded-md bg-primary-light px-2 py-1 text-[11px] font-semibold text-primary hover:opacity-90 disabled:opacity-50"
+                    >
+                      {downloadingId === doc.document_id ? (
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                      ) : (
+                        <Download className="h-3 w-3" />
+                      )}
+                      Download original
+                    </button>
+                    {doc.file_url && (
+                      <a
+                        href={doc.file_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        className="text-[11px] font-semibold text-[var(--text-tertiary)] hover:text-primary hover:underline"
+                      >
+                        Open in browser
+                      </a>
+                    )}
+                  </div>
                 )}
               </button>
+              {hasOriginalFile(doc) && (
+                <button
+                  type="button"
+                  onClick={() =>
+                    void handleDownload(
+                      doc.recipientUserId,
+                      doc.document_id,
+                      doc.file_name,
+                    )
+                  }
+                  disabled={downloadingId === doc.document_id}
+                  aria-label="Download original file"
+                  className="shrink-0 rounded-lg p-2 text-[var(--text-tertiary)] hover:bg-primary-light hover:text-primary disabled:opacity-50"
+                >
+                  {downloadingId === doc.document_id ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Download className="h-4 w-4" />
+                  )}
+                </button>
+              )}
               <button
                 type="button"
                 onClick={() => void handleDelete(doc)}
@@ -581,16 +693,44 @@ export function HealthRecordsPanel({
                 </div>
               ) : (
                 <>
-                  {detail?.file_url && (
-                    <a
-                      href={detail.file_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="mb-4 inline-flex items-center gap-2 rounded-lg bg-[#f0fdf4] px-3 py-2 text-[12px] font-semibold text-primary hover:underline"
-                    >
-                      Open uploaded file
-                    </a>
+                  {detail && hasOriginalFile(detail) && (
+                    <div className="mb-4 flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          detail &&
+                          void handleDownload(
+                            detailRecipientUserId,
+                            detail.document_id,
+                            detail.file_name,
+                          )
+                        }
+                        disabled={downloadingId === detail.document_id}
+                        className="inline-flex items-center gap-2 rounded-lg bg-primary px-3 py-2 text-[12px] font-bold text-white disabled:opacity-50"
+                      >
+                        {downloadingId === detail.document_id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Download className="h-4 w-4" />
+                        )}
+                        Download original
+                        {detail.file_name ? ` · ${detail.file_name}` : ""}
+                      </button>
+                      {detail.file_url && (
+                        <a
+                          href={detail.file_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center rounded-lg border border-[var(--border-strong)] px-3 py-2 text-[12px] font-semibold text-[var(--text-secondary)] hover:bg-[var(--surface-hover)]"
+                        >
+                          Open in browser
+                        </a>
+                      )}
+                    </div>
                   )}
+                  <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-[var(--text-tertiary)]">
+                    Extracted text
+                  </p>
                   <pre className="whitespace-pre-wrap font-sans text-[13px] leading-relaxed text-[#374151]">
                     {detail?.raw_text}
                   </pre>

@@ -34,7 +34,7 @@ function NavLink({
         collapsed ? "justify-center px-2" : "gap-2.5 px-3",
         active
           ? "bg-primary-light text-primary"
-          : "text-[#374151] hover:bg-white",
+          : "text-[var(--text-secondary)] hover:bg-[var(--card)]",
       )}
     >
       <Icon
@@ -75,7 +75,8 @@ export function DashboardSidebar() {
   return (
     <aside
       className={cn(
-        "sticky top-0 flex h-screen shrink-0 flex-col bg-gradient-to-t from-[#f0fdf4] to-white py-5 pl-4 transition-[width] duration-300 ease-in-out",
+        "sticky top-0 flex h-screen shrink-0 flex-col border-r border-[var(--border)] py-5 pl-4 transition-[width] duration-300 ease-in-out",
+        "bg-[var(--sidebar-bg)]",
         collapsed ? "w-[72px] pr-3" : "w-[260px] pr-5",
       )}
     >
@@ -98,7 +99,7 @@ export function DashboardSidebar() {
           <>
             <Link href="/dashboard" className="flex items-center gap-2" title="Kavach">
               <Shield className="h-5 w-5 text-primary" strokeWidth={2.25} />
-              <span className="text-[17px] font-bold tracking-[-0.02em] text-[#111827]">
+              <span className="text-[17px] font-bold tracking-[-0.02em] text-[var(--text-primary)]">
                 Kavach
               </span>
             </Link>

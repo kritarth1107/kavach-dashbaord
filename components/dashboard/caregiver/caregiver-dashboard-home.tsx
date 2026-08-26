@@ -48,13 +48,15 @@ export function CaregiverDashboardHome() {
     void load();
   }, [load]);
 
-  const recipientName = overview?.recipients[0]?.name ?? "Mama";
-  const mamaName = /vasundara/i.test(recipientName) ? "Mama" : recipientName.split(/\s+/).filter((p) => p !== "Mrs.")[0] || "Mama";
+  const recipientName = overview?.recipients[0]?.name ?? "Sudha";
+  const mamaName =
+    /sudha|mama|vasundara/i.test(recipientName)
+      ? "Mama"
+      : recipientName.split(/\s+/).filter((p) => p !== "Mrs.")[0] || "Mama";
   const completed = overview?.completedToday ?? 0;
   const scheduled = overview?.schedulesToday ?? 0;
-  const tasksLabel =
-    scheduled > 0 ? `${completed}/${scheduled}` : "0/0";
-  const medsDone = completed >= 2 ? "2/2 meds" : `${completed} logged`;
+  const tasksLabel = scheduled > 0 ? `${completed}/${scheduled}` : "3/5";
+  const medsDone = completed >= 2 ? "2/3 morning meds" : `${completed} logged`;
 
   return (
     <>
@@ -98,8 +100,8 @@ export function CaregiverDashboardHome() {
 
       <div className="mb-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
         <StatusSummaryCard
-          statusLabel="All Well"
-          detail={`${recipientName} · ${medsDone} · cheerful check-in`}
+          statusLabel="Saheli ready"
+          detail={`${mamaName} · ${medsDone} · cheerful check-in`}
         />
         <VitalsTrendCard
           title="Family care trends"
