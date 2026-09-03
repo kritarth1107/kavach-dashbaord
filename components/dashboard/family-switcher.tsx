@@ -49,7 +49,7 @@ export function FamilySwitcher({ collapsed }: FamilySwitcherProps) {
       <div className={cn("mb-5 px-2", collapsed ? "flex justify-center" : "")}>
         <div
           className={cn(
-            "animate-pulse rounded-xl bg-[#f3f4f6]",
+            "animate-pulse rounded-xl bg-[var(--surface)]",
             collapsed ? "h-8 w-8" : "h-[52px] w-full",
           )}
         />
@@ -70,7 +70,7 @@ export function FamilySwitcher({ collapsed }: FamilySwitcherProps) {
         disabled={switching}
         title={collapsed ? activeFamily.name : undefined}
         className={cn(
-          "flex w-full items-center rounded-xl border border-[#e5e7eb] bg-white text-left transition-colors hover:bg-[#fafafa]",
+          "flex w-full items-center rounded-xl border border-[var(--border-strong)] bg-[var(--card)] text-left transition-colors hover:bg-[var(--input-bg)]",
           collapsed
             ? "justify-center border-none bg-transparent p-0 hover:bg-transparent"
             : "gap-3 px-3 py-2.5",
@@ -98,23 +98,23 @@ export function FamilySwitcher({ collapsed }: FamilySwitcherProps) {
           <>
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-1.5">
-                <p className="truncate text-[13px] font-semibold text-[#111827]">
+                <p className="truncate text-[13px] font-semibold text-[var(--text-primary)]">
                   {activeFamily.name}
                 </p>
                 {activeFamily.isPrimary && (
-                  <span className="shrink-0 rounded bg-[#fef9c3] px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-[#a16207]">
+                  <span className="shrink-0 rounded bg-[var(--warning-bg)] px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-[var(--warning-text)]">
                     Primary
                   </span>
                 )}
               </div>
-              <p className="truncate text-[10px] font-medium uppercase tracking-wide text-[#9ca3af]">
+              <p className="truncate text-[10px] font-medium uppercase tracking-wide text-[var(--text-tertiary)]">
                 {activeFamily.switcherRoleBadge}
                 {!activeFamily.isPrimary && primaryFamily
                   ? ` · Primary: ${primaryFamily.name}`
                   : ""}
               </p>
             </div>
-            <ChevronsUpDown className="h-4 w-4 shrink-0 text-[#9ca3af]" strokeWidth={2} />
+            <ChevronsUpDown className="h-4 w-4 shrink-0 text-[var(--text-tertiary)]" strokeWidth={2} />
           </>
         )}
       </button>
@@ -122,13 +122,13 @@ export function FamilySwitcher({ collapsed }: FamilySwitcherProps) {
       {open && (
         <div
           className={cn(
-            "absolute z-50 overflow-hidden rounded-xl border border-[#e5e7eb] bg-white shadow-[0_8px_30px_rgba(0,0,0,0.08)]",
+            "absolute z-50 overflow-hidden rounded-xl border border-[var(--border-strong)] bg-[var(--card)] shadow-[0_8px_30px_rgba(0,0,0,0.08)]",
             collapsed
               ? "left-full top-0 ml-2 w-72"
               : "left-2 right-2 top-full mt-1.5",
           )}
         >
-          <p className="px-3 pb-2 pt-3 text-[10px] font-semibold uppercase tracking-wider text-[#9ca3af]">
+          <p className="px-3 pb-2 pt-3 text-[10px] font-semibold uppercase tracking-wider text-[var(--text-tertiary)]">
             Switch family
           </p>
           {families.map((family, index) => {
@@ -138,7 +138,7 @@ export function FamilySwitcher({ collapsed }: FamilySwitcherProps) {
                 key={family.familyId}
                 className={cn(
                   "flex items-center gap-1 px-2 py-1",
-                  selected ? "bg-primary-light/60" : "hover:bg-[#f9fafb]",
+                  selected ? "bg-primary-light/60" : "hover:bg-[var(--input-bg)]",
                 )}
               >
                 <button
@@ -165,13 +165,13 @@ export function FamilySwitcher({ collapsed }: FamilySwitcherProps) {
                       <p
                         className={cn(
                           "truncate text-[13px] font-semibold",
-                          selected ? "text-primary" : "text-[#111827]",
+                          selected ? "text-primary" : "text-[var(--text-primary)]",
                         )}
                       >
                         {family.name}
                       </p>
                       {family.isPrimary && (
-                        <span className="shrink-0 rounded bg-[#fef9c3] px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-[#a16207]">
+                        <span className="shrink-0 rounded bg-[var(--warning-bg)] px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-[var(--warning-text)]">
                           Primary
                         </span>
                       )}
@@ -179,7 +179,7 @@ export function FamilySwitcher({ collapsed }: FamilySwitcherProps) {
                     <p
                       className={cn(
                         "truncate text-[10px] font-medium uppercase tracking-wide",
-                        selected ? "text-[#4ade80]" : "text-[#9ca3af]",
+                        selected ? "text-[#4ade80]" : "text-[var(--text-tertiary)]",
                       )}
                     >
                       {family.switcherRoleBadge}
@@ -198,7 +198,7 @@ export function FamilySwitcher({ collapsed }: FamilySwitcherProps) {
                       e.stopPropagation();
                       void setAsPrimaryFamily(family.familyId).catch(() => undefined);
                     }}
-                    className="shrink-0 rounded-lg p-2 text-[#9ca3af] transition-colors hover:bg-white hover:text-[#a16207]"
+                    className="shrink-0 rounded-lg p-2 text-[var(--text-tertiary)] transition-colors hover:bg-[var(--card)] hover:text-primary"
                   >
                     <Star className="h-4 w-4" strokeWidth={2} />
                   </button>
@@ -206,14 +206,14 @@ export function FamilySwitcher({ collapsed }: FamilySwitcherProps) {
               </div>
             );
           })}
-          <div className="border-t border-[#f0f0f2] p-2">
+          <div className="border-t border-[var(--border-strong)] p-2">
             <button
               type="button"
               disabled={switching}
               onClick={() => void handleCreate()}
-              className="flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-[13px] font-medium text-[#374151] transition-colors hover:bg-[#f9fafb] disabled:opacity-60"
+              className="flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-[13px] font-medium text-[var(--text-secondary)] transition-colors hover:bg-[var(--input-bg)] disabled:opacity-60"
             >
-              <Plus className="h-4 w-4 text-[#6b7280]" strokeWidth={2} />
+              <Plus className="h-4 w-4 text-[var(--text-secondary)]" strokeWidth={2} />
               Create new
             </button>
           </div>

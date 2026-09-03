@@ -36,17 +36,17 @@ export function MetricCard({
         <button
           type="button"
           aria-label="More options"
-          className="rounded-lg p-1 text-[#cbd5e1] transition-colors hover:bg-[#f8fafc] hover:text-[#64748b]"
+          className="rounded-lg p-1 text-[var(--text-tertiary)] transition-colors hover:bg-[var(--surface-hover)] hover:text-[var(--text-secondary)]"
         >
           <MoreHorizontal className="h-5 w-5" strokeWidth={2} />
         </button>
       </div>
-      <p className="text-[1.65rem] font-extrabold leading-none tracking-[-0.03em] text-[#0f172a]">
+      <p className="text-[1.65rem] font-extrabold leading-none tracking-[-0.03em] text-[var(--text-primary)]">
         {value}
       </p>
-      <p className="mt-2 text-[11.5px] font-medium text-[#94a3b8]">{subtitle}</p>
-      <div className="mt-4 border-t border-[rgba(15,23,42,0.05)] pt-4">
-        <p className="text-[13px] font-bold text-[#334155]">{label}</p>
+      <p className="mt-2 text-[11.5px] font-medium text-[var(--text-tertiary)]">{subtitle}</p>
+      <div className="mt-4 border-t border-[var(--border)] pt-4">
+        <p className="text-[13px] font-bold text-[var(--text-primary)]">{label}</p>
       </div>
     </DashboardCard>
   );

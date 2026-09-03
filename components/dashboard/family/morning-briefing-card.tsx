@@ -74,13 +74,13 @@ export function MorningBriefingCard({
 
   return (
     <section className="panel-card mb-6 overflow-hidden">
-      <div className="flex items-center gap-2 border-b border-[#f0f0f2] px-5 py-4">
+      <div className="flex items-center gap-2 border-b border-[var(--border-strong)] px-5 py-4">
         <Sun className="h-4 w-4 text-primary" strokeWidth={2.25} />
         <div>
-          <h2 className="text-[15px] font-extrabold text-[#111827]">
+          <h2 className="text-[15px] font-extrabold text-[var(--text-primary)]">
             {recipientName}&apos;s briefing · {dateLabel}
           </h2>
-          <p className="text-[12px] text-[#9ca3af]">Reported only · not a diagnosis</p>
+          <p className="text-[12px] text-[var(--text-tertiary)]">Reported only · not a diagnosis</p>
         </div>
       </div>
 
@@ -91,10 +91,10 @@ export function MorningBriefingCard({
       ) : (
         <div className="grid gap-4 px-5 py-4 sm:grid-cols-3">
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-wide text-[#9ca3af]">
+            <p className="text-[10px] font-bold uppercase tracking-wide text-[var(--text-tertiary)]">
               Last heard
             </p>
-            <p className="mt-1 text-[13px] font-bold text-[#111827]">
+            <p className="mt-1 text-[13px] font-bold text-[var(--text-primary)]">
               {isToday
                 ? formatWhen(briefing?.lastHeardAt ?? null)
                 : briefing?.lastHeardAt &&
@@ -102,7 +102,7 @@ export function MorningBriefingCard({
                   ? formatWhen(briefing.lastHeardAt)
                   : "—"}
             </p>
-            <p className="mt-1 text-[12px] leading-relaxed text-[#6b7280]">
+            <p className="mt-1 text-[12px] leading-relaxed text-[var(--text-secondary)]">
               {isToday && briefing?.lastHeardLine
                 ? `“${briefing.lastHeardLine.slice(0, 140)}${briefing.lastHeardLine.length > 140 ? "…" : ""}”`
                 : isToday
@@ -111,15 +111,15 @@ export function MorningBriefingCard({
             </p>
           </div>
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-wide text-[#9ca3af]">
+            <p className="text-[10px] font-bold uppercase tracking-wide text-[var(--text-tertiary)]">
               {isToday ? "Last check-in" : "Care tasks"}
             </p>
-            <p className="mt-1 text-[13px] font-bold text-[#111827]">
+            <p className="mt-1 text-[13px] font-bold text-[var(--text-primary)]">
               {isToday
                 ? formatWhen(briefing?.lastCheckInAt ?? null)
                 : `${daySchedules.length} scheduled`}
             </p>
-            <p className="mt-1 text-[12px] text-[#6b7280]">
+            <p className="mt-1 text-[12px] text-[var(--text-secondary)]">
               {isToday
                 ? daySchedules.length
                   ? `${daySchedules.length} item${daySchedules.length === 1 ? "" : "s"} on ${dateLabel.toLowerCase()}’s list`
@@ -128,15 +128,15 @@ export function MorningBriefingCard({
             </p>
           </div>
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-wide text-[#9ca3af]">
+            <p className="text-[10px] font-bold uppercase tracking-wide text-[var(--text-tertiary)]">
               {isToday ? "Not confirmed yet" : "Schedule snapshot"}
             </p>
             {isToday && briefing?.unconfirmedItems.length ? (
               <ul className="mt-1 space-y-1">
                 {briefing.unconfirmedItems.slice(0, 4).map((item) => (
-                  <li key={`${item.title}-${item.time}`} className="text-[12px] text-[#111827]">
+                  <li key={`${item.title}-${item.time}`} className="text-[12px] text-[var(--text-primary)]">
                     <span className="font-semibold">{item.title}</span>
-                    <span className="text-[#9ca3af]">
+                    <span className="text-[var(--text-tertiary)]">
                       {" "}
                       · {item.time}
                       {item.dosage ? ` · ${item.dosage}` : ""}
@@ -147,14 +147,14 @@ export function MorningBriefingCard({
             ) : !isToday && daySchedules.length ? (
               <ul className="mt-1 space-y-1">
                 {daySchedules.slice(0, 4).map((item) => (
-                  <li key={item.scheduleId} className="text-[12px] text-[#111827]">
+                  <li key={item.scheduleId} className="text-[12px] text-[var(--text-primary)]">
                     <span className="font-semibold">{item.title}</span>
-                    <span className="text-[#9ca3af]"> · {item.time}</span>
+                    <span className="text-[var(--text-tertiary)]"> · {item.time}</span>
                   </li>
                 ))}
               </ul>
             ) : (
-              <p className="mt-1 text-[12px] text-[#6b7280]">
+              <p className="mt-1 text-[12px] text-[var(--text-secondary)]">
                 {pendingCount
                   ? `${pendingCount} item${pendingCount === 1 ? "" : "s"} still open`
                   : "Nothing scheduled for this day."}

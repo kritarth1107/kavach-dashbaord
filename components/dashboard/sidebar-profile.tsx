@@ -46,8 +46,8 @@ export function SidebarProfile({ collapsed }: { collapsed: boolean }) {
         onClick={() => setProfileOpen((v) => !v)}
         title={collapsed ? name : undefined}
         className={cn(
-          "flex w-full items-center rounded-lg py-2 text-left transition-colors hover:bg-white",
-          profileOpen && "bg-white",
+          "flex w-full items-center rounded-lg py-2 text-left transition-colors hover:bg-[var(--card)]",
+          profileOpen && "bg-[var(--card)]",
           collapsed ? "justify-center px-0" : "gap-3 px-2",
         )}
       >
@@ -65,10 +65,10 @@ export function SidebarProfile({ collapsed }: { collapsed: boolean }) {
         )}
         {!collapsed && (
           <div className="min-w-0 flex-1">
-            <p className="truncate text-[13px] font-semibold text-[#111827]">
+            <p className="truncate text-[13px] font-semibold text-[var(--text-primary)]">
               {name}
             </p>
-            <p className="truncate text-[11px] text-[#9ca3af]">{email}</p>
+            <p className="truncate text-[11px] text-[var(--text-tertiary)]">{email}</p>
           </div>
         )}
       </button>

@@ -105,7 +105,7 @@ export function ApprovalsPage() {
       )}
 
       {error && (
-        <div className="rounded-lg border border-[#fecaca] bg-[#fef2f2] px-4 py-3 text-[12px] text-[#b91c1c]">
+        <div className="alert-error rounded-lg px-4 py-3 text-[12px]">
           {error}
         </div>
       )}

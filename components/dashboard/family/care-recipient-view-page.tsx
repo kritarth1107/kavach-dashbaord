@@ -80,9 +80,9 @@ export function CareRecipientViewPage() {
 
   if (isCareRecipientRole(activeFamily?.role)) {
     return (
-      <div className="rounded-2xl border border-[#fef9c3] bg-[#fefce8] px-5 py-8 text-center">
-        <p className="text-[14px] font-bold text-[#111827]">Caregiver view only</p>
-        <p className="mt-2 text-[13px] text-[#6b7280]">
+      <div className="rounded-2xl border border-[var(--warning-border)] bg-[var(--warning-bg)] px-5 py-8 text-center">
+        <p className="text-[14px] font-bold text-[var(--text-primary)]">Caregiver view only</p>
+        <p className="mt-2 text-[13px] text-[var(--text-secondary)]">
           This page is for caregivers monitoring a care recipient.
         </p>
         <Link
@@ -97,9 +97,9 @@ export function CareRecipientViewPage() {
 
   if (error || !member) {
     return (
-      <div className="rounded-2xl border border-[#fecaca] bg-[#fef2f2] px-5 py-8 text-center">
-        <p className="text-[14px] font-bold text-[#111827]">Unable to load care recipient</p>
-        <p className="mt-2 text-[13px] text-[#6b7280]">{error || "Member not found."}</p>
+      <div className="rounded-2xl border border-[var(--danger-border)] bg-[var(--danger-bg)] px-5 py-8 text-center">
+        <p className="text-[14px] font-bold text-[var(--text-primary)]">Unable to load care recipient</p>
+        <p className="mt-2 text-[13px] text-[var(--text-secondary)]">{error || "Member not found."}</p>
         <Link
           href="/dashboard/family"
           className="mt-4 inline-flex items-center gap-1.5 text-[13px] font-semibold text-primary hover:underline"
@@ -115,7 +115,7 @@ export function CareRecipientViewPage() {
     <>
       <Link
         href="/dashboard/family"
-        className="mb-5 inline-flex items-center gap-1.5 text-[13px] font-semibold text-[#6b7280] transition-colors hover:text-primary"
+        className="mb-5 inline-flex items-center gap-1.5 text-[13px] font-semibold text-[var(--text-secondary)] transition-colors hover:text-primary"
       >
         <ArrowLeft className="h-4 w-4" strokeWidth={2.25} />
         Family members

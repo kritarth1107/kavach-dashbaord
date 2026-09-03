@@ -10,7 +10,7 @@ export function RoleBasedRightPanel() {
 
   if (loading) {
     return (
-      <aside className="flex h-screen min-w-0 flex-1 shrink-0 items-center justify-center border-l border-[#f0f0f2]">
+      <aside className="flex h-screen min-w-0 flex-1 shrink-0 items-center justify-center border-l border-[var(--border-strong)]">
         <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
       </aside>
     );

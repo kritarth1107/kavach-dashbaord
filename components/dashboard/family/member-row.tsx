@@ -18,9 +18,9 @@ function StatusBadge({ status }: { status: FamilyMember["status"] }) {
       className={cn(
         "rounded-md px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide",
         status === "joined" && "bg-primary-light text-primary",
-        status === "pending" && "bg-[#fef9c3] text-[#a16207]",
-        status === "blocked" && "bg-[#fef2f2] text-[#dc2626]",
-        status === "rejected" && "bg-[#f3f4f6] text-[#6b7280]",
+        status === "pending" && "bg-[var(--warning-bg)] text-[var(--warning-text)]",
+        status === "blocked" && "bg-[var(--danger-bg)] text-[var(--danger-text)]",
+        status === "rejected" && "bg-[var(--surface)] text-[var(--text-secondary)]",
       )}
     >
       {statusLabels[status]}
@@ -115,10 +115,10 @@ export function CareRecipientCard({
   return (
     <article
       className={cn(
-        "group relative flex items-center gap-4 rounded-2xl border border-[#e8ece9] bg-white px-4 py-4 transition-colors",
+        "group relative flex items-center gap-4 rounded-2xl border border-[var(--border-strong)] bg-[var(--card)] px-4 py-4 transition-colors",
         profileHref
-          ? "cursor-pointer hover:border-[#c6e7d0] hover:shadow-[0_2px_12px_rgba(22,163,74,0.08)]"
-          : "hover:border-[#c6e7d0]",
+          ? "cursor-pointer hover:border-primary/40 hover:shadow-[0_2px_12px_rgba(22,163,74,0.08)]"
+          : "hover:border-primary/40",
       )}
     >
       {profileHref && (
@@ -133,9 +133,9 @@ export function CareRecipientCard({
 
       <div className="relative z-[1] min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-          <h3 className="text-[14px] font-bold text-[#111827]">{displayName}</h3>
+          <h3 className="text-[14px] font-bold text-[var(--text-primary)]">{displayName}</h3>
           {isSelf && <YouBadge />}
-          <span className="text-[12px] text-[#9ca3af]">· {member.relationship}</span>
+          <span className="text-[12px] text-[var(--text-tertiary)]">· {member.relationship}</span>
           <StatusBadge status={member.status} />
           {member.role === "care_recipient" && member.status === "joined" && (
             <span className="inline-flex items-center gap-1.5 rounded-full bg-primary-light px-2 py-0.5 text-[10px] font-bold text-primary">
@@ -144,16 +144,16 @@ export function CareRecipientCard({
             </span>
           )}
         </div>
-        <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[12px] text-[#6b7280]">
+        <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[12px] text-[var(--text-secondary)]">
           {member.location && member.location !== "—" && (
             <span className="inline-flex items-center gap-1">
-              <MapPin className="h-3 w-3 text-[#9ca3af]" strokeWidth={2} />
+              <MapPin className="h-3 w-3 text-[var(--text-tertiary)]" strokeWidth={2} />
               {member.location}
             </span>
           )}
           {phone && (
             <span className="inline-flex items-center gap-1">
-              <Phone className="h-3 w-3 text-[#9ca3af]" strokeWidth={2} />
+              <Phone className="h-3 w-3 text-[var(--text-tertiary)]" strokeWidth={2} />
               {phone}
             </span>
           )}
@@ -162,7 +162,7 @@ export function CareRecipientCard({
 
       {profileHref && (
         <ChevronRight
-          className="relative z-[1] h-4 w-4 shrink-0 text-[#d1d5db] transition-colors group-hover:text-primary"
+          className="relative z-[1] h-4 w-4 shrink-0 text-[var(--text-tertiary)] transition-colors group-hover:text-primary"
           strokeWidth={2.5}
         />
       )}
@@ -219,20 +219,20 @@ export function MemberRow({
             : "Member";
 
   return (
-    <article className="group flex items-center gap-4 rounded-2xl border border-[#eef0f2] bg-white px-4 py-4 transition-colors hover:border-[#e5e7eb]">
+    <article className="group flex items-center gap-4 rounded-2xl border border-[var(--border-strong)] bg-[var(--card)] px-4 py-4 transition-colors hover:border-[var(--border-strong)]">
       <MemberAvatar member={member} />
 
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-          <h3 className="text-[14px] font-bold text-[#111827]">{displayName}</h3>
+          <h3 className="text-[14px] font-bold text-[var(--text-primary)]">{displayName}</h3>
           {isSelf && <YouBadge />}
-          <span className="text-[12px] text-[#9ca3af]">· {member.relationship}</span>
-          <span className="rounded-md bg-[#f5f5f7] px-2 py-0.5 text-[10px] font-semibold text-[#6b7280]">
+          <span className="text-[12px] text-[var(--text-tertiary)]">· {member.relationship}</span>
+          <span className="rounded-md bg-[var(--surface)] px-2 py-0.5 text-[10px] font-semibold text-[var(--text-secondary)]">
             {roleLabel}
           </span>
           <StatusBadge status={member.status} />
         </div>
-        <p className="mt-1 truncate text-[12px] text-[#9ca3af]">
+        <p className="mt-1 truncate text-[12px] text-[var(--text-tertiary)]">
           {[member.email !== "—" ? member.email : null, phone, member.location !== "—" ? member.location : null]
             .filter(Boolean)
             .join(" · ")}
@@ -277,7 +277,7 @@ function MemberMenu({
         type="button"
         aria-label="Options"
         onClick={() => setMenuOpen(!menuOpen)}
-        className="rounded-lg p-2 text-[#9ca3af] opacity-0 transition-all group-hover:opacity-100 hover:bg-[#f5f5f7] hover:text-[#374151]"
+        className="rounded-lg p-2 text-[var(--text-tertiary)] opacity-0 transition-all group-hover:opacity-100 hover:bg-[var(--surface)] hover:text-[var(--text-secondary)]"
       >
         <MoreHorizontal className="h-4 w-4" strokeWidth={2} />
       </button>
@@ -289,7 +289,7 @@ function MemberMenu({
             className="fixed inset-0 z-10"
             onClick={() => setMenuOpen(false)}
           />
-          <div className="absolute right-0 z-20 mt-1 w-44 overflow-hidden rounded-xl border border-[#eef0f2] bg-white p-1 shadow-lg">
+          <div className="absolute right-0 z-20 mt-1 w-44 overflow-hidden rounded-xl border border-[var(--border-strong)] bg-[var(--card)] p-1 shadow-lg">
             {canEdit && (
               <button
                 type="button"
@@ -297,7 +297,7 @@ function MemberMenu({
                   setMenuOpen(false);
                   onEdit();
                 }}
-                className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-[13px] font-medium text-[#374151] hover:bg-[#f9fafb]"
+                className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-[13px] font-medium text-[var(--text-secondary)] hover:bg-[var(--input-bg)]"
               >
                 <Pencil className="h-3.5 w-3.5" strokeWidth={2} />
                 Edit
@@ -310,7 +310,7 @@ function MemberMenu({
                   setMenuOpen(false);
                   onBlock();
                 }}
-                className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-[13px] font-medium text-[#374151] hover:bg-[#f9fafb]"
+                className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-[13px] font-medium text-[var(--text-secondary)] hover:bg-[var(--input-bg)]"
               >
                 <ShieldBan className="h-3.5 w-3.5" strokeWidth={2} />
                 {member.status === "blocked" ? "Unblock" : "Block"}
@@ -322,7 +322,7 @@ function MemberMenu({
                 setMenuOpen(false);
                 onRemove();
               }}
-              className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-[13px] font-medium text-[#dc2626] hover:bg-[#fef2f2]"
+              className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-[13px] font-medium text-[var(--danger-text)] hover:bg-[var(--danger-bg)]"
             >
               <Trash2 className="h-3.5 w-3.5" strokeWidth={2} />
               {member.status === "pending" ? "Revoke invite" : "Remove"}

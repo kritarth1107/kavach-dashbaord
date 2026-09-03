@@ -86,25 +86,25 @@ export function PendingInviteScreen() {
 
   return (
     <div className="relative flex min-h-full w-full items-center justify-center px-4 py-10">
-      <div className="relative w-full max-w-[420px] rounded-2xl border border-[#eef0f2] bg-white px-8 py-9 shadow-[0_8px_40px_rgba(15,23,42,0.08)]">
+      <div className="relative w-full max-w-[420px] rounded-2xl border border-[var(--border-strong)] bg-[var(--card)] px-8 py-9 shadow-[0_8px_40px_rgba(15,23,42,0.08)]">
         <div className="mb-5 flex justify-center">
           <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary-light">
             <Users className="h-6 w-6 text-primary" strokeWidth={2} />
           </div>
         </div>
 
-        <h1 className="text-center text-[20px] font-extrabold text-[#111827]">
+        <h1 className="text-center text-[20px] font-extrabold text-[var(--text-primary)]">
           Family invitation
         </h1>
-        <p className="mt-2 text-center text-[13px] leading-relaxed text-[#6b7280]">
-          <span className="font-semibold text-[#111827]">{invite.invitedByName}</span>{" "}
+        <p className="mt-2 text-center text-[13px] leading-relaxed text-[var(--text-secondary)]">
+          <span className="font-semibold text-[var(--text-primary)]">{invite.invitedByName}</span>{" "}
           invited you to join{" "}
-          <span className="font-semibold text-[#111827]">{invite.familyName}</span> as{" "}
+          <span className="font-semibold text-[var(--text-primary)]">{invite.familyName}</span> as{" "}
           {invite.roleLabel.toLowerCase()}.
         </p>
 
         {error && (
-          <p className="mt-4 rounded-xl bg-[#fef2f2] px-3 py-2 text-center text-[12px] text-[#dc2626]">
+          <p className="mt-4 rounded-xl bg-[var(--danger-bg)] px-3 py-2 text-center text-[12px] text-[var(--danger-text)]">
             {error}
           </p>
         )}
@@ -122,13 +122,13 @@ export function PendingInviteScreen() {
             type="button"
             disabled={acting}
             onClick={() => void handleReject(invite)}
-            className="w-full rounded-xl py-3 text-[13px] font-semibold text-[#6b7280] hover:bg-[#f5f5f7] disabled:opacity-60"
+            className="w-full rounded-xl py-3 text-[13px] font-semibold text-[var(--text-secondary)] hover:bg-[var(--surface)] disabled:opacity-60"
           >
             Decline invitation
           </button>
         </div>
 
-        <p className="mt-5 flex items-center justify-center gap-1.5 text-[11px] text-[#9ca3af]">
+        <p className="mt-5 flex items-center justify-center gap-1.5 text-[11px] text-[var(--text-tertiary)]">
           <Shield className="h-3.5 w-3.5" strokeWidth={2} />
           If you decline, we&apos;ll create your own family to get started
         </p>

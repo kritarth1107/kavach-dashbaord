@@ -77,11 +77,11 @@ export function OtpInput({ value, onChange, disabled }: OtpInputProps) {
           onKeyDown={(e) => handleKeyDown(index, e)}
           onFocus={(e) => e.target.select()}
           className={cn(
-            "h-11 w-10 rounded-xl border bg-[#f9fafb] text-center text-[18px] font-bold text-[#111827] outline-none transition-colors sm:h-12 sm:w-11",
+            "h-11 w-10 rounded-xl border bg-[var(--input-bg)] text-center text-[18px] font-bold text-[var(--text-primary)] outline-none transition-colors sm:h-12 sm:w-11",
             digit.trim()
-              ? "border-primary bg-white ring-1 ring-[var(--primary-ring)]"
-              : "border-[#e5e7eb]",
-            "focus:border-primary focus:bg-white focus:ring-2 focus:ring-[var(--primary-ring)]",
+              ? "border-primary bg-[var(--card)] ring-1 ring-[var(--primary-ring)]"
+              : "border-[var(--border-strong)]",
+            "focus:border-primary focus:bg-[var(--card)] focus:ring-2 focus:ring-[var(--primary-ring)]",
             disabled && "cursor-not-allowed opacity-60",
           )}
         />

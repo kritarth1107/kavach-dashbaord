@@ -56,7 +56,7 @@ export function FamilyInvitationModal({
         role="dialog"
         aria-modal="true"
         aria-labelledby="family-invite-title"
-        className="relative w-full max-w-[420px] rounded-2xl border border-[#eef0f2] bg-white px-8 py-9 shadow-[0_20px_60px_rgba(0,0,0,0.18)]"
+        className="relative w-full max-w-[420px] rounded-2xl border border-[var(--border-strong)] bg-[var(--card)] px-8 py-9 shadow-[0_20px_60px_rgba(0,0,0,0.18)]"
       >
         <div className="mb-5 flex justify-center">
           <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary-light">
@@ -66,28 +66,28 @@ export function FamilyInvitationModal({
 
         <h2
           id="family-invite-title"
-          className="text-center text-[20px] font-extrabold text-[#111827]"
+          className="text-center text-[20px] font-extrabold text-[var(--text-primary)]"
         >
           Family invitation
         </h2>
-        <p className="mt-2 text-center text-[13px] leading-relaxed text-[#6b7280]">
-          <span className="font-semibold text-[#111827]">{invite.invitedByName}</span>{" "}
+        <p className="mt-2 text-center text-[13px] leading-relaxed text-[var(--text-secondary)]">
+          <span className="font-semibold text-[var(--text-primary)]">{invite.invitedByName}</span>{" "}
           invited you to join{" "}
-          <span className="font-semibold text-[#111827]">{invite.familyName}</span> as{" "}
+          <span className="font-semibold text-[var(--text-primary)]">{invite.familyName}</span> as{" "}
           {invite.roleLabel.toLowerCase()}.
         </p>
-        <p className="mt-2 text-center text-[12px] text-[#9ca3af]">
+        <p className="mt-2 text-center text-[12px] text-[var(--text-tertiary)]">
           Your current family stays as your primary workspace unless you switch later.
         </p>
 
         {invites.length > 1 && (
-          <p className="mt-3 text-center text-[11px] font-medium text-[#6b7280]">
+          <p className="mt-3 text-center text-[11px] font-medium text-[var(--text-secondary)]">
             {invites.length} pending invitations — respond to continue
           </p>
         )}
 
         {error && (
-          <p className="mt-4 rounded-xl bg-[#fef2f2] px-3 py-2 text-center text-[12px] text-[#dc2626]">
+          <p className="mt-4 rounded-xl bg-[var(--danger-bg)] px-3 py-2 text-center text-[12px] text-[var(--danger-text)]">
             {error}
           </p>
         )}
@@ -105,13 +105,13 @@ export function FamilyInvitationModal({
             type="button"
             disabled={acting}
             onClick={() => void handleReject()}
-            className="w-full rounded-xl py-3 text-[13px] font-semibold text-[#6b7280] hover:bg-[#f5f5f7] disabled:opacity-60"
+            className="w-full rounded-xl py-3 text-[13px] font-semibold text-[var(--text-secondary)] hover:bg-[var(--surface)] disabled:opacity-60"
           >
             Decline
           </button>
         </div>
 
-        <p className="mt-5 flex items-center justify-center gap-1.5 text-[11px] text-[#9ca3af]">
+        <p className="mt-5 flex items-center justify-center gap-1.5 text-[11px] text-[var(--text-tertiary)]">
           <Shield className="h-3.5 w-3.5" strokeWidth={2} />
           Accept or decline to continue using the dashboard
         </p>

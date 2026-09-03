@@ -215,7 +215,7 @@ export function TaskCompletionCard() {
           <p className="text-[9px] font-semibold text-[var(--text-tertiary)]">Morning meds</p>
         </div>
         <div className="rounded-lg bg-[var(--input-bg)] px-2 py-2">
-          <p className="text-[14px] font-extrabold text-[#ca8a04]">0/1</p>
+          <p className="text-[14px] font-extrabold text-[var(--warning-text)]">0/1</p>
           <p className="text-[9px] font-semibold text-[var(--text-tertiary)]">Evening meds</p>
         </div>
       </div>

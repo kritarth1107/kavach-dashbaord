@@ -51,39 +51,39 @@ export function ProfilePopover({
     <div
       ref={ref}
       className={cn(
-        "absolute z-50 mb-2 overflow-hidden rounded-xl border border-[#e5e7eb] bg-white shadow-[0_8px_30px_rgba(0,0,0,0.1)]",
+        "absolute z-50 mb-2 overflow-hidden rounded-xl border border-[var(--border-strong)] bg-[var(--card)] shadow-[0_8px_30px_rgba(0,0,0,0.1)]",
         collapsed
           ? "bottom-0 left-full ml-2 w-64"
           : "bottom-full left-2 right-2",
       )}
     >
-      <div className="border-b border-[#f0f0f2] px-4 py-3">
-        <p className="truncate text-[13px] font-semibold text-[#111827]">{email}</p>
+      <div className="border-b border-[var(--border-strong)] px-4 py-3">
+        <p className="truncate text-[13px] font-semibold text-[var(--text-primary)]">{email}</p>
       </div>
 
       <div className="p-1.5">
         <Link
           href="/dashboard/settings"
           onClick={onClose}
-          className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-[13px] font-medium text-[#374151] transition-colors hover:bg-[#f9fafb]"
+          className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-[13px] font-medium text-[var(--text-secondary)] transition-colors hover:bg-[var(--input-bg)]"
         >
-          <Settings className="h-4 w-4 text-[#6b7280]" strokeWidth={1.75} />
+          <Settings className="h-4 w-4 text-[var(--text-secondary)]" strokeWidth={1.75} />
           Settings
         </Link>
         <button
           type="button"
-          className="flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-[13px] font-medium text-[#374151] transition-colors hover:bg-[#f9fafb]"
+          className="flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-[13px] font-medium text-[var(--text-secondary)] transition-colors hover:bg-[var(--input-bg)]"
         >
           <span className="flex items-center gap-3">
-            <Globe className="h-4 w-4 text-[#6b7280]" strokeWidth={1.75} />
+            <Globe className="h-4 w-4 text-[var(--text-secondary)]" strokeWidth={1.75} />
             Language
           </span>
-          <ChevronRight className="h-4 w-4 text-[#9ca3af]" strokeWidth={2} />
+          <ChevronRight className="h-4 w-4 text-[var(--text-tertiary)]" strokeWidth={2} />
         </button>
       </div>
 
-      <div className="border-t border-[#f0f0f2] p-1.5">
-        <p className="px-3 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-wider text-[#9ca3af]">
+      <div className="border-t border-[var(--border-strong)] p-1.5">
+        <p className="px-3 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-wider text-[var(--text-tertiary)]">
           Legal
         </p>
         {[
@@ -97,18 +97,18 @@ export function ProfilePopover({
             target="_blank"
             rel="noopener noreferrer"
             onClick={onClose}
-            className="block rounded-lg px-3 py-2 text-[13px] font-medium text-[#374151] transition-colors hover:bg-[#f9fafb]"
+            className="block rounded-lg px-3 py-2 text-[13px] font-medium text-[var(--text-secondary)] transition-colors hover:bg-[var(--input-bg)]"
           >
             {item.label}
           </a>
         ))}
       </div>
 
-      <div className="border-t border-[#f0f0f2] p-1.5">
+      <div className="border-t border-[var(--border-strong)] p-1.5">
         <button
           type="button"
           onClick={handleLogout}
-          className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-[13px] font-medium text-[#dc2626] transition-colors hover:bg-[#fef2f2]"
+          className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-[13px] font-medium text-[var(--danger-text)] transition-colors hover:bg-[var(--danger-bg)]"
         >
           <LogOut className="h-4 w-4" strokeWidth={1.75} />
           Log out

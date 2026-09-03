@@ -32,9 +32,9 @@ import { cn } from "@/lib/utils";
 type SettingsTab = "profile" | "security" | "sessions" | "notifications";
 
 const inputClass =
-  "w-full rounded-lg border border-[#e5e7eb] bg-[#fafafa] px-3 py-2.5 text-[13px] font-medium text-[#111827] outline-none transition-colors focus:border-primary focus:bg-white focus:ring-1 focus:ring-[var(--primary-ring)]";
+  "w-full rounded-lg border border-[var(--border-strong)] bg-[var(--input-bg)] px-3 py-2.5 text-[13px] font-medium text-[var(--text-primary)] outline-none transition-colors focus:border-primary focus:bg-[var(--card)] focus:ring-1 focus:ring-[var(--primary-ring)]";
 
-const settingsCardClass = "rounded-lg border border-[#eef0f2] bg-white";
+const settingsCardClass = "rounded-lg border border-[var(--border-strong)] bg-[var(--card)]";
 
 const tabs: { id: SettingsTab; label: string; icon: typeof User; description: string }[] = [
   { id: "profile", label: "Profile", icon: User, description: "Name, contact & avatar" },
@@ -45,7 +45,7 @@ const tabs: { id: SettingsTab; label: string; icon: typeof User; description: st
 
 function FieldLabel({ children }: { children: React.ReactNode }) {
   return (
-    <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-[#9ca3af]">
+    <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-[var(--text-tertiary)]">
       {children}
     </label>
   );
@@ -60,8 +60,8 @@ function SectionHeader({
 }) {
   return (
     <div className="mb-5">
-      <h2 className="text-[16px] font-extrabold tracking-[-0.02em] text-[#111827]">{title}</h2>
-      <p className="mt-1 text-[13px] leading-relaxed text-[#9ca3af]">{description}</p>
+      <h2 className="text-[16px] font-extrabold tracking-[-0.02em] text-[var(--text-primary)]">{title}</h2>
+      <p className="mt-1 text-[13px] leading-relaxed text-[var(--text-tertiary)]">{description}</p>
     </div>
   );
 }
@@ -78,8 +78,8 @@ function StatusBadge({
       className={cn(
         "rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide",
         tone === "success" && "bg-primary-light text-primary",
-        tone === "muted" && "bg-[#f3f4f6] text-[#6b7280]",
-        tone === "soon" && "bg-[#fef9c3] text-[#a16207]",
+        tone === "muted" && "bg-[var(--surface)] text-[var(--text-secondary)]",
+        tone === "soon" && "bg-[var(--warning-bg)] text-[var(--warning-text)]",
       )}
     >
       {children}
@@ -151,10 +151,10 @@ function ToggleRow({
   onChange: (value: boolean) => void;
 }) {
   return (
-    <label className="flex cursor-pointer items-start justify-between gap-4 rounded-lg border border-[#f0f0f2] bg-[#fafafa] p-4 transition-colors hover:bg-white">
+    <label className="flex cursor-pointer items-start justify-between gap-4 rounded-lg border border-[var(--border-strong)] bg-[var(--input-bg)] p-4 transition-colors hover:bg-[var(--card)]">
       <div className="min-w-0">
-        <p className="text-[13px] font-bold text-[#111827]">{title}</p>
-        <p className="mt-0.5 text-[12px] leading-relaxed text-[#9ca3af]">{description}</p>
+        <p className="text-[13px] font-bold text-[var(--text-primary)]">{title}</p>
+        <p className="mt-0.5 text-[12px] leading-relaxed text-[var(--text-tertiary)]">{description}</p>
       </div>
       <button
         type="button"
@@ -163,12 +163,12 @@ function ToggleRow({
         onClick={() => onChange(!checked)}
         className={cn(
           "relative mt-0.5 h-6 w-11 shrink-0 rounded-full transition-colors",
-          checked ? "bg-primary" : "bg-[#e5e7eb]",
+          checked ? "bg-primary" : "bg-[var(--chart-track)]",
         )}
       >
         <span
           className={cn(
-            "absolute top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform",
+            "absolute top-0.5 h-5 w-5 rounded-full bg-[var(--card)] shadow-sm transition-transform",
             checked ? "translate-x-5" : "translate-x-0.5",
           )}
         />
@@ -352,36 +352,36 @@ export function SettingsPage() {
               <img
                 src={profile.avatarUrl}
                 alt=""
-                className="h-16 w-16 shrink-0 rounded-lg object-cover ring-1 ring-[#eef0f2]"
+                className="h-16 w-16 shrink-0 rounded-lg object-cover ring-1 ring-[var(--border-strong)]"
               />
             ) : (
-              <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-lg bg-[#111827] text-xl font-extrabold text-white ring-1 ring-[#eef0f2]">
+              <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-lg bg-[var(--charcoal)] text-xl font-extrabold text-white ring-1 ring-[var(--border-strong)]">
                 {initials}
               </div>
             )}
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
-                <h1 className="text-[1.35rem] font-extrabold tracking-[-0.03em] text-[#111827]">
+                <h1 className="text-[1.35rem] font-extrabold tracking-[-0.03em] text-[var(--text-primary)]">
                   {profile?.fullName ?? "Your account"}
                 </h1>
                 {profile?.emailVerified && (
-                  <span className="inline-flex items-center gap-1 rounded-md bg-[#f0fdf4] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-primary">
+                  <span className="inline-flex items-center gap-1 rounded-md bg-primary-light px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-primary">
                     <CheckCircle2 className="h-3 w-3" />
                     Verified
                   </span>
                 )}
               </div>
-              <p className="mt-1 truncate text-[13px] text-[#6b7280]">{profile?.email}</p>
-              <p className="mt-1 text-[12px] text-[#9ca3af]">
+              <p className="mt-1 truncate text-[13px] text-[var(--text-secondary)]">{profile?.email}</p>
+              <p className="mt-1 text-[12px] text-[var(--text-tertiary)]">
                 Member since {formatMemberSince(profile?.createdAt)}
               </p>
             </div>
           </div>
           <div className="flex shrink-0 items-center gap-2 sm:flex-col sm:items-end">
-            <span className="rounded-lg border border-[#e5e7eb] bg-[#fafafa] px-3 py-1.5 text-[11px] font-semibold text-[#374151]">
+            <span className="rounded-lg border border-[var(--border-strong)] bg-[var(--input-bg)] px-3 py-1.5 text-[11px] font-semibold text-[var(--text-secondary)]">
               Kavach account
             </span>
-            <span className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-[#6b7280]">
+            <span className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-[var(--text-secondary)]">
               <span className="h-2 w-2 rounded-full bg-primary" />
               Active
             </span>
@@ -393,7 +393,7 @@ export function SettingsPage() {
         <div
           className={cn(
             "mb-4 rounded-lg px-4 py-3 text-[13px] font-medium",
-            error ? "bg-[#fef2f2] text-[#dc2626]" : "bg-primary-light text-primary",
+            error ? "bg-[var(--danger-bg)] text-[var(--danger-text)]" : "bg-primary-light text-primary",
           )}
         >
           {error || success}
@@ -411,14 +411,14 @@ export function SettingsPage() {
               className={cn(
                 "flex min-w-[140px] flex-1 items-center gap-3 rounded-lg border px-3 py-3 text-left transition-colors lg:min-w-0 lg:flex-none",
                 tab === item.id
-                  ? "border-[#e5e7eb] bg-[#fafafa] text-[#111827]"
-                  : "border-transparent text-[#6b7280] hover:bg-[#fafafa] hover:text-[#111827]",
+                  ? "border-[var(--border-strong)] bg-[var(--input-bg)] text-[var(--text-primary)]"
+                  : "border-transparent text-[var(--text-secondary)] hover:bg-[var(--input-bg)] hover:text-[var(--text-primary)]",
               )}
             >
               <item.icon
                 className={cn(
                   "h-4 w-4 shrink-0",
-                  tab === item.id ? "text-primary" : "text-[#9ca3af]",
+                  tab === item.id ? "text-primary" : "text-[var(--text-tertiary)]",
                 )}
                 strokeWidth={2.25}
               />
@@ -460,9 +460,9 @@ export function SettingsPage() {
                   </div>
                   <div className="sm:col-span-2">
                     <FieldLabel>Email address</FieldLabel>
-                    <div className="flex items-center gap-2 rounded-lg border border-[#e5e7eb] bg-[#f3f4f6] px-3 py-2.5">
-                      <Mail className="h-4 w-4 text-[#9ca3af]" />
-                      <span className="text-[13px] font-medium text-[#6b7280]">
+                    <div className="flex items-center gap-2 rounded-lg border border-[var(--border-strong)] bg-[var(--surface)] px-3 py-2.5">
+                      <Mail className="h-4 w-4 text-[var(--text-tertiary)]" />
+                      <span className="text-[13px] font-medium text-[var(--text-secondary)]">
                         {profile?.email}
                       </span>
                       <StatusBadge tone="muted">Managed by sign-in</StatusBadge>
@@ -511,15 +511,15 @@ export function SettingsPage() {
                   title="Account details"
                   description="Read-only information about your Kavach account."
                 />
-                <div className="divide-y divide-[#f0f0f2]">
+                <div className="divide-y divide-[var(--border-strong)]">
                   {[
                     { label: "Account created", value: profile?.createdAt ? new Date(profile.createdAt).toLocaleString("en-IN") : "—" },
                     { label: "Last updated", value: profile?.updatedAt ? new Date(profile.updatedAt).toLocaleString("en-IN") : "—" },
                     { label: "Account status", value: profile?.status ?? "ACTIVE" },
                   ].map((row) => (
                     <div key={row.label} className="flex items-center justify-between py-3">
-                      <span className="text-[12px] font-semibold text-[#9ca3af]">{row.label}</span>
-                      <span className="max-w-[60%] truncate text-right text-[12px] font-bold text-[#111827]">
+                      <span className="text-[12px] font-semibold text-[var(--text-tertiary)]">{row.label}</span>
+                      <span className="max-w-[60%] truncate text-right text-[12px] font-bold text-[var(--text-primary)]">
                         {row.value}
                       </span>
                     </div>
@@ -537,14 +537,14 @@ export function SettingsPage() {
                   description="How you access Kavach. Keep at least one method active so you never lose access to your care data."
                 />
                 <div className="space-y-3">
-                  <div className="flex items-center justify-between rounded-lg border border-[#f0f0f2] bg-[#fafafa] p-4">
+                  <div className="flex items-center justify-between rounded-lg border border-[var(--border-strong)] bg-[var(--input-bg)] p-4">
                     <div className="flex items-center gap-3">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#dbeafe]">
-                        <Mail className="h-5 w-5 text-[#2563eb]" />
+                      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[var(--surface)]">
+                        <Mail className="h-5 w-5 text-[#60a5fa]" />
                       </div>
                       <div>
-                        <p className="text-[13px] font-bold text-[#111827]">Email verification code</p>
-                        <p className="text-[12px] text-[#9ca3af]">{profile?.email}</p>
+                        <p className="text-[13px] font-bold text-[var(--text-primary)]">Email verification code</p>
+                        <p className="text-[12px] text-[var(--text-tertiary)]">{profile?.email}</p>
                       </div>
                     </div>
                     <StatusBadge tone={profile?.emailVerified ? "success" : "muted"}>
@@ -555,17 +555,17 @@ export function SettingsPage() {
                   {profile?.socialAccounts.map((account) => (
                     <div
                       key={account.provider}
-                      className="flex items-center justify-between rounded-lg border border-[#f0f0f2] bg-[#fafafa] p-4"
+                      className="flex items-center justify-between rounded-lg border border-[var(--border-strong)] bg-[var(--input-bg)] p-4"
                     >
                       <div className="flex items-center gap-3">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-white">
-                          <Globe className="h-5 w-5 text-[#374151]" />
+                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[var(--card)]">
+                          <Globe className="h-5 w-5 text-[var(--text-secondary)]" />
                         </div>
                         <div>
-                          <p className="text-[13px] font-bold text-[#111827]">
+                          <p className="text-[13px] font-bold text-[var(--text-primary)]">
                             {providerLabel(account.provider)}
                           </p>
-                          <p className="text-[12px] text-[#9ca3af]">
+                          <p className="text-[12px] text-[var(--text-tertiary)]">
                             {account.email ?? account.displayName ?? "Connected account"}
                           </p>
                         </div>
@@ -575,8 +575,8 @@ export function SettingsPage() {
                   ))}
 
                   {!profile?.socialAccounts.length && profile?.primaryAuthProvider === "EMAIL" && (
-                    <div className="rounded-lg border border-dashed border-[#e5e7eb] bg-[#fafafa] p-4 text-center">
-                      <p className="text-[12px] text-[#9ca3af]">
+                    <div className="rounded-lg border border-dashed border-[var(--border-strong)] bg-[var(--input-bg)] p-4 text-center">
+                      <p className="text-[12px] text-[var(--text-tertiary)]">
                         Link Google from the sign-in page on your next visit for faster access.
                       </p>
                     </div>
@@ -589,17 +589,17 @@ export function SettingsPage() {
                   title="Password"
                   description="Kavach uses secure email codes and social sign-in. Password login is optional and coming soon."
                 />
-                <div className="rounded-lg border border-[#f0f0f2] bg-[#fafafa] p-5">
+                <div className="rounded-lg border border-[var(--border-strong)] bg-[var(--input-bg)] p-5">
                   <div className="flex items-start gap-4">
-                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-[#ede9fe]">
-                      <KeyRound className="h-5 w-5 text-[#7c3aed]" />
+                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-[var(--surface)]">
+                      <KeyRound className="h-5 w-5 text-[#a78bfa]" />
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
-                        <p className="text-[14px] font-bold text-[#111827]">Password sign-in</p>
+                        <p className="text-[14px] font-bold text-[var(--text-primary)]">Password sign-in</p>
                         <StatusBadge tone="soon">Coming soon</StatusBadge>
                       </div>
-                      <p className="mt-1 text-[12px] leading-relaxed text-[#9ca3af]">
+                      <p className="mt-1 text-[12px] leading-relaxed text-[var(--text-tertiary)]">
                         Set a password as a backup sign-in method. You&apos;ll still receive OTP
                         verification when signing in from a new device.
                       </p>
@@ -607,14 +607,14 @@ export function SettingsPage() {
                         <button
                           type="button"
                           disabled
-                          className="rounded-lg border border-[#e5e7eb] bg-white px-4 py-2.5 text-[12px] font-semibold text-[#9ca3af]"
+                          className="rounded-lg border border-[var(--border-strong)] bg-[var(--card)] px-4 py-2.5 text-[12px] font-semibold text-[var(--text-tertiary)]"
                         >
                           Set password
                         </button>
                         <button
                           type="button"
                           disabled
-                          className="rounded-lg border border-[#e5e7eb] bg-white px-4 py-2.5 text-[12px] font-semibold text-[#9ca3af]"
+                          className="rounded-lg border border-[var(--border-strong)] bg-[var(--card)] px-4 py-2.5 text-[12px] font-semibold text-[var(--text-tertiary)]"
                         >
                           Change password
                         </button>
@@ -630,7 +630,7 @@ export function SettingsPage() {
                   description="Add an extra layer of security beyond your sign-in method. Required for sensitive care data exports."
                 />
                 <div className="space-y-3">
-                  <div className="rounded-lg border border-[#f0f0f2] bg-[#fafafa] p-5 opacity-90">
+                  <div className="rounded-lg border border-[var(--border-strong)] bg-[var(--input-bg)] p-5 opacity-90">
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex items-start gap-4">
                         <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-primary-light">
@@ -638,10 +638,10 @@ export function SettingsPage() {
                         </div>
                         <div>
                           <div className="flex flex-wrap items-center gap-2">
-                            <p className="text-[14px] font-bold text-[#111827]">Authenticator app</p>
+                            <p className="text-[14px] font-bold text-[var(--text-primary)]">Authenticator app</p>
                             <StatusBadge tone="soon">Coming soon</StatusBadge>
                           </div>
-                          <p className="mt-1 text-[12px] leading-relaxed text-[#9ca3af]">
+                          <p className="mt-1 text-[12px] leading-relaxed text-[var(--text-tertiary)]">
                             Use Google Authenticator, Authy, or 1Password to generate one-time codes
                             at sign-in.
                           </p>
@@ -650,32 +650,32 @@ export function SettingsPage() {
                       <button
                         type="button"
                         disabled
-                        className="relative h-6 w-11 shrink-0 rounded-full bg-[#e5e7eb]"
+                        className="relative h-6 w-11 shrink-0 rounded-full bg-[var(--chart-track)]"
                         aria-label="Enable authenticator app"
                       >
-                        <span className="absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white shadow-sm" />
+                        <span className="absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-[var(--card)] shadow-sm" />
                       </button>
                     </div>
                   </div>
 
-                  <div className="rounded-lg border border-[#f0f0f2] bg-[#fafafa] p-5 opacity-90">
+                  <div className="rounded-lg border border-[var(--border-strong)] bg-[var(--input-bg)] p-5 opacity-90">
                     <div className="flex items-start gap-4">
-                      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-[#fee2e2]">
-                        <ShieldCheck className="h-5 w-5 text-[#dc2626]" />
+                      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-[var(--danger-bg)]">
+                        <ShieldCheck className="h-5 w-5 text-[var(--danger-text)]" />
                       </div>
                       <div className="flex-1">
                         <div className="flex flex-wrap items-center gap-2">
-                          <p className="text-[14px] font-bold text-[#111827]">Recovery codes</p>
+                          <p className="text-[14px] font-bold text-[var(--text-primary)]">Recovery codes</p>
                           <StatusBadge tone="muted">Not set up</StatusBadge>
                         </div>
-                        <p className="mt-1 text-[12px] leading-relaxed text-[#9ca3af]">
+                        <p className="mt-1 text-[12px] leading-relaxed text-[var(--text-tertiary)]">
                           Generate 10 single-use backup codes to access your account if you lose
                           your authenticator device.
                         </p>
                         <button
                           type="button"
                           disabled
-                          className="mt-3 rounded-lg border border-[#e5e7eb] bg-white px-4 py-2 text-[12px] font-semibold text-[#9ca3af]"
+                          className="mt-3 rounded-lg border border-[var(--border-strong)] bg-[var(--card)] px-4 py-2 text-[12px] font-semibold text-[var(--text-tertiary)]"
                         >
                           Generate recovery codes
                         </button>
@@ -699,7 +699,7 @@ export function SettingsPage() {
                   ].map((tip) => (
                     <li
                       key={tip}
-                      className="flex items-start gap-3 rounded-lg bg-[#fafafa] px-4 py-3 text-[12px] leading-relaxed text-[#374151]"
+                      className="flex items-start gap-3 rounded-lg bg-[var(--input-bg)] px-4 py-3 text-[12px] leading-relaxed text-[var(--text-secondary)]"
                     >
                       <Lock className="mt-0.5 h-4 w-4 shrink-0 text-primary" strokeWidth={2.25} />
                       {tip}
@@ -723,7 +723,7 @@ export function SettingsPage() {
                   <button
                     type="button"
                     onClick={() => void handleRevokeOthers()}
-                    className="rounded-lg border border-[#fecaca] bg-[#fef2f2] px-4 py-2 text-[12px] font-bold text-[#dc2626] transition-colors hover:bg-[#fee2e2]"
+                    className="rounded-lg border border-[var(--danger-border)] bg-[var(--danger-bg)] px-4 py-2 text-[12px] font-bold text-[var(--danger-text)] transition-colors hover:bg-[var(--danger-bg)]"
                   >
                     Sign out all other devices
                   </button>
@@ -735,7 +735,7 @@ export function SettingsPage() {
                   <Loader2 className="h-6 w-6 animate-spin text-primary" />
                 </div>
               ) : sessions.length === 0 ? (
-                <p className="py-8 text-center text-[13px] text-[#9ca3af]">No active sessions found.</p>
+                <p className="py-8 text-center text-[13px] text-[var(--text-tertiary)]">No active sessions found.</p>
               ) : (
                 <div className="space-y-3">
                   {sessions.map((session) => {
@@ -743,20 +743,20 @@ export function SettingsPage() {
                     return (
                       <div
                         key={session.sessionId}
-                        className="flex flex-wrap items-center justify-between gap-4 rounded-lg border border-[#f0f0f2] bg-[#fafafa] p-4"
+                        className="flex flex-wrap items-center justify-between gap-4 rounded-lg border border-[var(--border-strong)] bg-[var(--input-bg)] p-4"
                       >
                         <div className="flex items-center gap-3">
-                          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-white">
-                            <Monitor className="h-5 w-5 text-[#374151]" />
+                          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[var(--card)]">
+                            <Monitor className="h-5 w-5 text-[var(--text-secondary)]" />
                           </div>
                           <div>
                             <div className="flex flex-wrap items-center gap-2">
-                              <p className="text-[13px] font-bold text-[#111827]">{device.label}</p>
+                              <p className="text-[13px] font-bold text-[var(--text-primary)]">{device.label}</p>
                               {session.isCurrent && (
                                 <StatusBadge tone="success">This device</StatusBadge>
                               )}
                             </div>
-                            <p className="text-[11px] text-[#9ca3af]">
+                            <p className="text-[11px] text-[var(--text-tertiary)]">
                               {providerLabel(session.authProvider)} · Last active{" "}
                               {formatRelativeTime(session.lastActiveAt)}
                               {session.ipAddress ? ` · ${session.ipAddress}` : ""}
@@ -767,7 +767,7 @@ export function SettingsPage() {
                           <button
                             type="button"
                             onClick={() => void handleRevokeSession(session.sessionId)}
-                            className="text-[12px] font-semibold text-[#dc2626] hover:underline"
+                            className="text-[12px] font-semibold text-[var(--danger-text)] hover:underline"
                           >
                             Revoke
                           </button>
@@ -872,13 +872,13 @@ export function SettingsPage() {
                   ].map((item) => (
                     <div
                       key={item.title}
-                      className="flex items-center justify-between gap-4 rounded-lg border border-[#f0f0f2] bg-[#fafafa] p-4"
+                      className="flex items-center justify-between gap-4 rounded-lg border border-[var(--border-strong)] bg-[var(--input-bg)] p-4"
                     >
                       <div>
-                        <p className="text-[13px] font-bold text-[#111827]">{item.title}</p>
-                        <p className="mt-0.5 text-[12px] text-[#9ca3af]">{item.description}</p>
+                        <p className="text-[13px] font-bold text-[var(--text-primary)]">{item.title}</p>
+                        <p className="mt-0.5 text-[12px] text-[var(--text-tertiary)]">{item.description}</p>
                       </div>
-                      <span className="inline-flex shrink-0 items-center gap-1 text-[12px] font-semibold text-[#9ca3af]">
+                      <span className="inline-flex shrink-0 items-center gap-1 text-[12px] font-semibold text-[var(--text-tertiary)]">
                         {item.action}
                         <ChevronRight className="h-3.5 w-3.5" />
                       </span>

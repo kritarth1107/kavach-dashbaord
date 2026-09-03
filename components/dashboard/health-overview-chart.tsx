@@ -88,22 +88,22 @@ export function HealthOverviewChart() {
     <DashboardCard className="animate-fade-up animate-delay-3 overflow-hidden p-6">
       <div className="mb-6 flex items-start justify-between gap-4">
         <div>
-          <h2 className="text-[15px] font-extrabold tracking-[-0.01em] text-[#0f172a]">
+          <h2 className="text-[15px] font-extrabold tracking-[-0.01em] text-[var(--text-primary)]">
             Care Overview
           </h2>
-          <p className="mt-1 text-[11.5px] font-medium text-[#94a3b8]">
+          <p className="mt-1 text-[11.5px] font-medium text-[var(--text-tertiary)]">
             Medication, check-ins & alerts — last 12 months
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <div className="flex rounded-[12px] bg-[#f1f5f9] p-1">
+          <div className="flex rounded-[12px] bg-[var(--elevated-muted)] p-1">
             <button
               type="button"
               onClick={() => setPeriod("monthly")}
               className={`rounded-[10px] px-3.5 py-2 text-[11.5px] font-bold transition-all ${
                 period === "monthly"
-                  ? "bg-white text-[#0f172a] shadow-[0_2px_8px_rgba(15,23,42,0.08)]"
-                  : "text-[#64748b] hover:text-[#334155]"
+                  ? "bg-[var(--card)] text-[var(--text-primary)] shadow-[0_2px_8px_rgba(15,23,42,0.08)]"
+                  : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
               }`}
             >
               Monthly
@@ -113,8 +113,8 @@ export function HealthOverviewChart() {
               onClick={() => setPeriod("yearly")}
               className={`rounded-[10px] px-3.5 py-2 text-[11.5px] font-bold transition-all ${
                 period === "yearly"
-                  ? "bg-[#0f172a] text-white shadow-[0_4px_12px_rgba(15,23,42,0.25)]"
-                  : "text-[#64748b] hover:text-[#334155]"
+                  ? "bg-[var(--charcoal)] text-white shadow-[var(--shadow-soft)]"
+                  : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
               }`}
             >
               Yearly
@@ -123,7 +123,7 @@ export function HealthOverviewChart() {
           <button
             type="button"
             aria-label="More options"
-            className="rounded-lg p-1.5 text-[#cbd5e1] hover:bg-[#f8fafc] hover:text-[#64748b]"
+            className="rounded-lg p-1.5 text-[var(--text-tertiary)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-secondary)]"
           >
             <MoreHorizontal className="h-5 w-5" strokeWidth={2} />
           </button>
@@ -131,13 +131,13 @@ export function HealthOverviewChart() {
       </div>
 
       <div className="mb-5 flex flex-wrap items-end gap-3">
-        <p className="text-[2rem] font-extrabold leading-none tracking-[-0.04em] text-[#0f172a]">
+        <p className="text-[2rem] font-extrabold leading-none tracking-[-0.04em] text-[var(--text-primary)]">
           94%
         </p>
-        <span className="mb-1 inline-flex items-center rounded-full bg-[#ecfdf5] px-2.5 py-1 text-[11px] font-extrabold text-[#059669] ring-1 ring-[#a7f3d0]/60">
+        <span className="mb-1 inline-flex items-center rounded-full bg-primary-light px-2.5 py-1 text-[11px] font-extrabold text-primary ring-1 ring-primary/20">
           +4.9%
         </span>
-        <p className="mb-1 text-[12px] font-medium text-[#94a3b8]">
+        <p className="mb-1 text-[12px] font-medium text-[var(--text-tertiary)]">
           medication adherence
         </p>
       </div>
@@ -153,7 +153,7 @@ export function HealthOverviewChart() {
               className="h-2.5 w-2.5 rounded-full shadow-sm"
               style={{ backgroundColor: item.color }}
             />
-            <span className="text-[11.5px] font-semibold text-[#64748b]">
+            <span className="text-[11.5px] font-semibold text-[var(--text-secondary)]">
               {item.label}
             </span>
           </div>
@@ -270,7 +270,7 @@ export function HealthOverviewChart() {
         </div>
       </div>
 
-      <div className="mt-1 flex justify-between px-8 text-[10.5px] font-semibold text-[#94a3b8]">
+      <div className="mt-1 flex justify-between px-8 text-[10.5px] font-semibold text-[var(--text-tertiary)]">
         {months.map((m) => (
           <span key={m}>{m}</span>
         ))}

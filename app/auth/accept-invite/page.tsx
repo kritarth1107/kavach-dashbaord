@@ -18,9 +18,9 @@ function AcceptInviteRedirect() {
 
   return (
     <div className="relative flex min-h-full w-full items-center justify-center px-4 py-10">
-      <div className="relative w-full max-w-[400px] rounded-2xl border border-[#eef0f2] bg-white px-8 py-9 text-center shadow-[0_8px_40px_rgba(15,23,42,0.08)]">
+      <div className="relative w-full max-w-[400px] rounded-2xl border border-[var(--border-strong)] bg-[var(--card)] px-8 py-9 text-center shadow-[0_8px_40px_rgba(15,23,42,0.08)]">
         <Loader2 className="mx-auto h-6 w-6 animate-spin text-primary" />
-        <p className="mt-4 text-[13px] text-[#6b7280]">
+        <p className="mt-4 text-[13px] text-[var(--text-secondary)]">
           Sign in with your email to accept the invitation.
         </p>
         <Link

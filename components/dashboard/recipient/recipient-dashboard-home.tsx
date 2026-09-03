@@ -98,25 +98,25 @@ function TaskCompletionCard({
 
   return (
     <div className="panel-card flex h-full flex-col items-center justify-center p-5">
-      <p className="mb-1 self-start text-[13px] font-bold text-[#1a1a1a]">
+      <p className="mb-1 self-start text-[13px] font-bold text-[var(--text-primary)]">
         {dateLabel} completion
       </p>
-      <p className="mb-4 self-start text-[11px] text-[#9ca3af]">
+      <p className="mb-4 self-start text-[11px] text-[var(--text-tertiary)]">
         Check-ins, medicines & reminders
       </p>
       <ProgressRing value={ringValue} label="done" />
       <div className="mt-5 grid w-full grid-cols-3 gap-2 text-center">
-        <div className="rounded-lg bg-[#fafafa] px-2 py-2">
+        <div className="rounded-lg bg-[var(--input-bg)] px-2 py-2">
           <p className="text-[14px] font-extrabold text-primary">{checkIns.length}</p>
-          <p className="text-[9px] font-semibold text-[#9ca3af]">Check-in</p>
+          <p className="text-[9px] font-semibold text-[var(--text-tertiary)]">Check-in</p>
         </div>
-        <div className="rounded-lg bg-[#fafafa] px-2 py-2">
+        <div className="rounded-lg bg-[var(--input-bg)] px-2 py-2">
           <p className="text-[14px] font-extrabold text-primary">{meds.length}</p>
-          <p className="text-[9px] font-semibold text-[#9ca3af]">Medicines</p>
+          <p className="text-[9px] font-semibold text-[var(--text-tertiary)]">Medicines</p>
         </div>
-        <div className="rounded-lg bg-[#fafafa] px-2 py-2">
-          <p className="text-[14px] font-extrabold text-[#ca8a04]">{other.length}</p>
-          <p className="text-[9px] font-semibold text-[#9ca3af]">Other</p>
+        <div className="rounded-lg bg-[var(--input-bg)] px-2 py-2">
+          <p className="text-[14px] font-extrabold text-[var(--warning-text)]">{other.length}</p>
+          <p className="text-[9px] font-semibold text-[var(--text-tertiary)]">Other</p>
         </div>
       </div>
     </div>
@@ -143,10 +143,10 @@ function DayActivityLog({
 }) {
   return (
     <div className="panel-card overflow-hidden">
-      <div className="flex items-center justify-between border-b border-[#f0f0f2] px-5 py-4">
+      <div className="flex items-center justify-between border-b border-[var(--border-strong)] px-5 py-4">
         <div>
-          <p className="text-[14px] font-bold text-[#111827]">{title}</p>
-          <p className="text-[12px] text-[#9ca3af]">{subtitle}</p>
+          <p className="text-[14px] font-bold text-[var(--text-primary)]">{title}</p>
+          <p className="text-[12px] text-[var(--text-tertiary)]">{subtitle}</p>
         </div>
         {healthRecordHref && (
           <Link
@@ -158,25 +158,25 @@ function DayActivityLog({
         )}
       </div>
       {rows.length === 0 ? (
-        <p className="px-5 py-10 text-center text-[13px] text-[#9ca3af]">
+        <p className="px-5 py-10 text-center text-[13px] text-[var(--text-tertiary)]">
           Nothing logged for this day yet.
         </p>
       ) : (
         <div className="divide-y divide-[#f5f5f7]">
           {rows.map((row) => (
             <div key={row.id} className="flex items-center gap-4 px-5 py-3.5">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#f5f5f7]">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[var(--surface)]">
                 {row.kind === "lab" ? (
-                  <FileText className="h-4 w-4 text-[#2563eb]" strokeWidth={2} />
+                  <FileText className="h-4 w-4 text-[#60a5fa]" strokeWidth={2} />
                 ) : row.kind === "check_in" ? (
-                  <Sun className="h-4 w-4 text-[#a16207]" strokeWidth={2} />
+                  <Sun className="h-4 w-4 text-[var(--warning-text)]" strokeWidth={2} />
                 ) : (
-                  <Pill className="h-4 w-4 text-[#7c3aed]" strokeWidth={2} />
+                  <Pill className="h-4 w-4 text-[#a78bfa]" strokeWidth={2} />
                 )}
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-[13px] font-bold text-[#111827]">{row.name}</p>
-                <p className="text-[11px] text-[#9ca3af]">
+                <p className="text-[13px] font-bold text-[var(--text-primary)]">{row.name}</p>
+                <p className="text-[11px] text-[var(--text-tertiary)]">
                   {row.date} · {row.detail}
                 </p>
               </div>
@@ -184,7 +184,7 @@ function DayActivityLog({
                 className={cn(
                   "rounded-md px-2 py-0.5 text-[10px] font-semibold",
                   row.status === "Pending"
-                    ? "bg-[#fef9c3] text-[#a16207]"
+                    ? "bg-[var(--warning-bg)] text-[var(--warning-text)]"
                     : "bg-primary-light text-primary",
                 )}
               >
@@ -234,28 +234,28 @@ export function RecipientDashboardHome({
           value={data.stats.adherence}
           sub={data.stats.adherenceSub}
           icon={Pill}
-          iconBg="bg-[#ede9fe] text-[#7c3aed]"
+          iconBg="icon-chip-purple"
         />
         <StatMetricCard
           label="Check-in"
           value={data.stats.checkInStreak}
           sub={data.stats.checkInSub}
           icon={Sun}
-          iconBg="bg-[#fef9c3] text-[#a16207]"
+          iconBg="icon-chip-yellow"
         />
         <StatMetricCard
           label="Records"
           value={data.stats.vitalsLogged}
           sub={data.stats.vitalsSub}
           icon={Heart}
-          iconBg="bg-[#fee2e2] text-[#dc2626]"
+          iconBg="icon-chip-red"
         />
         <StatMetricCard
           label="Total files"
           value={data.stats.reports}
           sub={data.stats.reportsSub}
           icon={FileText}
-          iconBg="bg-[#dbeafe] text-[#2563eb]"
+          iconBg="icon-chip-blue"
         />
       </div>
 
@@ -278,10 +278,10 @@ export function RecipientDashboardHome({
 
       <div className="mb-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
         <div className="panel-card flex h-full flex-col p-5">
-          <p className="text-[13px] font-bold text-[#1a1a1a]">
+          <p className="text-[13px] font-bold text-[var(--text-primary)]">
             {viewAsCaregiver ? `${firstName}'s care rhythm` : "Care rhythm"}
           </p>
-          <p className="mb-4 text-[11px] text-[#9ca3af]">
+          <p className="mb-4 text-[11px] text-[var(--text-tertiary)]">
             Scheduled tasks · ending {data.shortDate}
           </p>
           <AreaTrendChart
@@ -291,8 +291,8 @@ export function RecipientDashboardHome({
           />
         </div>
         <div className="panel-card flex h-full flex-col p-5">
-          <p className="text-[13px] font-bold text-[#1a1a1a]">Medicine schedule</p>
-          <p className="mb-4 text-[11px] text-[#9ca3af]">
+          <p className="text-[13px] font-bold text-[var(--text-primary)]">Medicine schedule</p>
+          <p className="mb-4 text-[11px] text-[var(--text-tertiary)]">
             Doses scheduled per day · last 7 days
           </p>
           <BarChart
@@ -300,18 +300,18 @@ export function RecipientDashboardHome({
             labels={data.weekLabels}
             maxValue={data.medWeeklyMax}
           />
-          <div className="mt-4 grid grid-cols-2 gap-2 border-t border-[#f0f0f2] pt-4">
+          <div className="mt-4 grid grid-cols-2 gap-2 border-t border-[var(--border-strong)] pt-4">
             <div>
-              <p className="text-[18px] font-extrabold text-[#111827]">
+              <p className="text-[18px] font-extrabold text-[var(--text-primary)]">
                 {data.medWeeklyTotal}
               </p>
-              <p className="text-[10px] text-[#9ca3af]">Doses this week</p>
+              <p className="text-[10px] text-[var(--text-tertiary)]">Doses this week</p>
             </div>
             <div>
               <p className="text-[18px] font-extrabold text-primary">
                 {data.dayMeds.length}
               </p>
-              <p className="text-[10px] text-[#9ca3af]">On {data.dateLabel}</p>
+              <p className="text-[10px] text-[var(--text-tertiary)]">On {data.dateLabel}</p>
             </div>
           </div>
         </div>
@@ -320,8 +320,8 @@ export function RecipientDashboardHome({
       {data.metrics.length > 0 && (
         <div className="mb-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
           <div className="panel-card p-5">
-            <p className="text-[13px] font-bold text-[#1a1a1a]">Health markers trend</p>
-            <p className="mb-4 text-[11px] text-[#9ca3af]">
+            <p className="text-[13px] font-bold text-[var(--text-primary)]">Health markers trend</p>
+            <p className="mb-4 text-[11px] text-[var(--text-tertiary)]">
               Parsed from stored lab & vitals text
             </p>
             <AreaTrendChart
@@ -334,8 +334,8 @@ export function RecipientDashboardHome({
             />
           </div>
           <div className="panel-card p-5">
-            <p className="text-[13px] font-bold text-[#1a1a1a]">Latest vitals snapshot</p>
-            <p className="mb-4 text-[11px] text-[#9ca3af]">From health records on file</p>
+            <p className="text-[13px] font-bold text-[var(--text-primary)]">Latest vitals snapshot</p>
+            <p className="mb-4 text-[11px] text-[var(--text-tertiary)]">From health records on file</p>
             <div className="grid grid-cols-2 gap-3">
               <MiniVitalBar
                 label="Blood pressure"
@@ -373,18 +373,18 @@ export function RecipientDashboardHome({
       {healthRecordHref && (
         <Link
           href={healthRecordHref}
-          className="panel-card mb-6 flex items-center gap-4 p-5 transition-colors hover:bg-[#fafafa]"
+          className="panel-card mb-6 flex items-center gap-4 p-5 transition-colors hover:bg-[var(--input-bg)]"
         >
-          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#dbeafe]">
-            <Activity className="h-5 w-5 text-[#2563eb]" strokeWidth={2} />
+          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[var(--surface)]">
+            <Activity className="h-5 w-5 text-[#60a5fa]" strokeWidth={2} />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-[14px] font-bold text-[#111827]">Full health monitoring</p>
-            <p className="text-[12px] text-[#9ca3af]">
+            <p className="text-[14px] font-bold text-[var(--text-primary)]">Full health monitoring</p>
+            <p className="text-[12px] text-[var(--text-tertiary)]">
               Charts, AI insights, lab trends & record management
             </p>
           </div>
-          <ChevronRight className="h-5 w-5 shrink-0 text-[#c4c4c4]" />
+          <ChevronRight className="h-5 w-5 shrink-0 text-[var(--text-tertiary)]" />
         </Link>
       )}
 

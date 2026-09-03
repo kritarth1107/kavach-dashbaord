@@ -9,7 +9,7 @@ export default function DashboardLayout({
   return (
     <SidebarProvider>
       <FamilyProvider>
-        <div className="flex h-screen w-full overflow-hidden bg-white">
+        <div className="flex h-screen w-full overflow-hidden bg-[var(--background)]">
           <DashboardSidebar />
           <DashboardShell>{children}</DashboardShell>
         </div>

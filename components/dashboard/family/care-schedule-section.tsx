@@ -79,10 +79,10 @@ export function CareScheduleSection({ subjectName }: CareScheduleSectionProps) {
       <section className="mb-6">
         <div className="mb-3 flex items-center justify-between gap-3">
           <div>
-            <h2 className="text-[15px] font-extrabold tracking-[-0.02em] text-[#111827]">
+            <h2 className="text-[15px] font-extrabold tracking-[-0.02em] text-[var(--text-primary)]">
               Care schedule
             </h2>
-            <p className="mt-0.5 text-[12px] text-[#6b7280]">
+            <p className="mt-0.5 text-[12px] text-[var(--text-secondary)]">
               {canManage
                 ? `Manage ${subjectName}'s medicines, check-ins, and reminders · ${dateLabel}: ${daySchedules.length} active`
                 : `${subjectName}'s daily care reminders · ${dateLabel}: ${daySchedules.length} active`}
@@ -100,15 +100,15 @@ export function CareScheduleSection({ subjectName }: CareScheduleSectionProps) {
           )}
         </div>
 
-        <div className="rounded-lg border border-[#f0f0f2] bg-white">
+        <div className="rounded-lg border border-[var(--border-strong)] bg-[var(--card)]">
           {loading ? (
             <div className="flex items-center justify-center py-12">
               <Loader2 className="h-5 w-5 animate-spin text-primary" />
             </div>
           ) : sortedSchedules.length === 0 ? (
             <div className="px-5 py-10 text-center">
-              <p className="text-[14px] font-bold text-[#111827]">No care schedule yet</p>
-              <p className="mx-auto mt-2 max-w-sm text-[13px] leading-relaxed text-[#6b7280]">
+              <p className="text-[14px] font-bold text-[var(--text-primary)]">No care schedule yet</p>
+              <p className="mx-auto mt-2 max-w-sm text-[13px] leading-relaxed text-[var(--text-secondary)]">
                 {canManage
                   ? `Add medicine times, check-ins, vitals, or appointments for ${subjectName}.`
                   : `No reminders have been set for ${subjectName} yet.`}
@@ -117,7 +117,7 @@ export function CareScheduleSection({ subjectName }: CareScheduleSectionProps) {
                 <button
                   type="button"
                   onClick={openAddModal}
-                  className="mt-4 inline-flex items-center gap-1.5 rounded-lg border border-primary bg-[#f0fdf4] px-4 py-2 text-[12px] font-bold text-primary hover:bg-[#dcfce7]"
+                  className="mt-4 inline-flex items-center gap-1.5 rounded-lg border border-primary bg-primary-light px-4 py-2 text-[12px] font-bold text-primary hover:bg-primary-light"
                 >
                   <Plus className="h-3.5 w-3.5" strokeWidth={2.5} />
                   Add medicine schedule
@@ -126,8 +126,8 @@ export function CareScheduleSection({ subjectName }: CareScheduleSectionProps) {
             </div>
           ) : (
             <>
-              <div className="flex items-center justify-between border-b border-[#f0f0f2] bg-[#fafafa] px-4 py-2.5">
-                <p className="text-[11px] font-semibold text-[#6b7280]">
+              <div className="flex items-center justify-between border-b border-[var(--border-strong)] bg-[var(--input-bg)] px-4 py-2.5">
+                <p className="text-[11px] font-semibold text-[var(--text-secondary)]">
                   {dateLabel}: {daySchedules.length} on calendar · {activeCount} active total
                 </p>
                 {canManage && (
@@ -152,33 +152,33 @@ export function CareScheduleSection({ subjectName }: CareScheduleSectionProps) {
                       className={cn(
                         "flex items-start gap-3 px-4 py-3.5",
                         !item.active && "opacity-60",
-                        dayScheduleIds.has(item.scheduleId) && "bg-[#f0fdf4]/60",
+                        dayScheduleIds.has(item.scheduleId) && "bg-primary-light/60",
                         !dayScheduleIds.has(item.scheduleId) && "opacity-50",
                       )}
                     >
-                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#f5f5f7]">
-                        <Icon className="h-4 w-4 text-[#374151]" strokeWidth={2} />
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[var(--surface)]">
+                        <Icon className="h-4 w-4 text-[var(--text-secondary)]" strokeWidth={2} />
                       </div>
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-2">
-                          <p className="text-[13px] font-bold text-[#111827]">{item.title}</p>
-                          <span className="rounded-md bg-[#f3f4f6] px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#6b7280]">
+                          <p className="text-[13px] font-bold text-[var(--text-primary)]">{item.title}</p>
+                          <span className="rounded-md bg-[var(--surface)] px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[var(--text-secondary)]">
                             {meta.label}
                           </span>
                           {!item.active && (
-                            <span className="rounded-md bg-[#fef2f2] px-1.5 py-0.5 text-[10px] font-semibold text-[#dc2626]">
+                            <span className="rounded-md bg-[var(--danger-bg)] px-1.5 py-0.5 text-[10px] font-semibold text-[var(--danger-text)]">
                               Paused
                             </span>
                           )}
                         </div>
-                        <p className="mt-0.5 text-[12px] text-[#6b7280]">
+                        <p className="mt-0.5 text-[12px] text-[var(--text-secondary)]">
                           {item.time}
                           {item.dosage ? ` · ${item.dosage}` : ""}
                           {" · "}
                           {formatScheduleDays(item.daysOfWeek)}
                         </p>
                         {item.instructions && (
-                          <p className="mt-1 text-[11px] leading-relaxed text-[#9ca3af]">
+                          <p className="mt-1 text-[11px] leading-relaxed text-[var(--text-tertiary)]">
                             {item.instructions}
                           </p>
                         )}
@@ -194,7 +194,7 @@ export function CareScheduleSection({ subjectName }: CareScheduleSectionProps) {
                               )
                             }
                             disabled={isDeleting}
-                            className="rounded-lg p-1.5 text-[#9ca3af] hover:bg-[#f5f5f7] hover:text-[#374151] disabled:opacity-50"
+                            className="rounded-lg p-1.5 text-[var(--text-tertiary)] hover:bg-[var(--surface)] hover:text-[var(--text-secondary)] disabled:opacity-50"
                           >
                             {isDeleting ? (
                               <Loader2 className="h-4 w-4 animate-spin" />
@@ -210,11 +210,11 @@ export function CareScheduleSection({ subjectName }: CareScheduleSectionProps) {
                                 className="fixed inset-0 z-10"
                                 onClick={() => setMenuOpenId(null)}
                               />
-                              <div className="absolute right-0 top-full z-20 mt-1 min-w-[140px] overflow-hidden rounded-lg border border-[#e5e7eb] bg-white py-1 shadow-lg">
+                              <div className="absolute right-0 top-full z-20 mt-1 min-w-[140px] overflow-hidden rounded-lg border border-[var(--border-strong)] bg-[var(--card)] py-1 shadow-lg">
                                 <button
                                   type="button"
                                   onClick={() => openEditModal(item)}
-                                  className="flex w-full items-center gap-2 px-3 py-2 text-left text-[12px] font-semibold text-[#374151] hover:bg-[#f5f5f7]"
+                                  className="flex w-full items-center gap-2 px-3 py-2 text-left text-[12px] font-semibold text-[var(--text-secondary)] hover:bg-[var(--surface)]"
                                 >
                                   <Pencil className="h-3.5 w-3.5" strokeWidth={2} />
                                   Edit
@@ -222,7 +222,7 @@ export function CareScheduleSection({ subjectName }: CareScheduleSectionProps) {
                                 <button
                                   type="button"
                                   onClick={() => void handleDelete(item)}
-                                  className="flex w-full items-center gap-2 px-3 py-2 text-left text-[12px] font-semibold text-[#dc2626] hover:bg-[#fef2f2]"
+                                  className="flex w-full items-center gap-2 px-3 py-2 text-left text-[12px] font-semibold text-[var(--danger-text)] hover:bg-[var(--danger-bg)]"
                                 >
                                   <Trash2 className="h-3.5 w-3.5" strokeWidth={2} />
                                   Remove

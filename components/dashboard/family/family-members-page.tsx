@@ -218,7 +218,7 @@ export function FamilyMembersPage() {
 
   if (!activeFamilyId) {
     return (
-      <p className="text-[13px] text-[#6b7280]">Select a family to manage members.</p>
+      <p className="text-[13px] text-[var(--text-secondary)]">Select a family to manage members.</p>
     );
   }
 
@@ -234,10 +234,10 @@ export function FamilyMembersPage() {
     <>
       <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h1 className="text-[1.35rem] font-extrabold tracking-[-0.02em] text-[#111827]">
+          <h1 className="text-[1.35rem] font-extrabold tracking-[-0.02em] text-[var(--text-primary)]">
             Family members
           </h1>
-          <p className="mt-1 max-w-md text-[13px] leading-relaxed text-[#6b7280]">
+          <p className="mt-1 max-w-md text-[13px] leading-relaxed text-[var(--text-secondary)]">
             Add care recipients directly. Co-caregivers, view-only members, and doctors must accept an invite.
           </p>
         </div>
@@ -255,7 +255,7 @@ export function FamilyMembersPage() {
       </div>
 
       {error && (
-        <p className="mb-4 rounded-xl bg-[#fef2f2] px-3 py-2 text-[12px] font-medium text-[#dc2626]">
+        <p className="mb-4 rounded-xl bg-[var(--danger-bg)] px-3 py-2 text-[12px] font-medium text-[var(--danger-text)]">
           {error}
         </p>
       )}
@@ -276,7 +276,7 @@ export function FamilyMembersPage() {
               "rounded-full px-3.5 py-1.5 text-[12px] font-semibold transition-colors",
               sectionFilter === chip.id
                 ? "bg-primary text-white"
-                : "bg-[#f3f4f6] text-[#6b7280] hover:bg-[#e5e7eb]",
+                : "bg-[var(--surface)] text-[var(--text-secondary)] hover:bg-[var(--chart-track)]",
             )}
           >
             {chip.label}
@@ -285,24 +285,24 @@ export function FamilyMembersPage() {
         ))}
       </div>
 
-      <div className="mb-8 flex items-center gap-2 rounded-xl border border-[#e5e7eb] bg-[#fafafa] px-3.5 py-2.5 focus-within:border-primary focus-within:bg-white focus-within:ring-2 focus-within:ring-[var(--primary-ring)]">
-        <Search className="h-4 w-4 shrink-0 text-[#9ca3af]" strokeWidth={2.25} />
+      <div className="mb-8 flex items-center gap-2 rounded-xl border border-[var(--border-strong)] bg-[var(--input-bg)] px-3.5 py-2.5 focus-within:border-primary focus-within:bg-[var(--card)] focus-within:ring-2 focus-within:ring-[var(--primary-ring)]">
+        <Search className="h-4 w-4 shrink-0 text-[var(--text-tertiary)]" strokeWidth={2.25} />
         <input
           type="search"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search members..."
-          className="w-full bg-transparent text-[13px] text-[#111827] placeholder:text-[#9ca3af] outline-none"
+          className="w-full bg-transparent text-[13px] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] outline-none"
         />
       </div>
 
       {showRecipients && (
       <section className="mb-10">
         <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-[12px] font-bold uppercase tracking-wider text-[#9ca3af]">
+          <h2 className="text-[12px] font-bold uppercase tracking-wider text-[var(--text-tertiary)]">
             Being cared for
             {careRecipients.length > 0 && (
-              <span className="ml-1.5 font-semibold text-[#6b7280]">
+              <span className="ml-1.5 font-semibold text-[var(--text-secondary)]">
                 · {careRecipients.length}
               </span>
             )}
@@ -328,7 +328,7 @@ export function FamilyMembersPage() {
             <button
               type="button"
               onClick={openInviteModal}
-              className="flex w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-[#d1d5db] py-8 text-[13px] font-medium text-[#9ca3af] transition-colors hover:border-primary hover:text-primary"
+              className="flex w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-[var(--border-strong)] py-8 text-[13px] font-medium text-[var(--text-tertiary)] transition-colors hover:border-primary hover:text-primary"
             >
               <Plus className="h-4 w-4" strokeWidth={2} />
               Add someone receiving care
@@ -343,10 +343,10 @@ export function FamilyMembersPage() {
       {showCircle && (
       <section>
         <div className="mb-3">
-          <h2 className="text-[12px] font-bold uppercase tracking-wider text-[#9ca3af]">
+          <h2 className="text-[12px] font-bold uppercase tracking-wider text-[var(--text-tertiary)]">
             Care circle
             {circleMembers.length > 0 && (
-              <span className="ml-1.5 font-semibold text-[#6b7280]">
+              <span className="ml-1.5 font-semibold text-[var(--text-secondary)]">
                 · {circleMembers.length}
               </span>
             )}
@@ -394,7 +394,7 @@ export function FamilyMembersPage() {
 
 function EmptyHint({ text }: { text: string }) {
   return (
-    <p className="rounded-2xl border border-dashed border-[#e5e7eb] py-8 text-center text-[13px] text-[#9ca3af]">
+    <p className="rounded-2xl border border-dashed border-[var(--border-strong)] py-8 text-center text-[13px] text-[var(--text-tertiary)]">
       {text}
     </p>
   );

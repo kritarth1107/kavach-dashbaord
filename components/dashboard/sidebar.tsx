@@ -40,7 +40,7 @@ function NavLink({
       <Icon
         className={cn(
           "h-[16px] w-[16px] shrink-0",
-          active ? "text-primary" : "text-[#6b7280]",
+          active ? "text-primary" : "text-[var(--text-tertiary)]",
         )}
         strokeWidth={active ? 2.25 : 1.75}
       />
@@ -48,7 +48,7 @@ function NavLink({
         <>
           <span className="flex-1">{label}</span>
           {badge && (
-            <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-[#f0f0f2] px-1.5 text-[10px] font-bold text-[#6b7280]">
+            <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-[var(--input-bg)] px-1.5 text-[10px] font-bold text-[var(--text-secondary)]">
               {badge}
             </span>
           )}
@@ -91,7 +91,7 @@ export function DashboardSidebar() {
             type="button"
             onClick={toggle}
             aria-label="Expand sidebar"
-            className="flex h-8 w-8 items-center justify-center rounded-lg text-[#9ca3af] transition-colors hover:bg-white hover:text-primary"
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--text-tertiary)] transition-colors hover:bg-[var(--card)] hover:text-primary"
           >
             <PanelLeft className="h-[17px] w-[17px] rotate-180" strokeWidth={1.75} />
           </button>
@@ -107,7 +107,7 @@ export function DashboardSidebar() {
               type="button"
               onClick={toggle}
               aria-label="Collapse sidebar"
-              className="flex h-8 w-8 items-center justify-center rounded-lg text-[#9ca3af] transition-colors hover:bg-white hover:text-[#374151]"
+              className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--text-tertiary)] transition-colors hover:bg-[var(--card)] hover:text-[var(--text-secondary)]"
             >
               <PanelLeft className="h-[17px] w-[17px]" strokeWidth={1.75} />
             </button>
@@ -121,7 +121,7 @@ export function DashboardSidebar() {
         {navGroupsForRole.map((group) => (
           <div key={group.title}>
             {!collapsed && (
-              <p className="mb-1.5 px-3 text-[10px] font-semibold uppercase tracking-wider text-[#9ca3af]">
+              <p className="mb-1.5 px-3 text-[10px] font-semibold uppercase tracking-wider text-[var(--text-tertiary)]">
                 {group.title}
               </p>
             )}

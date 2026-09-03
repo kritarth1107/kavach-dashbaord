@@ -48,11 +48,11 @@ function MethodToggle({
   onChange: (method: LoginMethod) => void;
 }) {
   return (
-    <div className="relative grid grid-cols-2 rounded-xl border border-[#e5e7eb] bg-[#f3f4f6] p-1">
+    <div className="relative grid grid-cols-2 rounded-xl border border-[var(--border-strong)] bg-[var(--surface)] p-1">
       <span
         aria-hidden
         className={cn(
-          "absolute inset-y-1 w-[calc(50%-4px)] rounded-lg bg-white shadow-[0_1px_3px_rgba(15,23,42,0.08)] transition-transform duration-200 ease-out",
+          "absolute inset-y-1 w-[calc(50%-4px)] rounded-lg bg-[var(--card)] shadow-[var(--shadow-soft)] transition-transform duration-200 ease-out",
           value === "phone" ? "translate-x-[calc(100%+4px)]" : "translate-x-1",
         )}
       />
@@ -70,7 +70,7 @@ function MethodToggle({
             onClick={() => onChange(id)}
             className={cn(
               "relative z-[1] flex items-center justify-center gap-1.5 rounded-lg py-2 text-[12px] font-bold transition-colors",
-              selected ? "text-primary" : "text-[#6b7280] hover:text-[#374151]",
+              selected ? "text-primary" : "text-[var(--text-secondary)] hover:text-[var(--text-secondary)]",
             )}
           >
             <Icon className="h-3.5 w-3.5" strokeWidth={2.25} />
@@ -266,45 +266,45 @@ export function LoginForm() {
 
       <div className="pointer-events-none absolute h-[420px] w-[420px] rounded-full bg-primary/15 blur-[80px]" />
 
-      <div className="relative w-full max-w-[400px] rounded-2xl border border-[#eef0f2] bg-white px-8 py-9 shadow-[0_8px_40px_rgba(15,23,42,0.08)]">
+      <div className="relative w-full max-w-[400px] rounded-2xl border border-[var(--border-strong)] bg-[var(--card)] px-8 py-9 shadow-[var(--shadow-soft)]">
         <div className="mb-6 flex justify-center">
           <Link href="/" className="inline-flex items-center gap-2">
             <Shield className="h-6 w-6 text-primary" strokeWidth={2.25} />
-            <span className="text-[17px] font-extrabold tracking-[-0.02em] text-[#111827]">
+            <span className="text-[17px] font-extrabold tracking-[-0.02em] text-[var(--text-primary)]">
               Kavach
             </span>
           </Link>
         </div>
 
         <div className="mb-6 text-center">
-          <h1 className="text-[22px] font-extrabold tracking-[-0.02em] text-[#111827]">
+          <h1 className="text-[22px] font-extrabold tracking-[-0.02em] text-[var(--text-primary)]">
             {step === "otp" && channel === "phone" && "Check your phone"}
             {step === "otp" && channel === "email" && "Check your email"}
             {step === "register" && "Create your account"}
             {step === "identifier" && "Welcome back"}
           </h1>
           {step === "identifier" && (
-            <p className="mt-1.5 text-[13px] text-[#6b7280]">
+            <p className="mt-1.5 text-[13px] text-[var(--text-secondary)]">
               Sign in with email or mobile — we&apos;ll send a one-time code
             </p>
           )}
           {step === "register" && (
-            <p className="mt-1.5 text-[13px] text-[#6b7280]">
+            <p className="mt-1.5 text-[13px] text-[var(--text-secondary)]">
               Tell us your name to finish signing up
             </p>
           )}
           {step === "otp" && channel === "email" && (
-            <p className="mt-1.5 text-[13px] leading-relaxed text-[#6b7280]">
+            <p className="mt-1.5 text-[13px] leading-relaxed text-[var(--text-secondary)]">
               Enter the code sent to{" "}
-              <span className="font-semibold text-[#111827]">{identifierLabel}</span>
+              <span className="font-semibold text-[var(--text-primary)]">{identifierLabel}</span>
               {" · "}
-              <span className="text-[#9ca3af]">check spam if you don&apos;t see it</span>
+              <span className="text-[var(--text-tertiary)]">check spam if you don&apos;t see it</span>
             </p>
           )}
           {step === "otp" && channel === "phone" && (
-            <p className="mt-1.5 text-[13px] leading-relaxed text-[#6b7280]">
+            <p className="mt-1.5 text-[13px] leading-relaxed text-[var(--text-secondary)]">
               Enter the code sent to{" "}
-              <span className="font-semibold text-[#111827]">
+              <span className="font-semibold text-[var(--text-primary)]">
                 {formatPhoneDisplay(phoneCountryCode, phone)}
               </span>
             </p>
@@ -312,13 +312,13 @@ export function LoginForm() {
         </div>
 
         {declinedInvite && step === "identifier" && (
-          <p className="mb-4 rounded-xl bg-[#f0fdf4] px-3 py-2 text-center text-[12px] font-medium text-[#15803d]">
+          <p className="mb-4 rounded-xl bg-primary-light px-3 py-2 text-center text-[12px] font-medium text-primary">
             Invitation declined. Sign in again to set up your own family.
           </p>
         )}
 
         {error && (
-          <p className="mb-4 rounded-xl bg-[#fef2f2] px-3 py-2 text-center text-[12px] font-medium text-[#dc2626]">
+          <p className="mb-4 rounded-xl bg-[var(--danger-bg)] px-3 py-2 text-center text-[12px] font-medium text-[var(--danger-text)]">
             {error}
           </p>
         )}
@@ -330,7 +330,7 @@ export function LoginForm() {
             {loginMethod === "email" ? (
               <div className="relative">
                 <Mail
-                  className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#9ca3af]"
+                  className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--text-tertiary)]"
                   strokeWidth={2}
                 />
                 <input
@@ -340,7 +340,7 @@ export function LoginForm() {
                   placeholder="name@example.com"
                   required
                   autoComplete="email"
-                  className="w-full rounded-xl border border-[#e5e7eb] bg-[#f9fafb] py-3 pl-10 pr-4 text-[13px] font-medium text-[#111827] placeholder:text-[#9ca3af] outline-none transition-colors focus:border-primary focus:bg-white focus:ring-2 focus:ring-[var(--primary-ring)]"
+                  className="w-full rounded-xl border border-[var(--border-strong)] bg-[var(--input-bg)] py-3 pl-10 pr-4 text-[13px] font-medium text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] outline-none transition-colors focus:border-primary focus:bg-[var(--card)] focus:ring-2 focus:ring-[var(--primary-ring)]"
                 />
               </div>
             ) : (
@@ -349,7 +349,7 @@ export function LoginForm() {
                   <select
                     value={phoneCountryCode}
                     onChange={(e) => setPhoneCountryCode(e.target.value)}
-                    className="w-[92px] shrink-0 rounded-xl border border-[#e5e7eb] bg-[#f9fafb] px-2 py-3 text-[12px] font-semibold text-[#111827] outline-none transition-colors focus:border-primary focus:bg-white focus:ring-2 focus:ring-[var(--primary-ring)]"
+                    className="w-[92px] shrink-0 rounded-xl border border-[var(--border-strong)] bg-[var(--input-bg)] px-2 py-3 text-[12px] font-semibold text-[var(--text-primary)] outline-none transition-colors focus:border-primary focus:bg-[var(--card)] focus:ring-2 focus:ring-[var(--primary-ring)]"
                   >
                     {countryCodeOptions.map(({ code, flag }) => (
                       <option key={code} value={code}>
@@ -359,7 +359,7 @@ export function LoginForm() {
                   </select>
                   <div className="relative min-w-0 flex-1">
                     <Smartphone
-                      className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#9ca3af]"
+                      className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--text-tertiary)]"
                       strokeWidth={2}
                     />
                     <input
@@ -371,13 +371,13 @@ export function LoginForm() {
                       required
                       autoComplete="tel-national"
                       maxLength={15}
-                      className="w-full rounded-xl border border-[#e5e7eb] bg-[#f9fafb] py-3 pl-10 pr-4 text-[13px] font-medium text-[#111827] placeholder:text-[#9ca3af] outline-none transition-colors focus:border-primary focus:bg-white focus:ring-2 focus:ring-[var(--primary-ring)]"
+                      className="w-full rounded-xl border border-[var(--border-strong)] bg-[var(--input-bg)] py-3 pl-10 pr-4 text-[13px] font-medium text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] outline-none transition-colors focus:border-primary focus:bg-[var(--card)] focus:ring-2 focus:ring-[var(--primary-ring)]"
                     />
                   </div>
                 </div>
-                <div className="flex items-center gap-2 rounded-xl border border-dashed border-[#bbf7d0] bg-[#f0fdf4] px-3 py-2">
+                <div className="flex items-center gap-2 rounded-xl border border-dashed border-primary/30 bg-primary-light px-3 py-2">
                   <Sparkles className="h-3.5 w-3.5 shrink-0 text-primary" strokeWidth={2.25} />
-                  <p className="text-[11px] font-medium leading-snug text-[#166534]">
+                  <p className="text-[11px] font-medium leading-snug text-primary">
                     Demo mode — use code{" "}
                     <span className="font-extrabold tracking-widest">{MOCK_PHONE_OTP}</span>
                   </p>
@@ -405,9 +405,9 @@ export function LoginForm() {
         {step === "otp" && (
           <form onSubmit={handleVerifyOtp} className="space-y-4">
             {channel === "phone" && (
-              <div className="flex items-center justify-center gap-2 rounded-xl bg-[#f0fdf4] px-3 py-2">
+              <div className="flex items-center justify-center gap-2 rounded-xl bg-primary-light px-3 py-2">
                 <Sparkles className="h-3.5 w-3.5 text-primary" strokeWidth={2.25} />
-                <p className="text-[11px] font-semibold text-[#166534]">
+                <p className="text-[11px] font-semibold text-primary">
                   Demo code: <span className="tracking-widest">{MOCK_PHONE_OTP}</span>
                 </p>
               </div>
@@ -423,20 +423,20 @@ export function LoginForm() {
               {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Verify code"}
             </button>
 
-            <p className="text-center text-[12px] text-[#6b7280]">
+            <p className="text-center text-[12px] text-[var(--text-secondary)]">
               <button
                 type="button"
                 onClick={handleResendOtp}
                 disabled={loading || resendCooldown > 0}
-                className="font-semibold text-primary hover:text-[var(--primary-dark)] disabled:cursor-not-allowed disabled:text-[#9ca3af]"
+                className="font-semibold text-primary hover:text-[var(--primary-dark)] disabled:cursor-not-allowed disabled:text-[var(--text-tertiary)]"
               >
                 {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : "Resend code"}
               </button>
-              <span className="mx-2 text-[#d1d5db]">·</span>
+              <span className="mx-2 text-[var(--text-tertiary)]">·</span>
               <button
                 type="button"
                 onClick={resetToIdentifier}
-                className="font-semibold hover:text-[#111827]"
+                className="font-semibold hover:text-[var(--text-primary)]"
               >
                 {channel === "phone" ? "Different number" : "Different email"}
               </button>
@@ -453,7 +453,7 @@ export function LoginForm() {
               placeholder="Your full name"
               required
               minLength={2}
-              className="w-full rounded-xl border border-[#e5e7eb] bg-[#f9fafb] py-3 px-4 text-[13px] font-medium text-[#111827] placeholder:text-[#9ca3af] outline-none transition-colors focus:border-primary focus:bg-white focus:ring-2 focus:ring-[var(--primary-ring)]"
+              className="w-full rounded-xl border border-[var(--border-strong)] bg-[var(--input-bg)] py-3 px-4 text-[13px] font-medium text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] outline-none transition-colors focus:border-primary focus:bg-[var(--card)] focus:ring-2 focus:ring-[var(--primary-ring)]"
             />
             <button
               type="submit"
@@ -468,11 +468,11 @@ export function LoginForm() {
         {step === "identifier" && (
           <>
             <div className="my-6 flex items-center gap-3">
-              <div className="h-px flex-1 bg-[#e5e7eb]" />
-              <span className="text-[10px] font-bold uppercase tracking-wider text-[#9ca3af]">
+              <div className="h-px flex-1 bg-[var(--chart-track)]" />
+              <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-tertiary)]">
                 Or continue with
               </span>
-              <div className="h-px flex-1 bg-[#e5e7eb]" />
+              <div className="h-px flex-1 bg-[var(--chart-track)]" />
             </div>
 
             <div className="flex justify-center pb-2">
@@ -483,7 +483,7 @@ export function LoginForm() {
                 aria-label="Continue with Google"
                 title="Continue with Google"
                 className={cn(
-                  "relative flex h-11 w-11 items-center justify-center rounded-full border border-[#e5e7eb] bg-white transition-colors hover:border-primary hover:bg-primary-light",
+                  "relative flex h-11 w-11 items-center justify-center rounded-full border border-[var(--border-strong)] bg-[var(--card)] transition-colors hover:border-primary hover:bg-primary-light",
                   googleLoading && "opacity-60",
                 )}
               >
@@ -497,13 +497,13 @@ export function LoginForm() {
           </>
         )}
 
-        <p className="mt-8 text-center text-[11px] leading-relaxed text-[#9ca3af]">
+        <p className="mt-8 text-center text-[11px] leading-relaxed text-[var(--text-tertiary)]">
           By clicking continue, you agree to our{" "}
-          <Link href="#" className="underline underline-offset-2 hover:text-[#6b7280]">
+          <Link href="#" className="underline underline-offset-2 hover:text-[var(--text-secondary)]">
             Terms of Service
           </Link>{" "}
           and{" "}
-          <Link href="#" className="underline underline-offset-2 hover:text-[#6b7280]">
+          <Link href="#" className="underline underline-offset-2 hover:text-[var(--text-secondary)]">
             Privacy Policy
           </Link>
           .

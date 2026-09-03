@@ -317,13 +317,13 @@ export function HealthRecordsPanel({
   return (
     <div className={cn("panel-card overflow-hidden", embedded && compact ? "mb-6" : embedded ? "mb-0" : "")}>
       {embedded && compact && fixedRecipientName && (
-        <div className={cn("flex items-center gap-2 border-b border-[#f0f0f2]", pad, sectionPad)}>
-          <FileText className="h-4 w-4 shrink-0 text-[#2563eb]" strokeWidth={2.25} />
+        <div className={cn("flex items-center gap-2 border-b border-[var(--border-strong)]", pad, sectionPad)}>
+          <FileText className="h-4 w-4 shrink-0 text-[#60a5fa]" strokeWidth={2.25} />
           <div>
-            <h2 className="text-[15px] font-extrabold text-[#111827]">
+            <h2 className="text-[15px] font-extrabold text-[var(--text-primary)]">
               Health records for {fixedRecipientName}
             </h2>
-            <p className="text-[12px] text-[#9ca3af]">
+            <p className="text-[12px] text-[var(--text-tertiary)]">
               Labs, vitals, and files · Saheli cites printed values only
             </p>
           </div>
@@ -331,18 +331,18 @@ export function HealthRecordsPanel({
       )}
 
       {!embedded && (
-        <div className={cn("border-b border-[#f0f0f2]", pad, sectionPad)}>
-          <h1 className="text-[16px] font-extrabold text-[#111827]">Health records</h1>
-          <p className="text-[12px] text-[#9ca3af]">
+        <div className={cn("border-b border-[var(--border-strong)]", pad, sectionPad)}>
+          <h1 className="text-[16px] font-extrabold text-[var(--text-primary)]">Health records</h1>
+          <p className="text-[12px] text-[var(--text-tertiary)]">
             Labs, vitals, and notes on file · Saheli cites printed values only
           </p>
         </div>
       )}
 
-      <div className={cn("space-y-3 border-b border-[#f0f0f2]", pad, sectionPad)}>
+      <div className={cn("space-y-3 border-b border-[var(--border-strong)]", pad, sectionPad)}>
         <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-          <div className="flex min-w-[200px] flex-1 items-center gap-2 rounded-xl border border-[#e5e7eb] bg-[#fafafa] px-3 py-2 focus-within:border-primary focus-within:bg-white">
-            <Search className="h-4 w-4 shrink-0 text-[#9ca3af]" />
+          <div className="flex min-w-[200px] flex-1 items-center gap-2 rounded-xl border border-[var(--border-strong)] bg-[var(--input-bg)] px-3 py-2 focus-within:border-primary focus-within:bg-[var(--card)]">
+            <Search className="h-4 w-4 shrink-0 text-[var(--text-tertiary)]" />
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -354,7 +354,7 @@ export function HealthRecordsPanel({
             <select
               value={recipientFilter}
               onChange={(e) => setRecipientFilter(e.target.value)}
-              className="rounded-xl border border-[#e5e7eb] bg-[#fafafa] px-3 py-2 text-[13px] outline-none focus:border-primary"
+              className="rounded-xl border border-[var(--border-strong)] bg-[var(--input-bg)] px-3 py-2 text-[13px] outline-none focus:border-primary"
             >
               <option value="all">All care recipients</option>
               {recipients.map((r) => (
@@ -367,7 +367,7 @@ export function HealthRecordsPanel({
           <select
             value={kindFilter}
             onChange={(e) => setKindFilter(e.target.value)}
-            className="rounded-xl border border-[#e5e7eb] bg-[#fafafa] px-3 py-2 text-[13px] outline-none focus:border-primary"
+            className="rounded-xl border border-[var(--border-strong)] bg-[var(--input-bg)] px-3 py-2 text-[13px] outline-none focus:border-primary"
           >
             {HEALTH_RECORD_KINDS.map((k) => (
               <option key={k.value} value={k.value}>
@@ -388,18 +388,18 @@ export function HealthRecordsPanel({
         </div>
 
         {addOpen && showAddForm && (
-          <div className="rounded-xl border border-[#e5e7eb] bg-[#fafafa] p-4 space-y-3">
+          <div className="rounded-xl border border-[var(--border-strong)] bg-[var(--input-bg)] p-4 space-y-3">
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <p className="text-[13px] font-bold text-[#111827]">
+              <p className="text-[13px] font-bold text-[var(--text-primary)]">
                 Add for {addTargetName}
               </p>
-              <div className="flex gap-1 rounded-lg bg-white p-1">
+              <div className="flex gap-1 rounded-lg bg-[var(--card)] p-1">
                 <button
                   type="button"
                   onClick={() => setAddMode("file")}
                   className={cn(
                     "rounded-md px-3 py-1.5 text-[11px] font-semibold",
-                    addMode === "file" ? "bg-primary text-white" : "text-[#6b7280]",
+                    addMode === "file" ? "bg-primary text-white" : "text-[var(--text-secondary)]",
                   )}
                 >
                   Upload file
@@ -409,7 +409,7 @@ export function HealthRecordsPanel({
                   onClick={() => setAddMode("text")}
                   className={cn(
                     "rounded-md px-3 py-1.5 text-[11px] font-semibold",
-                    addMode === "text" ? "bg-primary text-white" : "text-[#6b7280]",
+                    addMode === "text" ? "bg-primary text-white" : "text-[var(--text-secondary)]",
                   )}
                 >
                   Paste text
@@ -421,7 +421,7 @@ export function HealthRecordsPanel({
               <select
                 value={addRecipientId}
                 onChange={(e) => setAddRecipientId(e.target.value)}
-                className="w-full rounded-xl border border-[#e5e7eb] bg-white px-3 py-2 text-[13px] outline-none"
+                className="w-full rounded-xl border border-[var(--border-strong)] bg-[var(--card)] px-3 py-2 text-[13px] outline-none"
                 required
               >
                 <option value="">Select care recipient</option>
@@ -437,7 +437,7 @@ export function HealthRecordsPanel({
               <form onSubmit={(e) => void handleFileUpload(e)} className="space-y-3">
                 <label
                   className={cn(
-                    "flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-[#d1d5db] bg-white px-4 transition-colors hover:border-primary",
+                    "flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-[var(--border-strong)] bg-[var(--card)] px-4 transition-colors hover:border-primary",
                     compact ? "py-5" : "py-8",
                   )}
                 >
@@ -473,7 +473,7 @@ export function HealthRecordsPanel({
                         <span className="truncate">{file.name}</span>
                         <button
                           type="button"
-                          className="shrink-0 text-[var(--text-tertiary)] hover:text-[#dc2626]"
+                          className="shrink-0 text-[var(--text-tertiary)] hover:text-[var(--danger-text)]"
                           onClick={() =>
                             setSelectedFiles((prev) =>
                               prev.filter((f) => f !== file),
@@ -536,12 +536,12 @@ export function HealthRecordsPanel({
       </div>
 
       {error && (
-        <div className={cn("mt-4 rounded-lg border border-[#fecaca] bg-[#fef2f2] px-4 py-3 text-[12px] text-[#b91c1c]", pad, "mx-0")}>
+        <div className={cn("mt-4 alert-error rounded-lg px-4 py-3 text-[12px]", pad, "mx-0")}>
           {error}
         </div>
       )}
       {saveOk && (
-        <div className={cn("mt-4 rounded-lg border border-[#bbf7d0] bg-[#f0fdf4] px-4 py-3 text-[12px] text-primary", pad, "mx-0")}>
+        <div className={cn("mt-4 rounded-lg border border-primary/30 bg-primary-light px-4 py-3 text-[12px] text-primary", pad, "mx-0")}>
           {saveOk}
         </div>
       )}
@@ -551,7 +551,7 @@ export function HealthRecordsPanel({
           <Loader2 className="h-6 w-6 animate-spin text-primary" />
         </div>
       ) : filtered.length === 0 ? (
-        <p className={cn(pad, compact ? "py-10" : "py-16", "text-center text-[13px] text-[#9ca3af]")}>
+        <p className={cn(pad, compact ? "py-10" : "py-16", "text-center text-[13px] text-[var(--text-tertiary)]")}>
           {records.length === 0
             ? "No health records yet. Add a lab report or vitals reading above."
             : "No records match your filters."}
@@ -563,16 +563,16 @@ export function HealthRecordsPanel({
               key={`${doc.recipientUserId}-${doc.document_id}`}
               className={cn("flex items-start gap-3", pad, compact ? "py-3" : "py-4")}
             >
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#dbeafe]">
-                <FileText className="h-4 w-4 text-[#2563eb]" />
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[var(--surface)]">
+                <FileText className="h-4 w-4 text-[#60a5fa]" />
               </div>
               <button
                 type="button"
                 onClick={() => void openDetail(doc)}
                 className="min-w-0 flex-1 text-left"
               >
-                <p className="text-[13px] font-bold text-[#111827]">{doc.title}</p>
-                <p className="text-[11px] text-[#9ca3af]">
+                <p className="text-[13px] font-bold text-[var(--text-primary)]">{doc.title}</p>
+                <p className="text-[11px] text-[var(--text-tertiary)]">
                   {doc.recipientName}
                   {doc.record_date ? ` · ${doc.record_date}` : doc.created_at ? ` · ${formatWhen(doc.created_at)}` : ""}
                   {` · ${kindLabel(doc.kind)}`}
@@ -655,7 +655,7 @@ export function HealthRecordsPanel({
                 type="button"
                 onClick={() => void handleDelete(doc)}
                 disabled={deletingId === doc.document_id}
-                className="shrink-0 rounded-lg p-2 text-[#9ca3af] hover:bg-[#fef2f2] hover:text-[#dc2626] disabled:opacity-50"
+                className="shrink-0 rounded-lg p-2 text-[var(--text-tertiary)] hover:bg-[var(--danger-bg)] hover:text-[var(--danger-text)] disabled:opacity-50"
                 aria-label="Delete record"
               >
                 {deletingId === doc.document_id ? (
@@ -671,18 +671,18 @@ export function HealthRecordsPanel({
 
       {(detailLoading || detail) && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 sm:items-center">
-          <div className="max-h-[85vh] w-full max-w-lg overflow-hidden rounded-2xl bg-white shadow-xl">
-            <div className="flex items-start justify-between border-b border-[#f0f0f2] px-5 py-4">
+          <div className="max-h-[85vh] w-full max-w-lg overflow-hidden rounded-2xl bg-[var(--card)] shadow-xl">
+            <div className="flex items-start justify-between border-b border-[var(--border-strong)] px-5 py-4">
               <div>
-                <p className="text-[15px] font-extrabold text-[#111827]">{detail?.title ?? "Loading…"}</p>
+                <p className="text-[15px] font-extrabold text-[var(--text-primary)]">{detail?.title ?? "Loading…"}</p>
                 {detail && (
-                  <p className="text-[11px] text-[#9ca3af]">
+                  <p className="text-[11px] text-[var(--text-tertiary)]">
                     {kindLabel(detail.kind)}
                     {detail.record_date ? ` · ${detail.record_date}` : ""}
                   </p>
                 )}
               </div>
-              <button type="button" onClick={() => setDetail(null)} className="text-[#9ca3af]">
+              <button type="button" onClick={() => setDetail(null)} className="text-[var(--text-tertiary)]">
                 <X className="h-5 w-5" />
               </button>
             </div>
@@ -731,7 +731,7 @@ export function HealthRecordsPanel({
                   <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-[var(--text-tertiary)]">
                     Extracted text
                   </p>
-                  <pre className="whitespace-pre-wrap font-sans text-[13px] leading-relaxed text-[#374151]">
+                  <pre className="whitespace-pre-wrap font-sans text-[13px] leading-relaxed text-[var(--text-secondary)]">
                     {detail?.raw_text}
                   </pre>
                 </>

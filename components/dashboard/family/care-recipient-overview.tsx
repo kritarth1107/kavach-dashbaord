@@ -80,10 +80,10 @@ export function CareRecipientOverview({
       </div>
 
       <section className="panel-card overflow-hidden">
-        <div className="flex items-center justify-between border-b border-[#f0f0f2] px-5 py-3.5">
+        <div className="flex items-center justify-between border-b border-[var(--border-strong)] px-5 py-3.5">
           <div>
-            <h3 className="text-[14px] font-extrabold text-[#111827]">Today&apos;s schedule</h3>
-            <p className="text-[11px] text-[#9ca3af]">Quick view · manage in Schedule tab</p>
+            <h3 className="text-[14px] font-extrabold text-[var(--text-primary)]">Today&apos;s schedule</h3>
+            <p className="text-[11px] text-[var(--text-tertiary)]">Quick view · manage in Schedule tab</p>
           </div>
           <button
             type="button"
@@ -99,17 +99,17 @@ export function CareRecipientOverview({
               <Loader2 className="h-5 w-5 animate-spin text-primary" />
             </div>
           ) : todayItems.length === 0 ? (
-            <p className="py-4 text-center text-[12px] text-[#9ca3af]">Nothing scheduled for today</p>
+            <p className="py-4 text-center text-[12px] text-[var(--text-tertiary)]">Nothing scheduled for today</p>
           ) : (
             <ul className="space-y-2">
               {todayItems.slice(0, 4).map((item) => (
                 <li
                   key={item.scheduleId}
-                  className="flex items-center justify-between rounded-xl bg-[#fafafa] px-3 py-2.5"
+                  className="flex items-center justify-between rounded-xl bg-[var(--input-bg)] px-3 py-2.5"
                 >
                   <div>
-                    <p className="text-[12px] font-bold text-[#111827]">{item.title}</p>
-                    <p className="text-[11px] text-[#9ca3af]">{item.time}</p>
+                    <p className="text-[12px] font-bold text-[var(--text-primary)]">{item.title}</p>
+                    <p className="text-[11px] text-[var(--text-tertiary)]">{item.time}</p>
                   </div>
                 </li>
               ))}
@@ -121,12 +121,12 @@ export function CareRecipientOverview({
       {nextItem && nextMeta && (
         <section className="panel-card flex items-center justify-between gap-4 p-5">
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-wide text-[#9ca3af]">Up next</p>
-            <p className="mt-1 text-[14px] font-extrabold text-[#111827]">
+            <p className="text-[10px] font-bold uppercase tracking-wide text-[var(--text-tertiary)]">Up next</p>
+            <p className="mt-1 text-[14px] font-extrabold text-[var(--text-primary)]">
               {nextItem.title} · {nextItem.time}
             </p>
           </div>
-          <Calendar className="h-8 w-8 text-[#e5e7eb]" />
+          <Calendar className="h-8 w-8 text-[var(--border-strong)]" />
         </section>
       )}
 
@@ -167,9 +167,9 @@ function StatCard({
       onClick={onClick}
       className="panel-card p-4 text-left transition-colors hover:border-primary/30"
     >
-      <p className="text-[10px] font-bold uppercase tracking-wide text-[#9ca3af]">{label}</p>
-      <p className="mt-1 text-[22px] font-extrabold text-[#111827]">{value}</p>
-      <p className="mt-1 line-clamp-2 text-[11px] text-[#6b7280]">{sub}</p>
+      <p className="text-[10px] font-bold uppercase tracking-wide text-[var(--text-tertiary)]">{label}</p>
+      <p className="mt-1 text-[22px] font-extrabold text-[var(--text-primary)]">{value}</p>
+      <p className="mt-1 line-clamp-2 text-[11px] text-[var(--text-secondary)]">{sub}</p>
     </button>
   );
 }
@@ -193,14 +193,14 @@ function QuickLink({
       onClick={onNavigate}
       className="panel-card flex items-center gap-3 p-4 transition-colors hover:border-primary/30"
     >
-      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#f0fdf4]">
+      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-light">
         <Icon className="h-5 w-5 text-primary" />
       </div>
       <div className="min-w-0 flex-1">
-        <p className="text-[13px] font-bold text-[#111827]">{title}</p>
-        <p className="text-[11px] text-[#9ca3af]">{sub}</p>
+        <p className="text-[13px] font-bold text-[var(--text-primary)]">{title}</p>
+        <p className="text-[11px] text-[var(--text-tertiary)]">{sub}</p>
       </div>
-      <ChevronRight className="h-4 w-4 text-[#c4c4c4]" />
+      <ChevronRight className="h-4 w-4 text-[var(--text-tertiary)]" />
     </Link>
   );
 }

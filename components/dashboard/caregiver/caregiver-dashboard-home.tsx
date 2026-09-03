@@ -105,7 +105,7 @@ export function CaregiverDashboardHome() {
           sub="In this family"
           trend={overview?.careRecipientCount ? "Active" : "Active"}
           icon={Users}
-          iconBg="bg-primary-light text-primary"
+          iconBg="icon-chip-green"
         />
         <StatMetricCard
           label="Today's schedules"
@@ -113,7 +113,7 @@ export function CaregiverDashboardHome() {
           sub="Medicine, check-ins, vitals"
           trend={`${overview?.checkInsToday ?? 1} check-ins`}
           icon={AlertTriangle}
-          iconBg="bg-[#fef9c3] text-[#a16207]"
+          iconBg="icon-chip-yellow"
         />
         <StatMetricCard
           label="Saheli messages"
@@ -121,7 +121,7 @@ export function CaregiverDashboardHome() {
           sub="Recent replies in thread"
           trend={overview?.messagesToday ? "Active" : "Active"}
           icon={Heart}
-          iconBg="bg-[#fee2e2] text-[#dc2626]"
+          iconBg="icon-chip-red"
         />
         <StatMetricCard
           label="Tasks today"
@@ -133,7 +133,7 @@ export function CaregiverDashboardHome() {
               : `${overview?.pendingApprovals ?? 0} to approve`
           }
           icon={CheckCircle2}
-          iconBg="bg-[#dcfce7] text-[#16a34a]"
+          iconBg="icon-chip-green"
         />
       </div>
 

@@ -6,7 +6,7 @@ export default function RecordPage() {
     <Suspense
       fallback={
         <div className="flex justify-center py-20">
-          <span className="text-[13px] text-[#9ca3af]">Loading health records…</span>
+          <span className="text-[13px] text-[var(--text-tertiary)]">Loading health records…</span>
         </div>
       }
     >

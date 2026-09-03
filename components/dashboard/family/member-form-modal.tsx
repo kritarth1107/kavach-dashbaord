@@ -26,7 +26,7 @@ type MemberFormModalProps = {
 };
 
 const inputClass =
-  "w-full rounded-lg border border-[#e5e7eb] bg-[#fafafa] px-2.5 py-2 text-[12px] font-medium text-[#111827] outline-none transition-colors focus:border-primary focus:bg-white focus:ring-1 focus:ring-[var(--primary-ring)]";
+  "w-full rounded-lg border border-[var(--border-strong)] bg-[var(--input-bg)] px-2.5 py-2 text-[12px] font-medium text-[var(--text-primary)] outline-none transition-colors focus:border-primary focus:bg-[var(--card)] focus:ring-1 focus:ring-[var(--primary-ring)]";
 
 export function MemberFormModal({
   open,
@@ -116,13 +116,13 @@ export function MemberFormModal({
         className="absolute inset-0 bg-[#0f172a]/40 backdrop-blur-sm"
         onClick={onClose}
       />
-      <div className="relative w-full max-w-[560px] overflow-hidden rounded-2xl bg-white shadow-[0_20px_60px_rgba(0,0,0,0.15)]">
-        <div className="flex items-center justify-between border-b border-[#f0f0f2] px-5 py-3.5">
+      <div className="relative w-full max-w-[560px] overflow-hidden rounded-2xl bg-[var(--card)] shadow-[0_20px_60px_rgba(0,0,0,0.15)]">
+        <div className="flex items-center justify-between border-b border-[var(--border-strong)] px-5 py-3.5">
           <div>
-            <h2 className="text-[15px] font-extrabold text-[#111827]">
+            <h2 className="text-[15px] font-extrabold text-[var(--text-primary)]">
               {isEdit ? "Edit family member" : "Add family member"}
             </h2>
-            <p className="text-[11px] text-[#9ca3af]">
+            <p className="text-[11px] text-[var(--text-tertiary)]">
               {isEdit
                 ? "Update role and contact details for this member"
                 : isCareRecipient
@@ -134,7 +134,7 @@ export function MemberFormModal({
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="rounded-lg p-1.5 text-[#9ca3af] hover:bg-[#f5f5f7] hover:text-[#374151]"
+            className="rounded-lg p-1.5 text-[var(--text-tertiary)] hover:bg-[var(--surface)] hover:text-[var(--text-secondary)]"
           >
             <X className="h-4 w-4" strokeWidth={2.5} />
           </button>
@@ -143,7 +143,7 @@ export function MemberFormModal({
         <form onSubmit={(e) => void handleSubmit(e)}>
           <div className="space-y-3.5 px-5 py-4">
             {error && (
-              <p className="rounded-lg bg-[#fef2f2] px-3 py-2 text-[12px] text-[#dc2626]">
+              <p className="rounded-lg bg-[var(--danger-bg)] px-3 py-2 text-[12px] text-[var(--danger-text)]">
                 {error}
               </p>
             )}
@@ -245,7 +245,7 @@ export function MemberFormModal({
             )}
 
             {!isEdit && isCareRecipient && (
-              <p className="text-[11px] font-medium text-[#6b7280]">
+              <p className="text-[11px] font-medium text-[var(--text-secondary)]">
                 Provide at least one contact — email or mobile — so they can be reached or sign in later.
               </p>
             )}
@@ -263,7 +263,7 @@ export function MemberFormModal({
                         "flex cursor-pointer items-center gap-2 rounded-lg border px-2.5 py-2 transition-colors",
                         selected
                           ? "border-primary bg-primary-light"
-                          : "border-[#e5e7eb] bg-[#fafafa] hover:border-[#d1d5db]",
+                          : "border-[var(--border-strong)] bg-[var(--input-bg)] hover:border-[var(--border-strong)]",
                       )}
                     >
                       <input
@@ -277,22 +277,22 @@ export function MemberFormModal({
                       <span
                         className={cn(
                           "flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2",
-                          selected ? "border-primary bg-primary" : "border-[#d1d5db] bg-white",
+                          selected ? "border-primary bg-primary" : "border-[var(--border-strong)] bg-[var(--card)]",
                         )}
                       >
-                        {selected && <span className="h-1.5 w-1.5 rounded-full bg-white" />}
+                        {selected && <span className="h-1.5 w-1.5 rounded-full bg-[var(--card)]" />}
                       </span>
                       <Icon
                         className={cn(
                           "h-3.5 w-3.5 shrink-0",
-                          selected ? "text-primary" : "text-[#9ca3af]",
+                          selected ? "text-primary" : "text-[var(--text-tertiary)]",
                         )}
                         strokeWidth={2.25}
                       />
                       <span
                         className={cn(
                           "text-[11.5px] font-semibold leading-tight",
-                          selected ? "text-primary" : "text-[#374151]",
+                          selected ? "text-primary" : "text-[var(--text-secondary)]",
                         )}
                       >
                         {label}
@@ -304,12 +304,12 @@ export function MemberFormModal({
             </div>
           </div>
 
-          <div className="flex justify-end gap-2 border-t border-[#f0f0f2] px-5 py-3">
+          <div className="flex justify-end gap-2 border-t border-[var(--border-strong)] px-5 py-3">
             <button
               type="button"
               onClick={onClose}
               disabled={saving}
-              className="rounded-lg px-3.5 py-2 text-[12px] font-semibold text-[#6b7280] hover:bg-[#f5f5f7] disabled:opacity-60"
+              className="rounded-lg px-3.5 py-2 text-[12px] font-semibold text-[var(--text-secondary)] hover:bg-[var(--surface)] disabled:opacity-60"
             >
               Cancel
             </button>
@@ -330,7 +330,7 @@ export function MemberFormModal({
 
 function FieldLabel({ children }: { children: React.ReactNode }) {
   return (
-    <label className="mb-1 block text-[10px] font-bold uppercase tracking-wide text-[#9ca3af]">
+    <label className="mb-1 block text-[10px] font-bold uppercase tracking-wide text-[var(--text-tertiary)]">
       {children}
     </label>
   );
@@ -359,7 +359,7 @@ function Select({
       >
         {children}
       </select>
-      <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#9ca3af]" />
+      <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--text-tertiary)]" />
     </div>
   );
 }

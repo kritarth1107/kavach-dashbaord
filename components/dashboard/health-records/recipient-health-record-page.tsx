@@ -64,8 +64,8 @@ function MetricTrendCard({
     <div className="panel-card flex h-full flex-col p-5">
       <div className="mb-3 flex items-start justify-between gap-2">
         <div>
-          <p className="text-[13px] font-bold text-[#111827]">{label}</p>
-          <p className="text-[11px] text-[#9ca3af]">
+          <p className="text-[13px] font-bold text-[var(--text-primary)]">{label}</p>
+          <p className="text-[11px] text-[var(--text-tertiary)]">
             {series.length} reading{series.length === 1 ? "" : "s"} on file
           </p>
         </div>
@@ -73,9 +73,9 @@ function MetricTrendCard({
           className={cn(
             "rounded-md px-2 py-0.5 text-[10px] font-bold uppercase",
             latest.status === "normal" && "bg-primary-light text-primary",
-            latest.status === "high" && "bg-[#fef2f2] text-[#dc2626]",
-            latest.status === "low" && "bg-[#fef9c3] text-[#a16207]",
-            latest.status === "unknown" && "bg-[#f3f4f6] text-[#6b7280]",
+            latest.status === "high" && "bg-[var(--danger-bg)] text-[var(--danger-text)]",
+            latest.status === "low" && "bg-[var(--warning-bg)] text-[var(--warning-text)]",
+            latest.status === "unknown" && "bg-[var(--surface)] text-[var(--text-secondary)]",
           )}
         >
           {latest.status}
@@ -83,12 +83,12 @@ function MetricTrendCard({
       </div>
       <div className="mb-3 flex items-end justify-between">
         <div>
-          <p className="text-[1.75rem] font-extrabold leading-none text-[#111827]">
+          <p className="text-[1.75rem] font-extrabold leading-none text-[var(--text-primary)]">
             {latest.value}
-            <span className="ml-1 text-[13px] font-semibold text-[#9ca3af]">{unit}</span>
+            <span className="ml-1 text-[13px] font-semibold text-[var(--text-tertiary)]">{unit}</span>
           </p>
           {prev && (
-            <p className={cn("mt-1 text-[11px] font-semibold", delta >= 0 ? "text-[#dc2626]" : "text-primary")}>
+            <p className={cn("mt-1 text-[11px] font-semibold", delta >= 0 ? "text-[var(--danger-text)]" : "text-primary")}>
               {delta >= 0 ? "+" : ""}
               {delta.toFixed(1)} vs prior
             </p>
@@ -109,7 +109,7 @@ function MetricTrendCard({
         height={90}
       />
       {latest.refLow !== undefined && latest.refHigh !== undefined && (
-        <p className="mt-2 text-[10px] text-[#9ca3af]">
+        <p className="mt-2 text-[10px] text-[var(--text-tertiary)]">
           Typical printed range {latest.refLow}–{latest.refHigh} {unit}
         </p>
       )}
@@ -122,22 +122,22 @@ function InsightCard({ insight }: { insight: MetricInsight }) {
     <div
       className={cn(
         "rounded-xl border p-4",
-        insight.severity === "alert" && "border-[#fecaca] bg-[#fef2f2]",
-        insight.severity === "watch" && "border-[#fde68a] bg-[#fffbeb]",
-        insight.severity === "info" && "border-[#bbf7d0] bg-[#f0fdf4]",
+        insight.severity === "alert" && "border-[var(--danger-border)] bg-[var(--danger-bg)]",
+        insight.severity === "watch" && "border-[var(--warning-border)] bg-[var(--warning-bg)]",
+        insight.severity === "info" && "border-primary/30 bg-primary-light",
       )}
     >
       <div className="flex items-start gap-3">
         {insight.severity === "watch" ? (
-          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-[#ca8a04]" />
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-[var(--warning-text)]" />
         ) : insight.severity === "alert" ? (
-          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-[#dc2626]" />
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-[var(--danger-text)]" />
         ) : (
           <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
         )}
         <div>
-          <p className="text-[13px] font-bold text-[#111827]">{insight.title}</p>
-          <p className="mt-1 text-[12px] leading-relaxed text-[#6b7280]">{insight.detail}</p>
+          <p className="text-[13px] font-bold text-[var(--text-primary)]">{insight.title}</p>
+          <p className="mt-1 text-[12px] leading-relaxed text-[var(--text-secondary)]">{insight.detail}</p>
         </div>
       </div>
     </div>
@@ -245,16 +245,16 @@ export function RecipientHealthRecordPage() {
 
   if (isCareRecipientRole(activeFamily?.role)) {
     return (
-      <div className="rounded-2xl border border-[#fef9c3] bg-[#fefce8] px-5 py-8 text-center">
-        <p className="text-[14px] font-bold text-[#111827]">Caregiver view only</p>
+      <div className="rounded-2xl border border-[var(--warning-border)] bg-[var(--warning-bg)] px-5 py-8 text-center">
+        <p className="text-[14px] font-bold text-[var(--text-primary)]">Caregiver view only</p>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="rounded-2xl border border-[#fecaca] bg-[#fef2f2] px-5 py-8 text-center">
-        <p className="text-[14px] font-bold text-[#111827]">{error}</p>
+      <div className="rounded-2xl border border-[var(--danger-border)] bg-[var(--danger-bg)] px-5 py-8 text-center">
+        <p className="text-[14px] font-bold text-[var(--text-primary)]">{error}</p>
         <Link
           href="/dashboard/family"
           className="mt-4 inline-flex text-[13px] font-semibold text-primary hover:underline"
@@ -269,7 +269,7 @@ export function RecipientHealthRecordPage() {
     <>
       <Link
         href={`/dashboard/family/${userId}`}
-        className="mb-4 inline-flex items-center gap-1.5 text-[13px] font-semibold text-[#6b7280] transition-colors hover:text-primary"
+        className="mb-4 inline-flex items-center gap-1.5 text-[13px] font-semibold text-[var(--text-secondary)] transition-colors hover:text-primary"
       >
         <ArrowLeft className="h-4 w-4" strokeWidth={2.25} />
         Back to {subjectName}&apos;s profile
@@ -277,15 +277,15 @@ export function RecipientHealthRecordPage() {
 
       <div className="mb-6 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-[1.5rem] font-extrabold tracking-[-0.02em] text-[#111827]">
+          <h1 className="text-[1.5rem] font-extrabold tracking-[-0.02em] text-[var(--text-primary)]">
             {memberName} · Health monitoring
           </h1>
-          <p className="mt-1 text-[13px] text-[#6b7280]">
+          <p className="mt-1 text-[13px] text-[var(--text-secondary)]">
             Real data from uploaded labs & vitals · insights from printed values only
           </p>
         </div>
         {lastUpdated && (
-          <p className="text-[12px] text-[#9ca3af]">
+          <p className="text-[12px] text-[var(--text-tertiary)]">
             Last record ·{" "}
             {lastUpdated.toLocaleDateString("en-IN", {
               day: "numeric",
@@ -302,37 +302,37 @@ export function RecipientHealthRecordPage() {
           value={String(labs.length)}
           sub="Total health files"
           icon={FileText}
-          iconBg="bg-[#dbeafe] text-[#2563eb]"
+          iconBg="icon-chip-blue"
         />
         <StatMetricCard
           label="Markers tracked"
           value={String(grouped.size)}
           sub={`${metrics.length} parsed readings`}
           icon={TrendingUp}
-          iconBg="bg-[#ede9fe] text-[#7c3aed]"
+          iconBg="icon-chip-purple"
         />
         <StatMetricCard
           label="Lab reports"
           value={String(kindCounts.lab)}
           sub="Reports on file"
           icon={Activity}
-          iconBg="bg-[#dcfce7] text-[#16a34a]"
+          iconBg="icon-chip-green"
         />
         <StatMetricCard
           label="Vitals entries"
           value={String(kindCounts.vitals)}
           sub="BP, sugar, SpO₂ logs"
           icon={Heart}
-          iconBg="bg-[#fee2e2] text-[#dc2626]"
+          iconBg="icon-chip-red"
         />
       </div>
 
       <section className="panel-card mb-6 overflow-hidden">
-        <div className="flex items-center gap-2 border-b border-[#f0f0f2] px-5 py-4">
+        <div className="flex items-center gap-2 border-b border-[var(--border-strong)] px-5 py-4">
           <Brain className="h-4 w-4 text-primary" strokeWidth={2.25} />
           <div>
-            <h2 className="text-[15px] font-extrabold text-[#111827]">Saheli health insights</h2>
-            <p className="text-[12px] text-[#9ca3af]">
+            <h2 className="text-[15px] font-extrabold text-[var(--text-primary)]">Saheli health insights</h2>
+            <p className="text-[12px] text-[var(--text-tertiary)]">
               AI-style analysis from stored records · not medical advice
             </p>
           </div>
@@ -346,8 +346,8 @@ export function RecipientHealthRecordPage() {
 
       <div className="mb-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
         <div className="panel-card p-5">
-          <p className="text-[13px] font-bold text-[#111827]">Record breakdown</p>
-          <p className="mb-4 text-[11px] text-[#9ca3af]">Documents by type</p>
+          <p className="text-[13px] font-bold text-[var(--text-primary)]">Record breakdown</p>
+          <p className="mb-4 text-[11px] text-[var(--text-tertiary)]">Documents by type</p>
           <BarChart
             data={[
               kindCounts.lab,
@@ -361,8 +361,8 @@ export function RecipientHealthRecordPage() {
           />
         </div>
         <div className="panel-card p-5">
-          <p className="text-[13px] font-bold text-[#111827]">Latest vitals panel</p>
-          <p className="mb-4 text-[11px] text-[#9ca3af]">Most recent parsed values</p>
+          <p className="text-[13px] font-bold text-[var(--text-primary)]">Latest vitals panel</p>
+          <p className="mb-4 text-[11px] text-[var(--text-tertiary)]">Most recent parsed values</p>
           <div className="grid grid-cols-2 gap-3">
             <MiniVitalBar
               label="Blood pressure"
@@ -423,8 +423,8 @@ export function RecipientHealthRecordPage() {
         </div>
       ) : (
         <div className="panel-card mb-6 px-5 py-12 text-center">
-          <p className="text-[14px] font-bold text-[#111827]">No trend charts yet</p>
-          <p className="mx-auto mt-2 max-w-md text-[13px] text-[#6b7280]">
+          <p className="text-[14px] font-bold text-[var(--text-primary)]">No trend charts yet</p>
+          <p className="mx-auto mt-2 max-w-md text-[13px] text-[var(--text-secondary)]">
             Upload lab PDFs or paste values like “TSH 4.2 mIU/L” below to populate medical trend graphs.
           </p>
         </div>

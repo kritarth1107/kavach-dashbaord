@@ -78,7 +78,7 @@ function CalendarPopover({
   return (
     <div
       ref={ref}
-      className="absolute left-1/2 top-full z-30 mt-2 w-[280px] -translate-x-1/2 rounded-2xl border border-[#e5e7eb] bg-white p-4 shadow-[0_12px_40px_rgba(15,23,42,0.12)]"
+      className="absolute left-1/2 top-full z-30 mt-2 w-[280px] -translate-x-1/2 rounded-2xl border border-[var(--border-strong)] bg-[var(--card)] p-4 shadow-[0_12px_40px_rgba(15,23,42,0.12)]"
     >
       <div className="mb-3 flex items-center justify-between">
         <button
@@ -86,18 +86,18 @@ function CalendarPopover({
           onClick={() =>
             setViewMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1))
           }
-          className="flex h-7 w-7 items-center justify-center rounded-lg text-[#6b7280] hover:bg-[#f5f5f7]"
+          className="flex h-7 w-7 items-center justify-center rounded-lg text-[var(--text-secondary)] hover:bg-[var(--surface)]"
           aria-label="Previous month"
         >
           <ChevronLeft className="h-4 w-4" strokeWidth={2.5} />
         </button>
-        <p className="text-[13px] font-bold text-[#111827]">{monthLabel}</p>
+        <p className="text-[13px] font-bold text-[var(--text-primary)]">{monthLabel}</p>
         <button
           type="button"
           onClick={() =>
             setViewMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() + 1, 1))
           }
-          className="flex h-7 w-7 items-center justify-center rounded-lg text-[#6b7280] hover:bg-[#f5f5f7]"
+          className="flex h-7 w-7 items-center justify-center rounded-lg text-[var(--text-secondary)] hover:bg-[var(--surface)]"
           aria-label="Next month"
         >
           <ChevronRight className="h-4 w-4" strokeWidth={2.5} />
@@ -108,7 +108,7 @@ function CalendarPopover({
         {weekDays.map((day) => (
           <span
             key={day}
-            className="py-1 text-center text-[10px] font-semibold text-[#9ca3af]"
+            className="py-1 text-center text-[10px] font-semibold text-[var(--text-tertiary)]"
           >
             {day}
           </span>
@@ -133,12 +133,12 @@ function CalendarPopover({
               }}
               className={cn(
                 "flex h-8 w-full items-center justify-center rounded-lg text-[12px] font-semibold transition-colors",
-                !inMonth && "text-[#d1d5db]",
-                inMonth && !selectable && "cursor-not-allowed text-[#d1d5db]",
+                !inMonth && "text-[var(--text-tertiary)]",
+                inMonth && !selectable && "cursor-not-allowed text-[var(--text-tertiary)]",
                 inMonth &&
                   selectable &&
                   !active &&
-                  "text-[#374151] hover:bg-primary-light hover:text-primary",
+                  "text-[var(--text-secondary)] hover:bg-primary-light hover:text-primary",
                 active && "bg-primary text-white",
               )}
             >
@@ -195,7 +195,7 @@ export function RecipientDateHeader() {
           <button
             type="button"
             onClick={() => setCalendarOpen((open) => !open)}
-            className="inline-flex items-center gap-2 rounded-lg px-2 py-1 text-[15px] font-bold text-[#111827] transition-colors hover:bg-[#f5f5f7]"
+            className="inline-flex items-center gap-2 rounded-lg px-2 py-1 text-[15px] font-bold text-[var(--text-primary)] transition-colors hover:bg-[var(--surface)]"
             aria-expanded={calendarOpen}
             aria-label="Open calendar"
           >
@@ -228,7 +228,7 @@ export function RecipientDateHeader() {
           onClick={() => shiftDay(-1)}
           disabled={!canGoPrev}
           className={cn(
-            "flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white text-[#6b7280] shadow-sm transition-colors",
+            "flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--card)] text-[var(--text-secondary)] shadow-sm transition-colors",
             canGoPrev
               ? "hover:bg-primary-light hover:text-primary"
               : "cursor-not-allowed opacity-40",
@@ -262,17 +262,17 @@ export function RecipientDateHeader() {
                   "flex w-[46px] shrink-0 flex-col items-center rounded-xl py-2 transition-all",
                   !selectable && "cursor-not-allowed opacity-35",
                   selectable && active
-                    ? "bg-white shadow-[0_1px_4px_rgba(22,163,74,0.06)]"
-                    : selectable && "hover:bg-white/80",
+                    ? "bg-[var(--card)] shadow-[0_1px_4px_rgba(22,163,74,0.06)]"
+                    : selectable && "hover:bg-[var(--header-bg)]/90",
                 )}
               >
-                <span className="text-[10px] font-semibold text-[#9ca3af]">
+                <span className="text-[10px] font-semibold text-[var(--text-tertiary)]">
                   {date.toLocaleDateString("en-IN", { weekday: "short" })}
                 </span>
                 <span
                   className={cn(
                     "mt-0.5 text-[15px] font-extrabold leading-none",
-                    active ? "text-primary" : "text-[#374151]",
+                    active ? "text-primary" : "text-[var(--text-secondary)]",
                   )}
                 >
                   {date.getDate()}
@@ -297,7 +297,7 @@ export function RecipientDateHeader() {
           onClick={() => shiftDay(1)}
           disabled={!canGoNext}
           className={cn(
-            "flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white text-[#6b7280] shadow-sm transition-colors",
+            "flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--card)] text-[var(--text-secondary)] shadow-sm transition-colors",
             canGoNext
               ? "hover:bg-primary-light hover:text-primary"
               : "cursor-not-allowed opacity-40",

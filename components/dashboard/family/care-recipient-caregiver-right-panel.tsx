@@ -48,10 +48,10 @@ export function CareRecipientCaregiverRightPanel({ member }: { member: FamilyMem
   const NextIcon = nextMeta?.icon;
 
   return (
-    <aside className="no-scrollbar flex h-screen min-w-0 flex-1 shrink-0 flex-col overflow-y-auto border-l border-[#f0f0f2] px-5 py-6">
+    <aside className="no-scrollbar flex h-screen min-w-0 flex-1 shrink-0 flex-col overflow-y-auto border-l border-[var(--border-strong)] px-5 py-6">
       {/* Member profile */}
       <div className="panel-card mb-5 p-0">
-        <div className="border-b border-[#f0f0f2] px-4 py-4">
+        <div className="border-b border-[var(--border-strong)] px-4 py-4">
           <div className="flex items-start gap-3.5">
             <div className="relative shrink-0">
               {member.avatarUrl ? (
@@ -59,7 +59,7 @@ export function CareRecipientCaregiverRightPanel({ member }: { member: FamilyMem
                 <img
                   src={member.avatarUrl}
                   alt=""
-                  className="h-14 w-14 rounded-2xl object-cover ring-2 ring-[#f0f0f2]"
+                  className="h-14 w-14 rounded-2xl object-cover ring-2 ring-[var(--border-strong)]"
                 />
               ) : (
                 <div
@@ -73,17 +73,17 @@ export function CareRecipientCaregiverRightPanel({ member }: { member: FamilyMem
             </div>
 
             <div className="min-w-0 flex-1">
-              <h2 className="break-words text-[14px] font-extrabold leading-snug tracking-[-0.02em] text-[#111827]">
+              <h2 className="break-words text-[14px] font-extrabold leading-snug tracking-[-0.02em] text-[var(--text-primary)]">
                 {displayName}
               </h2>
-              <p className="mt-1 text-[12px] leading-normal text-[#6b7280]">
+              <p className="mt-1 text-[12px] leading-normal text-[var(--text-secondary)]">
                 Your {relationship.toLowerCase()}
               </p>
               <div className="mt-2.5 flex flex-wrap gap-1.5">
-                <span className="rounded-md bg-[#f3f4f6] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#6b7280]">
+                <span className="rounded-md bg-[var(--surface)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[var(--text-secondary)]">
                   Care recipient
                 </span>
-                <span className="inline-flex items-center gap-1 rounded-md bg-[#f0fdf4] px-2 py-0.5 text-[10px] font-semibold text-primary">
+                <span className="inline-flex items-center gap-1 rounded-md bg-primary-light px-2 py-0.5 text-[10px] font-semibold text-primary">
                   <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
                   Saheli
                 </span>
@@ -93,17 +93,17 @@ export function CareRecipientCaregiverRightPanel({ member }: { member: FamilyMem
         </div>
 
         {(email || phone || location) && (
-          <div className="divide-y divide-[#f5f5f7] border-b border-[#f0f0f2]">
+          <div className="divide-y divide-[#f5f5f7] border-b border-[var(--border-strong)]">
             {email && (
               <div className="flex items-start gap-3 px-4 py-3.5">
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#f5f5f7]">
-                  <Mail className="h-3.5 w-3.5 text-[#6b7280]" strokeWidth={2} />
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[var(--surface)]">
+                  <Mail className="h-3.5 w-3.5 text-[var(--text-secondary)]" strokeWidth={2} />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="mb-1 text-[10px] font-bold uppercase tracking-wide text-[#9ca3af]">
+                  <p className="mb-1 text-[10px] font-bold uppercase tracking-wide text-[var(--text-tertiary)]">
                     Email
                   </p>
-                  <p className="break-all text-[12px] font-semibold leading-normal text-[#111827]">
+                  <p className="break-all text-[12px] font-semibold leading-normal text-[var(--text-primary)]">
                     {email}
                   </p>
                 </div>
@@ -111,27 +111,27 @@ export function CareRecipientCaregiverRightPanel({ member }: { member: FamilyMem
             )}
             {phone && (
               <div className="flex items-start gap-3 px-4 py-3.5">
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#f5f5f7]">
-                  <Phone className="h-3.5 w-3.5 text-[#6b7280]" strokeWidth={2} />
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[var(--surface)]">
+                  <Phone className="h-3.5 w-3.5 text-[var(--text-secondary)]" strokeWidth={2} />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="mb-1 text-[10px] font-bold uppercase tracking-wide text-[#9ca3af]">
+                  <p className="mb-1 text-[10px] font-bold uppercase tracking-wide text-[var(--text-tertiary)]">
                     Phone
                   </p>
-                  <p className="text-[12px] font-semibold leading-normal text-[#111827]">{phone}</p>
+                  <p className="text-[12px] font-semibold leading-normal text-[var(--text-primary)]">{phone}</p>
                 </div>
               </div>
             )}
             {location && (
               <div className="flex items-start gap-3 px-4 py-3.5">
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#f5f5f7]">
-                  <MapPin className="h-3.5 w-3.5 text-[#6b7280]" strokeWidth={2} />
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[var(--surface)]">
+                  <MapPin className="h-3.5 w-3.5 text-[var(--text-secondary)]" strokeWidth={2} />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="mb-1 text-[10px] font-bold uppercase tracking-wide text-[#9ca3af]">
+                  <p className="mb-1 text-[10px] font-bold uppercase tracking-wide text-[var(--text-tertiary)]">
                     Location
                   </p>
-                  <p className="break-words text-[12px] font-semibold leading-normal text-[#111827]">
+                  <p className="break-words text-[12px] font-semibold leading-normal text-[var(--text-primary)]">
                     {location}
                   </p>
                 </div>
@@ -142,17 +142,17 @@ export function CareRecipientCaregiverRightPanel({ member }: { member: FamilyMem
 
         <div className="flex items-start gap-2 px-4 py-3.5">
           <Heart className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" strokeWidth={2.25} />
-          <p className="text-[11px] leading-relaxed text-[#6b7280]">
+          <p className="text-[11px] leading-relaxed text-[var(--text-secondary)]">
             {scheduleCtx?.loading ? (
               "Loading schedule..."
             ) : todayItems.length > 0 ? (
               <>
-                <span className="font-semibold text-[#374151]">{todayItems.length} reminders today</span>
+                <span className="font-semibold text-[var(--text-secondary)]">{todayItems.length} reminders today</span>
                 {" · "}view full schedule on the left
               </>
             ) : (
               <>
-                <span className="font-semibold text-[#374151]">No reminders today</span>
+                <span className="font-semibold text-[var(--text-secondary)]">No reminders today</span>
                 {" · "}add a care schedule to get started
               </>
             )}
@@ -168,7 +168,7 @@ export function CareRecipientCaregiverRightPanel({ member }: { member: FamilyMem
         />
       )}
 
-      <p className="mb-3 text-[12px] font-bold text-[#1a1a1a]">
+      <p className="mb-3 text-[12px] font-bold text-[var(--text-primary)]">
         {firstName}&apos;s schedule · {dateLabel}
       </p>
       <div className="panel-card mb-5 p-3">
@@ -177,19 +177,19 @@ export function CareRecipientCaregiverRightPanel({ member }: { member: FamilyMem
             <Loader2 className="h-5 w-5 animate-spin text-primary" />
           </div>
         ) : todayItems.length === 0 ? (
-          <p className="px-1 py-4 text-center text-[12px] text-[#9ca3af]">
+          <p className="px-1 py-4 text-center text-[12px] text-[var(--text-tertiary)]">
             Nothing scheduled for {dateLabel.toLowerCase()}
           </p>
         ) : (
           todayItems.map((item) => (
             <div
               key={item.scheduleId}
-              className="flex items-start gap-3 border-b border-[#f5f5f7] py-3 first:pt-0 last:border-0 last:pb-0"
+              className="flex items-start gap-3 border-b border-[var(--border-strong)] py-3 first:pt-0 last:border-0 last:pb-0"
             >
-              <div className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 border-[#d1d5db] bg-white" />
+              <div className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 border-[var(--border-strong)] bg-[var(--card)]" />
               <div className="min-w-0 flex-1">
-                <p className="text-[12px] font-bold text-[#111827]">{item.title}</p>
-                <p className="text-[11px] text-[#9ca3af]">
+                <p className="text-[12px] font-bold text-[var(--text-primary)]">{item.title}</p>
+                <p className="text-[11px] text-[var(--text-tertiary)]">
                   {item.time}
                   {item.dosage ? ` · ${item.dosage}` : ""}
                 </p>
@@ -202,43 +202,43 @@ export function CareRecipientCaregiverRightPanel({ member }: { member: FamilyMem
       <div className="panel-card mb-5 space-y-2 p-3">
         <Link
           href={`/dashboard/family/${member.userId}/health-record`}
-          className="flex items-center gap-3 rounded-xl p-2.5 transition-colors hover:bg-[#fafafa]"
+          className="flex items-center gap-3 rounded-xl p-2.5 transition-colors hover:bg-[var(--input-bg)]"
         >
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#f5f5f7]">
-            <Stethoscope className="h-4 w-4 text-[#374151]" strokeWidth={2} />
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[var(--surface)]">
+            <Stethoscope className="h-4 w-4 text-[var(--text-secondary)]" strokeWidth={2} />
           </div>
           <div className="flex-1">
-            <p className="text-[12px] font-bold text-[#111827]">Health record</p>
-            <p className="text-[11px] text-[#9ca3af]">Vitals, meds & history</p>
+            <p className="text-[12px] font-bold text-[var(--text-primary)]">Health record</p>
+            <p className="text-[11px] text-[var(--text-tertiary)]">Vitals, meds & history</p>
           </div>
-          <ChevronRight className="h-4 w-4 text-[#c4c4c4]" strokeWidth={2} />
+          <ChevronRight className="h-4 w-4 text-[var(--text-tertiary)]" strokeWidth={2} />
         </Link>
         <Link
           href={`/dashboard/chat?recipient=${encodeURIComponent(member.userId ?? "")}`}
-          className="flex items-center gap-3 rounded-xl p-2.5 transition-colors hover:bg-[#fafafa]"
+          className="flex items-center gap-3 rounded-xl p-2.5 transition-colors hover:bg-[var(--input-bg)]"
         >
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#fef9c3]">
-            <MessageSquare className="h-4 w-4 text-[#a16207]" strokeWidth={2} />
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[var(--warning-bg)]">
+            <MessageSquare className="h-4 w-4 text-[var(--warning-text)]" strokeWidth={2} />
           </div>
           <div className="flex-1">
-            <p className="text-[12px] font-bold text-[#111827]">Ask Saheli about {firstName}</p>
-            <p className="text-[11px] text-[#9ca3af]">Chat as yourself</p>
+            <p className="text-[12px] font-bold text-[var(--text-primary)]">Ask Saheli about {firstName}</p>
+            <p className="text-[11px] text-[var(--text-tertiary)]">Chat as yourself</p>
           </div>
-          <ChevronRight className="h-4 w-4 text-[#c4c4c4]" strokeWidth={2} />
+          <ChevronRight className="h-4 w-4 text-[var(--text-tertiary)]" strokeWidth={2} />
         </Link>
       </div>
 
       {nextItem && NextIcon ? (
-        <div className="panel-card relative overflow-hidden border border-[#f0f0f2] p-5">
+        <div className="panel-card relative overflow-hidden border border-[var(--border-strong)] p-5">
           <div className="relative z-10">
-            <p className="text-[10px] font-bold uppercase tracking-wide text-[#9ca3af]">
+            <p className="text-[10px] font-bold uppercase tracking-wide text-[var(--text-tertiary)]">
               Next for {firstName}
             </p>
-            <p className="mt-1.5 text-[15px] font-extrabold leading-snug text-[#111827]">
+            <p className="mt-1.5 text-[15px] font-extrabold leading-snug text-[var(--text-primary)]">
               {nextItem.title} · {nextItem.time}
             </p>
             {(nextItem.dosage || nextItem.instructions) && (
-              <p className="mt-1 text-[12px] text-[#6b7280]">
+              <p className="mt-1 text-[12px] text-[var(--text-secondary)]">
                 {[nextItem.dosage, nextItem.instructions].filter(Boolean).join(" · ")}
               </p>
             )}
@@ -246,11 +246,11 @@ export function CareRecipientCaregiverRightPanel({ member }: { member: FamilyMem
           <NextIcon className="absolute -right-1 bottom-2 h-16 w-16 text-[#f0f0f2]" strokeWidth={1.25} />
         </div>
       ) : !scheduleCtx?.loading ? (
-        <div className="panel-card border border-[#f0f0f2] p-5">
-          <p className="text-[10px] font-bold uppercase tracking-wide text-[#9ca3af]">
+        <div className="panel-card border border-[var(--border-strong)] p-5">
+          <p className="text-[10px] font-bold uppercase tracking-wide text-[var(--text-tertiary)]">
             Next for {firstName}
           </p>
-          <p className="mt-1.5 text-[13px] font-semibold text-[#6b7280]">
+          <p className="mt-1.5 text-[13px] font-semibold text-[var(--text-secondary)]">
             No upcoming reminders today
           </p>
         </div>

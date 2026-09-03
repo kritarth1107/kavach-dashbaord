@@ -42,7 +42,7 @@ export function StatMetricCard({
           <p
             className={cn(
               "text-[10px] font-bold uppercase tracking-wide",
-              dark ? "text-white/50" : "text-[#9ca3af]",
+              dark ? "text-white/50" : "text-[var(--text-tertiary)]",
             )}
           >
             {label}
@@ -50,7 +50,7 @@ export function StatMetricCard({
           <p
             className={cn(
               "mt-1 text-[1.5rem] font-extrabold leading-none tracking-[-0.03em]",
-              dark ? "text-white" : "text-[#111827]",
+              dark ? "text-white" : "text-[var(--text-primary)]",
             )}
           >
             {value}
@@ -71,7 +71,7 @@ export function StatMetricCard({
         )}
       </div>
       <div className="mt-auto flex items-center justify-between gap-2">
-        <p className={cn("text-[11px]", dark ? "text-white/40" : "text-[#9ca3af]")}>
+        <p className={cn("text-[11px]", dark ? "text-white/40" : "text-[var(--text-tertiary)]")}>
           {sub}
         </p>
         {trend && (
@@ -80,7 +80,7 @@ export function StatMetricCard({
               "shrink-0 rounded-md px-1.5 py-0.5 text-[10px] font-bold",
               trendUp
                 ? "bg-primary-light text-primary"
-                : "bg-[#fef2f2] text-[#dc2626]",
+                : "trend-down",
             )}
           >
             {trend}

@@ -101,7 +101,7 @@ export function AreaTrendChart({
             y1={padding + (i * (height - padding * 2)) / 3}
             x2={width - padding}
             y2={padding + (i * (height - padding * 2)) / 3}
-            stroke="#f0f0f2"
+            stroke="var(--chart-grid)"
             strokeWidth="1"
           />
         ))}
@@ -120,7 +120,7 @@ export function AreaTrendChart({
       {labels && (
         <div className="mt-2 flex justify-between px-1">
           {labels.map((label) => (
-            <span key={label} className="text-[10px] font-medium text-[#9ca3af]">
+            <span key={label} className="text-[10px] font-medium text-[var(--text-tertiary)]">
               {label}
             </span>
           ))}
@@ -157,7 +157,7 @@ export function BarChart({
               }}
             />
           </div>
-          <span className="text-[10px] font-medium text-[#9ca3af]">{labels[i]}</span>
+          <span className="text-[10px] font-medium text-[var(--text-tertiary)]">{labels[i]}</span>
         </div>
       ))}
     </div>
@@ -189,7 +189,7 @@ export function ProgressRing({
           cy={size / 2}
           r={radius}
           fill="none"
-          stroke="#f0f0f2"
+          stroke="var(--chart-grid)"
           strokeWidth={stroke}
         />
         <circle
@@ -205,9 +205,9 @@ export function ProgressRing({
         />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="text-[1.1rem] font-extrabold text-[#111827]">{value}%</span>
+        <span className="text-[1.1rem] font-extrabold text-[var(--text-primary)]">{value}%</span>
         {label && (
-          <span className="text-[9px] font-semibold uppercase text-[#9ca3af]">
+          <span className="text-[9px] font-semibold uppercase text-[var(--text-tertiary)]">
             {label}
           </span>
         )}
@@ -230,17 +230,17 @@ export function MiniVitalBar({
   color: string;
 }) {
   return (
-    <div className="rounded-xl border border-[#f0f0f2] bg-[#fafafa] p-3">
+    <div className="rounded-xl border border-[var(--border-strong)] bg-[var(--input-bg)] p-3">
       <div className="mb-2 flex items-baseline justify-between">
-        <p className="text-[10px] font-bold uppercase tracking-wide text-[#9ca3af]">
+        <p className="text-[10px] font-bold uppercase tracking-wide text-[var(--text-tertiary)]">
           {label}
         </p>
-        <p className="text-[13px] font-extrabold text-[#111827]">
+        <p className="text-[13px] font-extrabold text-[var(--text-primary)]">
           {value}
-          <span className="ml-0.5 text-[10px] font-medium text-[#9ca3af]">{unit}</span>
+          <span className="ml-0.5 text-[10px] font-medium text-[var(--text-tertiary)]">{unit}</span>
         </p>
       </div>
-      <div className="h-1.5 overflow-hidden rounded-full bg-[#e5e7eb]">
+      <div className="h-1.5 overflow-hidden rounded-full bg-[var(--chart-track)]">
         <div
           className="h-full rounded-full"
           style={{ width: `${pct}%`, backgroundColor: color }}

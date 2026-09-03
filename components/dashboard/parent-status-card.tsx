@@ -10,17 +10,17 @@ export function ParentStatusCard() {
     <DashboardCard className="animate-fade-up animate-delay-4 flex h-full flex-col p-6">
       <div className="mb-5 flex items-start justify-between">
         <div>
-          <h2 className="text-[15px] font-extrabold tracking-[-0.01em] text-[#0f172a]">
+          <h2 className="text-[15px] font-extrabold tracking-[-0.01em] text-[var(--text-primary)]">
             Parent Profile
           </h2>
-          <p className="mt-1 text-[11.5px] font-medium text-[#94a3b8]">
+          <p className="mt-1 text-[11.5px] font-medium text-[var(--text-tertiary)]">
             Total · 1 parent · Saheli active
           </p>
         </div>
         <button
           type="button"
           aria-label="More options"
-          className="rounded-lg p-1.5 text-[#cbd5e1] hover:bg-[#f8fafc] hover:text-[#64748b]"
+          className="rounded-lg p-1.5 text-[var(--text-tertiary)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-secondary)]"
         >
           <MoreHorizontal className="h-5 w-5" strokeWidth={2} />
         </button>
@@ -65,19 +65,19 @@ export function ParentStatusCard() {
 
       <div>
         <div className="mb-2.5 flex items-center justify-between">
-          <p className="text-[13px] font-bold text-[#334155]">Care spend</p>
-          <p className="text-[11px] font-semibold text-[#94a3b8]">
+          <p className="text-[13px] font-bold text-[var(--text-primary)]">Care spend</p>
+          <p className="text-[11px] font-semibold text-[var(--text-tertiary)]">
             ₹{used.toLocaleString("en-IN")} of ₹{total.toLocaleString("en-IN")}
           </p>
         </div>
-        <div className="h-2.5 overflow-hidden rounded-full bg-[#f1f5f9] shadow-inner">
+        <div className="h-2.5 overflow-hidden rounded-full bg-[var(--elevated-muted)] shadow-inner">
           <div
             className="h-full rounded-full bg-gradient-to-r from-[#fb923c] via-[#f97316] to-[#ea580c] shadow-[0_0_12px_rgba(249,115,22,0.5)]"
             style={{ width: `${pct}%` }}
           />
         </div>
-        <p className="mt-2.5 text-[11.5px] font-medium text-[#94a3b8]">
-          <span className="font-extrabold text-[#0f172a]">
+        <p className="mt-2.5 text-[11.5px] font-medium text-[var(--text-tertiary)]">
+          <span className="font-extrabold text-[var(--text-primary)]">
             ₹{used.toLocaleString("en-IN")}
           </span>{" "}
           approved this month
