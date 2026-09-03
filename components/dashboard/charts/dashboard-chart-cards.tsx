@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Maximize2 } from "lucide-react";
+import type { CareRecordMetrics } from "@/lib/api";
 import {
   AreaTrendChart,
   BarChart,
@@ -12,10 +13,8 @@ import {
 
 const weekLabels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
-/** Mon–Sun care events (last complete week, 17–23 Aug 2026). */
+/** Fallback demo data when metrics API has no events yet. */
 const CARE_EVENTS_WEEK = [10, 9, 10, 9, 9, 10, 9];
-
-/** Doses taken Mon–Sun (4 due each day; 18/28 = 64%). */
 const DOSES_TAKEN_WEEK = [3, 3, 2, 3, 2, 3, 2];
 
 /** Pulse readings on alternate mornings (Tue, Thu, Sat) — gaps elsewhere. */
@@ -78,13 +77,22 @@ function SparsePulseChart() {
 export function VitalsTrendCard({
   title = "Care Trends",
   subtitle = "Check-ins & adherence",
+  metrics,
 }: {
   title?: string;
   subtitle?: string;
+  metrics?: CareRecordMetrics | null;
 }) {
   const [period, setPeriod] = useState<"week" | "month">("week");
   const monthAdherence = [59, 58, 57, 60, 58, 59, 59];
-  const data = period === "week" ? CARE_EVENTS_WEEK : monthAdherence;
+  const weekData =
+    metrics && metrics.totalEvents > 0 ? metrics.careEventsByDay : CARE_EVENTS_WEEK;
+  const data = period === "week" ? weekData : monthAdherence;
+  const checkInRate = metrics?.checkInReplyRate ?? 43;
+  const checkInsReplied = metrics?.checkInsReplied ?? 3;
+  const checkInsSent = metrics?.checkInsSent ?? 7;
+  const dosesTaken = metrics?.dosesTaken ?? 2;
+  const dosesDue = metrics?.dosesDue ?? 1;
 
   return (
     <div className="panel-card flex h-full flex-col p-5">
@@ -107,42 +115,63 @@ export function VitalsTrendCard({
             <p className="text-[10px] font-medium text-white/50">Check-ins</p>
             <Sparkline color="#22c55e" data={[38, 40, 41, 42, 43, 43, 43]} />
           </div>
-          <p className="text-[1.35rem] font-extrabold leading-none text-white">43%</p>
-          <p className="mt-1 text-[10px] text-white/40">this week · 3 of 7 replied</p>
+          <p className="text-[1.35rem] font-extrabold leading-none text-white">{checkInRate}%</p>
+          <p className="mt-1 text-[10px] text-white/40">
+            this week · {checkInsReplied} of {checkInsSent || 7} replied
+          </p>
         </div>
         <div className="dark-card p-4">
           <div className="mb-2 flex items-center justify-between">
             <p className="text-[10px] font-medium text-white/50">Medicines</p>
             <Sparkline color="#22c55e" data={[1, 2, 2, 2, 2, 2, 2]} />
           </div>
-          <p className="text-[1.35rem] font-extrabold leading-none text-white">2/3</p>
-          <p className="mt-1 text-[10px] text-white/40">today · Perinorm awaiting reply</p>
+          <p className="text-[1.35rem] font-extrabold leading-none text-white">
+            {dosesTaken}/{dosesTaken + dosesDue}
+          </p>
+          <p className="mt-1 text-[10px] text-white/40">this week · from Care Record</p>
         </div>
       </div>
     </div>
   );
 }
 
-export function WeeklyMedsBarCard({ title = "Medicine adherence" }: { title?: string }) {
+export function WeeklyMedsBarCard({
+  title = "Medicine adherence",
+  metrics,
+}: {
+  title?: string;
+  metrics?: CareRecordMetrics | null;
+}) {
+  const dosesData =
+    metrics && metrics.dosesTaken + metrics.dosesDue > 0
+      ? metrics.dosesByDay
+      : DOSES_TAKEN_WEEK;
+  const taken = metrics?.dosesTaken ?? 18;
+  const due = metrics?.dosesDue ?? 10;
+  const total = taken + due || 28;
+  const rate = total > 0 ? Math.round((taken / total) * 100) : 64;
+
   return (
     <div className="panel-card flex h-full flex-col p-5">
       <p className="text-[13px] font-bold text-[var(--text-primary)]">{title}</p>
       <p className="mb-4 text-[11px] text-[var(--text-tertiary)]">
-        Doses taken per day · Mon 17 – Sun 23 Aug
+        Doses taken per day · last 7 days
       </p>
-      <BarChart data={DOSES_TAKEN_WEEK} labels={weekLabels} maxValue={4} />
+      <BarChart data={dosesData} labels={weekLabels} maxValue={4} />
       <div className="mt-4 grid grid-cols-3 gap-2 border-t border-[var(--border-strong)] pt-4">
         <div>
-          <p className="text-[18px] font-extrabold text-[var(--text-primary)]">18/28</p>
+          <p className="text-[18px] font-extrabold text-[var(--text-primary)]">
+            {taken}/{total}
+          </p>
           <p className="text-[10px] text-[var(--text-tertiary)]">Doses taken</p>
         </div>
         <div>
-          <p className="text-[18px] font-extrabold text-primary">64%</p>
+          <p className="text-[18px] font-extrabold text-primary">{rate}%</p>
           <p className="text-[10px] text-[var(--text-tertiary)]">Weekly rate</p>
         </div>
         <div>
-          <p className="text-[18px] font-extrabold text-[var(--text-primary)]">0</p>
-          <p className="text-[10px] text-[var(--text-tertiary)]">Missed today</p>
+          <p className="text-[18px] font-extrabold text-[var(--text-primary)]">{due}</p>
+          <p className="text-[10px] text-[var(--text-tertiary)]">Still open</p>
         </div>
       </div>
     </div>
@@ -227,20 +256,24 @@ export function BloodPressureTrendCard() {
   );
 }
 
-export function FamilyActivityBarCard() {
+export function FamilyActivityBarCard({ metrics }: { metrics?: CareRecordMetrics | null }) {
+  const data =
+    metrics && metrics.totalEvents > 0 ? metrics.careEventsByDay : CARE_EVENTS_WEEK;
+  const total = metrics?.totalEvents ?? data.reduce((a, b) => a + b, 0);
+
   return (
     <div className="panel-card flex h-full flex-col p-5">
       <p className="text-[13px] font-bold text-[var(--text-primary)]">Family activity</p>
       <p className="mb-4 text-[11px] text-[var(--text-tertiary)]">Care events logged · last 7 days</p>
-      <BarChart data={CARE_EVENTS_WEEK} labels={weekLabels} color="#1a1a1a" />
+      <BarChart data={data} labels={weekLabels} color="#1a1a1a" />
       <div className="mt-4 flex items-center justify-between border-t border-[var(--border-strong)] pt-4">
         <div>
-          <p className="text-[18px] font-extrabold text-[var(--text-primary)]">66</p>
+          <p className="text-[18px] font-extrabold text-[var(--text-primary)]">{total}</p>
           <p className="text-[10px] text-[var(--text-tertiary)]">Events this week</p>
         </div>
         <div>
-          <p className="text-[18px] font-extrabold text-primary">+8%</p>
-          <p className="text-[10px] text-[var(--text-tertiary)]">vs last week (61)</p>
+          <p className="text-[18px] font-extrabold text-primary">Live</p>
+          <p className="text-[10px] text-[var(--text-tertiary)]">From Care Record</p>
         </div>
       </div>
     </div>

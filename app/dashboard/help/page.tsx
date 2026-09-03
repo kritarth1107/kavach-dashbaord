@@ -1,10 +1,5 @@
-import { DashboardSubPage } from "@/components/dashboard/dashboard-sub-page";
+import { HelpPage } from "@/components/dashboard/help-page";
 
-export default function HelpPage() {
-  return (
-    <DashboardSubPage
-      title="Help Desk"
-      description="Reach the Kavach team — founders a message away."
-    />
-  );
+export default function HelpRoute() {
+  return <HelpPage />;
 }

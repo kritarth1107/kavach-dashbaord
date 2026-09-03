@@ -53,6 +53,14 @@ export function canManageFamilyMembers(role: string | null | undefined): boolean
   return normalized === "PRIMARY_CAREGIVER" || normalized === "CO_CAREGIVER";
 }
 
+export function canUploadDocuments(role: string | null | undefined): boolean {
+  return canManageFamilyMembers(role);
+}
+
+export function canApproveOrders(role: string | null | undefined): boolean {
+  return canManageFamilyMembers(role);
+}
+
 export function isCareRecipientRole(role: string | null | undefined): boolean {
   return role?.toUpperCase() === "CARE_RECIPIENT";
 }

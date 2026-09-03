@@ -19,26 +19,61 @@ import {
   VitalsTrendCard,
   WeeklyMedsBarCard,
 } from "@/components/dashboard/charts/dashboard-chart-cards";
+import { CareRecordTimeline } from "@/components/dashboard/care-record/care-record-timeline";
 import { useFamily } from "@/components/dashboard/family-context";
-import { getFamilyOverview, type FamilyOverview } from "@/lib/api";
+import {
+  getCareRecordMetrics,
+  getFamilyMembers,
+  getFamilyOverview,
+  type CareRecordMetrics,
+  type FamilyOverview,
+} from "@/lib/api";
+import {
+  apiMemberToFamilyMember,
+  isCareRecipientRole,
+} from "@/components/dashboard/family/family-data";
 
 export function CaregiverDashboardHome() {
   const { activeFamilyId } = useFamily();
   const [overview, setOverview] = useState<FamilyOverview | null>(null);
+  const [metrics, setMetrics] = useState<CareRecordMetrics | null>(null);
+  const [subjectUserId, setSubjectUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
     if (!activeFamilyId) {
       setOverview(null);
+      setMetrics(null);
+      setSubjectUserId(null);
       setLoading(false);
       return;
     }
     setLoading(true);
     try {
-      const { data } = await getFamilyOverview(activeFamilyId);
-      setOverview(data ?? null);
+      const [{ data: overviewData }, { data: membersData }] = await Promise.all([
+        getFamilyOverview(activeFamilyId),
+        getFamilyMembers(activeFamilyId),
+      ]);
+      setOverview(overviewData ?? null);
+
+      const members = (membersData?.members ?? []).map(apiMemberToFamilyMember);
+      const recipient = members.find(
+        (m) => isCareRecipientRole(m.role) && m.status === "joined" && m.userId,
+      );
+      if (recipient?.userId) {
+        setSubjectUserId(recipient.userId);
+        const { data: metricsData } = await getCareRecordMetrics(
+          activeFamilyId,
+          recipient.userId,
+        );
+        setMetrics(metricsData ?? null);
+      } else {
+        setSubjectUserId(null);
+        setMetrics(null);
+      }
     } catch {
       setOverview(null);
+      setMetrics(null);
     } finally {
       setLoading(false);
     }
@@ -92,7 +127,11 @@ export function CaregiverDashboardHome() {
           label="Tasks today"
           value={loading ? "…" : tasksLabel}
           sub="Check-ins, medicines, vitals"
-          trend={scheduled > 0 && completed >= scheduled ? "On track" : `${overview?.pendingApprovals ?? 1} to approve`}
+          trend={
+            scheduled > 0 && completed >= scheduled
+              ? "On track"
+              : `${overview?.pendingApprovals ?? 0} to approve`
+          }
           icon={CheckCircle2}
           iconBg="bg-[#dcfce7] text-[#16a34a]"
         />
@@ -106,20 +145,27 @@ export function CaregiverDashboardHome() {
         <VitalsTrendCard
           title="Family care trends"
           subtitle={`${mamaName} · check-ins & adherence · this week`}
+          metrics={metrics}
         />
       </div>
 
       <div className="mb-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
         <CareRecipientVitalsCard name={recipientName} />
-        <FamilyActivityBarCard />
+        <FamilyActivityBarCard metrics={metrics} />
       </div>
 
       <div className="mb-6 grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <WeeklyMedsBarCard title={`${recipientName} · medicine adherence`} />
+        <WeeklyMedsBarCard title={`${recipientName} · medicine adherence`} metrics={metrics} />
         <div className="lg:col-span-2">
           <VitalsGridCard />
         </div>
       </div>
+
+      {activeFamilyId && subjectUserId && (
+        <div className="mb-6">
+          <CareRecordTimeline familyId={activeFamilyId} subjectUserId={subjectUserId} />
+        </div>
+      )}
 
       <HealthLogTable items={overview?.recentActivity ?? []} loading={loading} />
     </>

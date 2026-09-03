@@ -902,3 +902,184 @@ export async function deleteRecipientLab(
   );
   return parseResponse<{ deleted: boolean }>(res);
 }
+
+export type CareRecordEventItem = {
+  eventId: string;
+  type: string;
+  source: string;
+  channel: string;
+  title: string;
+  detail: string;
+  status?: string;
+  at: string | null;
+  payload?: Record<string, unknown>;
+};
+
+export type CareRecordMetrics = {
+  careEventsByDay: number[];
+  dosesByDay: number[];
+  totalEvents: number;
+  dosesTaken: number;
+  dosesDue: number;
+  checkInsSent: number;
+  checkInsReplied: number;
+  checkInReplyRate: number;
+};
+
+export type PendingOrder = {
+  order_id: string;
+  status: string;
+  total_paise: number;
+  items: Array<{ name: string; quantity: number; unitPricePaise: number }>;
+  deep_link?: string | null;
+  subject_user_id: string;
+  created_at: string | null;
+};
+
+export type CareBrief = {
+  subjectName: string;
+  generatedAt: string;
+  sections: {
+    narrative: string;
+    recentSignals: CareRecordEventItem[];
+    recentOrders: CareRecordEventItem[];
+    recentDocuments: CareRecordEventItem[];
+  };
+  eventCount: number;
+};
+
+export async function getCareRecordTimeline(
+  familyId: string,
+  subjectUserId: string,
+  limit = 100,
+) {
+  const res = await timedFetch(
+    `/api/families/${familyId}/subjects/${subjectUserId}/care-record/timeline?limit=${limit}`,
+  );
+  return parseResponse<{ events: CareRecordEventItem[] }>(res);
+}
+
+export async function getCareRecordMetrics(familyId: string, subjectUserId: string) {
+  const res = await timedFetch(
+    `/api/families/${familyId}/subjects/${subjectUserId}/care-record/metrics`,
+  );
+  return parseResponse<CareRecordMetrics>(res);
+}
+
+export async function getCareBrief(familyId: string, subjectUserId: string) {
+  const res = await timedFetch(
+    `/api/families/${familyId}/subjects/${subjectUserId}/care-brief`,
+    {},
+    WRITE_TIMEOUT_MS,
+  );
+  return parseResponse<CareBrief>(res);
+}
+
+export async function getPendingApprovals(familyId: string) {
+  const res = await timedFetch(`/api/families/${familyId}/approvals/pending`);
+  return parseResponse<{ orders: PendingOrder[] }>(res);
+}
+
+export async function approveOrder(familyId: string, orderId: string) {
+  const res = await timedFetch(
+    `/api/families/${familyId}/orders/${orderId}/approve`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({}),
+    },
+    WRITE_TIMEOUT_MS,
+  );
+  return parseResponse<{ order_id: string; status: string }>(res);
+}
+
+export async function payOrder(familyId: string, orderId: string) {
+  const res = await timedFetch(
+    `/api/families/${familyId}/orders/${orderId}/pay`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({}),
+    },
+    WRITE_TIMEOUT_MS,
+  );
+  return parseResponse<{
+    order_id: string;
+    status: string;
+    payment_id?: string;
+    payment_link?: string | null;
+    provider?: string;
+  }>(res);
+}
+
+export async function rejectOrder(familyId: string, orderId: string) {
+  const res = await timedFetch(
+    `/api/families/${familyId}/orders/${orderId}/reject`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({}),
+    },
+    WRITE_TIMEOUT_MS,
+  );
+  return parseResponse<{ order_id: string; status: string }>(res);
+}
+
+export type OrderHistoryItem = PendingOrder;
+
+export async function getOrderHistory(familyId: string) {
+  const res = await timedFetch(`/api/families/${familyId}/orders/history`);
+  return parseResponse<{ orders: OrderHistoryItem[] }>(res);
+}
+
+export type FamilyIntegrations = {
+  zepto: {
+    status: string;
+    mode: string;
+    description: string;
+    connected: boolean;
+    connectedAt: string | null;
+    redirectUri: string;
+    pendingApprovals: number;
+    partnerTrack: string;
+    paymentNote: string;
+  };
+  whatsapp: {
+    status: string;
+    description: string;
+    linkedIdentities: number;
+    identities: Array<{ label?: string; role: string; identifier: string }>;
+  };
+  phone: { status: string; linkedIdentities: number; webhook: string };
+  smartSpeaker: { status: string; linkedIdentities: number; webhook: string };
+  recentOrders: Array<{ order_id: string; status: string; total_paise: number; created_at: string | null }>;
+};
+
+export async function getFamilyIntegrations(familyId: string) {
+  const res = await timedFetch(`/api/families/${familyId}/integrations`);
+  return parseResponse<FamilyIntegrations>(res);
+}
+
+export async function startZeptoConnect(familyId: string) {
+  const res = await timedFetch(`/api/families/${familyId}/integrations/zepto/connect`);
+  return parseResponse<{ connected: boolean; authorizationUrl: string | null; oauthState?: string }>(
+    res,
+  );
+}
+
+export async function getZeptoStatus(familyId: string) {
+  const res = await timedFetch(`/api/families/${familyId}/integrations/zepto/status`);
+  return parseResponse<{
+    connected: boolean;
+    connectedAt: string | null;
+    redirectUri: string;
+    mcpUrl: string;
+  }>(res);
+}
+
+export async function disconnectZepto(familyId: string) {
+  const res = await timedFetch(`/api/families/${familyId}/integrations/zepto`, {
+    method: "DELETE",
+  });
+  return parseResponse<{ disconnected: boolean }>(res);
+}

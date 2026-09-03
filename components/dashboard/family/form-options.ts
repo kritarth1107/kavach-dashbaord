@@ -1,4 +1,4 @@
-import { Eye, Heart, Stethoscope, Users, type LucideIcon } from "lucide-react";
+import { Eye, Heart, Users, type LucideIcon } from "lucide-react";
 import type { FamilyMemberRole } from "./family-data";
 
 export const prefixOptions = [
@@ -68,12 +68,5 @@ export const roleFormOptions: RoleFormOption[] = [
     description:
       "Read-only access to health updates and activity — cannot make changes.",
     icon: Eye,
-  },
-  {
-    value: "family_doctor",
-    label: "Family doctor",
-    description:
-      "Clinical access to health records, vitals, and care notes.",
-    icon: Stethoscope,
   },
 ];

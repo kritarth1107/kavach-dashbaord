@@ -1,10 +1,16 @@
-import { DashboardSubPage } from "@/components/dashboard/dashboard-sub-page";
+import { Suspense } from "react";
+import { IntegrationsPage } from "@/components/dashboard/integrations-page";
 
-export default function IntegrationsPage() {
+export default function IntegrationsRoute() {
   return (
-    <DashboardSubPage
-      title="Integrations"
-      description="Connect Zepto, Swiggy, Uber, and other partner services here."
-    />
+    <Suspense
+      fallback={
+        <div className="flex justify-center py-16">
+          <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+        </div>
+      }
+    >
+      <IntegrationsPage />
+    </Suspense>
   );
 }

@@ -48,6 +48,7 @@ export const navGroups: NavGroup[] = [
     title: "Records",
     items: [
       { label: "Reports", href: "/dashboard/reports", icon: BarChart3 },
+      { label: "Approvals", href: "/dashboard/approvals", icon: CreditCard },
       { label: "Documents", href: "/dashboard/record", icon: FileText },
     ],
   },

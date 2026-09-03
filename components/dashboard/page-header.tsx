@@ -1,7 +1,7 @@
 "use client";
 
-import { Bell, LayoutDashboard, Moon, Settings, Sun } from "lucide-react";
 import Link from "next/link";
+import { Bell, LayoutDashboard, Moon, Settings, Sun } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { allNavItems, navGroups } from "./nav-config";
 import { useTheme } from "@/components/providers/theme-provider";
@@ -105,14 +105,13 @@ export function PageHeader() {
           <Settings className="h-[16px] w-[16px]" strokeWidth={2} />
         </Link>
 
-        <button
-          type="button"
-          aria-label="Notifications"
-          className="relative flex h-9 w-9 items-center justify-center rounded-full bg-[var(--surface)] text-[var(--muted-fg)] transition-colors hover:bg-primary-light hover:text-primary"
+        <Link
+          href="/dashboard/approvals"
+          aria-label="Approvals inbox"
+          className="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--surface)] text-[var(--muted-fg)] transition-colors hover:bg-primary-light hover:text-primary"
         >
           <Bell className="h-[16px] w-[16px]" strokeWidth={2} />
-          <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-[#ef4444]" />
-        </button>
+        </Link>
       </div>
     </header>
   );

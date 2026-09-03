@@ -1,35 +1,10 @@
 "use client";
 
-import { FileText, Loader2, MessageSquare, Pill, Sun } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { getFamilyActivity, type ActivityItem } from "@/lib/api";
 import { useFamily } from "@/components/dashboard/family-context";
-
-function activityIcon(type: ActivityItem["type"]) {
-  if (type === "message") return MessageSquare;
-  if (type === "check_in") return Sun;
-  if (type === "lab") return FileText;
-  return Pill;
-}
-
-function activityIconBg(type: ActivityItem["type"]) {
-  if (type === "message") return "bg-[#dcfce7]";
-  if (type === "check_in") return "bg-[#fef9c3]";
-  if (type === "lab") return "bg-[#dbeafe]";
-  return "bg-[#ede9fe]";
-}
-
-function statusClass(status: ActivityItem["status"]) {
-  if (status === "scheduled") return "status-pill-pending";
-  return "status-pill-success";
-}
-
-function statusLabel(status: ActivityItem["status"]) {
-  if (status === "scheduled") return "Scheduled";
-  if (status === "completed") return "Completed";
-  return "Reported";
-}
 
 export function ActivityLogPage() {
   const { activeFamilyId } = useFamily();
@@ -58,7 +33,7 @@ export function ActivityLogPage() {
 
   if (!activeFamilyId) {
     return (
-      <p className="py-12 text-center text-[13px] text-[#6b7280]">
+      <p className="py-12 text-center text-[13px] text-[var(--text-tertiary)]">
         Select a family to view activity.
       </p>
     );
@@ -66,10 +41,10 @@ export function ActivityLogPage() {
 
   return (
     <div className="panel-card overflow-hidden">
-      <div className="border-b border-[#f0f0f2] px-5 py-4">
-        <h1 className="text-[16px] font-extrabold text-[#111827]">Activity Log</h1>
-        <p className="text-[12px] text-[#9ca3af]">
-          Check-ins, medicines, labs, and Saheli messages for this family
+      <div className="border-b border-[var(--border-strong)] px-5 py-4">
+        <h1 className="text-[16px] font-extrabold text-[var(--text-primary)]">Activity Log</h1>
+        <p className="text-[12px] text-[var(--text-tertiary)]">
+          Schedules, labs, Saheli messages, and orders for this family
         </p>
       </div>
 
@@ -85,40 +60,30 @@ export function ActivityLogPage() {
         </div>
       ) : items.length === 0 ? (
         <div className="px-5 py-16 text-center">
-          <p className="text-[14px] font-bold text-[#111827]">Nothing logged yet</p>
-          <p className="mt-2 text-[13px] text-[#9ca3af]">
+          <p className="text-[14px] font-bold text-[var(--text-primary)]">Nothing logged yet</p>
+          <p className="mt-2 text-[13px] text-[var(--text-tertiary)]">
             Start a{" "}
             <Link href="/dashboard/chat" className="font-semibold text-primary hover:underline">
               Saheli conversation
             </Link>{" "}
-            or add care schedules for a recipient.
+            or upload a record in the medical vault.
           </p>
         </div>
       ) : (
-        <div className="divide-y divide-[#f5f5f7]">
-          {items.map((item) => {
-            const Icon = activityIcon(item.type);
-            return (
-              <div key={item.id} className="flex items-start gap-4 px-5 py-4">
-                <div
-                  className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${activityIconBg(item.type)}`}
-                >
-                  <Icon className="h-4 w-4 text-[#374151]" strokeWidth={2} />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-[13px] font-bold text-[#111827]">{item.title}</p>
-                  <p className="text-[12px] text-[#6b7280]">
-                    {item.recipientName} · {item.detail}
-                  </p>
-                </div>
-                <span
-                  className={`shrink-0 rounded-full px-3 py-1 text-[10px] font-bold ${statusClass(item.status)}`}
-                >
-                  {statusLabel(item.status)}
-                </span>
+        <div className="divide-y divide-[var(--border-strong)]">
+          {items.map((item) => (
+            <div key={item.id} className="flex items-start gap-4 px-5 py-4">
+              <div className="min-w-0 flex-1">
+                <p className="text-[13px] font-bold text-[var(--text-primary)]">{item.title}</p>
+                <p className="text-[12px] text-[var(--text-secondary)]">
+                  {item.recipientName} · {item.detail}
+                </p>
               </div>
-            );
-          })}
+              <span className="shrink-0 rounded-full bg-[var(--input-bg)] px-3 py-1 text-[10px] font-bold capitalize text-[var(--text-secondary)]">
+                {item.status}
+              </span>
+            </div>
+          ))}
         </div>
       )}
     </div>

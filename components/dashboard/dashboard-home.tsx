@@ -5,9 +5,10 @@ import { isCareRecipientRole } from "@/components/dashboard/family/family-data";
 import { CaregiverDashboardHome } from "@/components/dashboard/caregiver/caregiver-dashboard-home";
 import { RecipientDashboardHome } from "@/components/dashboard/recipient/recipient-dashboard-home";
 import { RecipientDateProvider } from "@/components/dashboard/recipient/recipient-date-context";
+import { CareRecipientScheduleProvider } from "@/components/dashboard/family/care-recipient-schedule-context";
 
 export function DashboardHome() {
-  const { activeFamily, loading } = useFamily();
+  const { activeFamily, loading, userId } = useFamily();
   const isRecipient = isCareRecipientRole(activeFamily?.role);
 
   if (loading) {
@@ -18,11 +19,13 @@ export function DashboardHome() {
     );
   }
 
-  if (isRecipient) {
+  if (isRecipient && userId) {
     return (
-      <RecipientDateProvider>
-        <RecipientDashboardHome />
-      </RecipientDateProvider>
+      <CareRecipientScheduleProvider recipientUserId={userId}>
+        <RecipientDateProvider>
+          <RecipientDashboardHome recipientUserId={userId} />
+        </RecipientDateProvider>
+      </CareRecipientScheduleProvider>
     );
   }
 

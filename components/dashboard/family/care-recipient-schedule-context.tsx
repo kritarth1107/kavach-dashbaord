@@ -33,9 +33,15 @@ type CareScheduleContextValue = {
 
 const CareScheduleContext = createContext<CareScheduleContextValue | null>(null);
 
-export function CareRecipientScheduleProvider({ children }: { children: React.ReactNode }) {
+export function CareRecipientScheduleProvider({
+  children,
+  recipientUserId: recipientUserIdProp,
+}: {
+  children: React.ReactNode;
+  recipientUserId?: string;
+}) {
   const params = useParams();
-  const recipientUserId = params.userId as string | undefined;
+  const recipientUserId = recipientUserIdProp ?? (params.userId as string | undefined);
   const { activeFamilyId } = useFamily();
   const [schedules, setSchedules] = useState<CareScheduleItem[]>([]);
   const [loading, setLoading] = useState(true);
