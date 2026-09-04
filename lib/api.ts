@@ -1032,18 +1032,26 @@ export async function getOrderHistory(familyId: string) {
   return parseResponse<{ orders: OrderHistoryItem[] }>(res);
 }
 
+export type McpIntegrationPartner = "zepto" | "swiggy" | "instamart";
+
+export type McpIntegrationInfo = {
+  status: string;
+  mode: string;
+  description: string;
+  connected: boolean;
+  connectedAt: string | null;
+  redirectUri: string;
+  mcpUrl?: string;
+  pendingApprovals: number;
+  partnerTrack: string;
+  paymentNote: string;
+  label?: string;
+};
+
 export type FamilyIntegrations = {
-  zepto: {
-    status: string;
-    mode: string;
-    description: string;
-    connected: boolean;
-    connectedAt: string | null;
-    redirectUri: string;
-    pendingApprovals: number;
-    partnerTrack: string;
-    paymentNote: string;
-  };
+  zepto: McpIntegrationInfo;
+  swiggy: McpIntegrationInfo;
+  instamart: McpIntegrationInfo;
   whatsapp: {
     status: string;
     description: string;
@@ -1052,7 +1060,13 @@ export type FamilyIntegrations = {
   };
   phone: { status: string; linkedIdentities: number; webhook: string };
   smartSpeaker: { status: string; linkedIdentities: number; webhook: string };
-  recentOrders: Array<{ order_id: string; status: string; total_paise: number; created_at: string | null }>;
+  recentOrders: Array<{
+    order_id: string;
+    status: string;
+    partner?: string;
+    total_paise: number;
+    created_at: string | null;
+  }>;
 };
 
 export async function getFamilyIntegrations(familyId: string) {
@@ -1060,11 +1074,28 @@ export async function getFamilyIntegrations(familyId: string) {
   return parseResponse<FamilyIntegrations>(res);
 }
 
-export async function startZeptoConnect(familyId: string) {
-  const res = await timedFetch(`/api/families/${familyId}/integrations/zepto/connect`);
+export async function startMcpConnect(familyId: string, partner: McpIntegrationPartner) {
+  const path =
+    partner === "zepto"
+      ? `/api/families/${familyId}/integrations/zepto/connect`
+      : `/api/families/${familyId}/integrations/${partner}/connect`;
+  const res = await timedFetch(path);
   return parseResponse<{ connected: boolean; authorizationUrl: string | null; oauthState?: string }>(
     res,
   );
+}
+
+export async function disconnectMcp(familyId: string, partner: McpIntegrationPartner) {
+  const path =
+    partner === "zepto"
+      ? `/api/families/${familyId}/integrations/zepto`
+      : `/api/families/${familyId}/integrations/${partner}`;
+  const res = await timedFetch(path, { method: "DELETE" });
+  return parseResponse<{ disconnected: boolean }>(res);
+}
+
+export async function startZeptoConnect(familyId: string) {
+  return startMcpConnect(familyId, "zepto");
 }
 
 export async function getZeptoStatus(familyId: string) {
@@ -1078,8 +1109,5 @@ export async function getZeptoStatus(familyId: string) {
 }
 
 export async function disconnectZepto(familyId: string) {
-  const res = await timedFetch(`/api/families/${familyId}/integrations/zepto`, {
-    method: "DELETE",
-  });
-  return parseResponse<{ disconnected: boolean }>(res);
+  return disconnectMcp(familyId, "zepto");
 }

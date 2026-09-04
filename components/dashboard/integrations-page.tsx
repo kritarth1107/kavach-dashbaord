@@ -1,15 +1,26 @@
 "use client";
 
-import { CheckCircle2, ExternalLink, Loader2, Plug, Smartphone, Speaker } from "lucide-react";
+import {
+  CheckCircle2,
+  ExternalLink,
+  Loader2,
+  Plug,
+  ShoppingBag,
+  Smartphone,
+  Speaker,
+  UtensilsCrossed,
+} from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useFamily } from "@/components/dashboard/family-context";
 import { canApproveOrders } from "@/components/dashboard/family/family-data";
 import {
-  disconnectZepto,
+  disconnectMcp,
   getFamilyIntegrations,
-  startZeptoConnect,
+  startMcpConnect,
   type FamilyIntegrations,
+  type McpIntegrationInfo,
+  type McpIntegrationPartner,
 } from "@/lib/api";
 
 function StatusPill({ label }: { label: string }) {
@@ -19,6 +30,85 @@ function StatusPill({ label }: { label: string }) {
     </span>
   );
 }
+
+function McpPartnerCard({
+  title,
+  icon: Icon,
+  partner,
+  info,
+  canConnect,
+  busy,
+  onConnect,
+  onDisconnect,
+}: {
+  title: string;
+  icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
+  partner: McpIntegrationPartner;
+  info: McpIntegrationInfo;
+  canConnect: boolean;
+  busy: boolean;
+  onConnect: (partner: McpIntegrationPartner) => void;
+  onDisconnect: (partner: McpIntegrationPartner) => void;
+}) {
+  return (
+    <div className="panel-card p-5">
+      <div className="mb-3 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Icon className="h-4 w-4 text-primary" />
+          <h2 className="text-[15px] font-bold text-[var(--text-primary)]">{title}</h2>
+        </div>
+        <StatusPill label={info.status} />
+      </div>
+      <p className="text-[12px] leading-relaxed text-[var(--text-secondary)]">{info.description}</p>
+      {info.connected && info.connectedAt && (
+        <p className="mt-2 flex items-center gap-1.5 text-[11px] text-primary">
+          <CheckCircle2 className="h-3.5 w-3.5" />
+          Connected {new Date(info.connectedAt).toLocaleString("en-IN")}
+        </p>
+      )}
+      <p className="mt-3 text-[11px] text-[var(--text-tertiary)]">
+        MCP: {info.mcpUrl ?? "—"}
+      </p>
+      <p className="mt-1 text-[11px] text-[var(--text-tertiary)]">
+        Redirect URI: {info.redirectUri}
+      </p>
+      <p className="mt-1 text-[11px] text-[var(--text-tertiary)]">{info.paymentNote}</p>
+      {canConnect && (
+        <div className="mt-4 flex flex-wrap gap-2">
+          {!info.connected ? (
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => onConnect(partner)}
+              className="rounded-full bg-primary px-4 py-2 text-[11px] font-bold text-white disabled:opacity-50"
+            >
+              Connect {title} account
+            </button>
+          ) : (
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => onDisconnect(partner)}
+              className="rounded-full border border-[var(--border-strong)] bg-[var(--card)] px-4 py-2 text-[11px] font-bold text-[var(--text-secondary)]"
+            >
+              Disconnect
+            </button>
+          )}
+          <a
+            href={info.partnerTrack}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 rounded-full border border-[var(--border-strong)] px-4 py-2 text-[11px] font-bold text-[var(--text-secondary)]"
+          >
+            MCP docs <ExternalLink className="h-3 w-3" />
+          </a>
+        </div>
+      )}
+    </div>
+  );
+}
+
+const OAUTH_PARTNERS: McpIntegrationPartner[] = ["zepto", "swiggy", "instamart"];
 
 export function IntegrationsPage() {
   const { activeFamilyId, activeFamily } = useFamily();
@@ -51,23 +141,32 @@ export function IntegrationsPage() {
   }, [load]);
 
   useEffect(() => {
-    const zepto = searchParams.get("zepto");
-    const message = searchParams.get("message");
-    if (zepto === "connected") {
-      setBanner("Zepto connected successfully.");
-    } else if (zepto === "error") {
-      setBanner(message ? decodeURIComponent(message) : "Zepto connection failed.");
+    for (const partner of OAUTH_PARTNERS) {
+      const result = searchParams.get(partner);
+      const message = searchParams.get("message");
+      if (result === "connected") {
+        setBanner(`${partner === "instamart" ? "Instamart" : partner === "swiggy" ? "Swiggy" : "Zepto"} connected successfully.`);
+        break;
+      }
+      if (result === "error") {
+        setBanner(
+          message
+            ? decodeURIComponent(message)
+            : `${partner} connection failed.`,
+        );
+        break;
+      }
     }
   }, [searchParams]);
 
-  async function handleConnect() {
+  async function handleConnect(partner: McpIntegrationPartner) {
     if (!activeFamilyId || !canConnect) return;
     setBusy(true);
     setBanner("");
     try {
-      const { data: result } = await startZeptoConnect(activeFamilyId);
+      const { data: result } = await startMcpConnect(activeFamilyId, partner);
       if (result?.connected) {
-        setBanner("Zepto is already connected.");
+        setBanner("Already connected.");
         await load();
         return;
       }
@@ -75,7 +174,7 @@ export function IntegrationsPage() {
         window.location.href = result.authorizationUrl;
         return;
       }
-      setBanner("Could not start Zepto OAuth. Check redirect URI whitelist.");
+      setBanner("Could not start OAuth. Check redirect URI whitelist.");
     } catch (err) {
       setBanner(err instanceof Error ? err.message : "Connect failed");
     } finally {
@@ -83,12 +182,12 @@ export function IntegrationsPage() {
     }
   }
 
-  async function handleDisconnect() {
+  async function handleDisconnect(partner: McpIntegrationPartner) {
     if (!activeFamilyId || !canConnect) return;
     setBusy(true);
     try {
-      await disconnectZepto(activeFamilyId);
-      setBanner("Zepto disconnected.");
+      await disconnectMcp(activeFamilyId, partner);
+      setBanner("Disconnected.");
       await load();
     } finally {
       setBusy(false);
@@ -100,7 +199,8 @@ export function IntegrationsPage() {
       <div className="panel-card p-5">
         <h1 className="text-[18px] font-extrabold text-[var(--text-primary)]">Integrations</h1>
         <p className="mt-1 text-[13px] text-[var(--text-tertiary)]">
-          Connect partner services — Zepto uses the official MCP at mcp.zepto.co.in
+          Connect partner MCP services — Zepto, Swiggy Food, and Instamart use official OAuth MCP
+          servers
         </p>
       </div>
 
@@ -120,59 +220,36 @@ export function IntegrationsPage() {
         </p>
       ) : (
         <div className="grid gap-4 lg:grid-cols-2">
-          <div className="panel-card p-5">
-            <div className="mb-3 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Plug className="h-4 w-4 text-primary" />
-                <h2 className="text-[15px] font-bold text-[var(--text-primary)]">Zepto</h2>
-              </div>
-              <StatusPill label={data.zepto.status} />
-            </div>
-            <p className="text-[12px] leading-relaxed text-[var(--text-secondary)]">
-              {data.zepto.description}
-            </p>
-            {data.zepto.connected && data.zepto.connectedAt && (
-              <p className="mt-2 flex items-center gap-1.5 text-[11px] text-primary">
-                <CheckCircle2 className="h-3.5 w-3.5" />
-                Connected {new Date(data.zepto.connectedAt).toLocaleString("en-IN")}
-              </p>
-            )}
-            <p className="mt-3 text-[11px] text-[var(--text-tertiary)]">
-              Redirect URI: {data.zepto.redirectUri}
-            </p>
-            <p className="mt-1 text-[11px] text-[var(--text-tertiary)]">{data.zepto.paymentNote}</p>
-            {canConnect && (
-              <div className="mt-4 flex flex-wrap gap-2">
-                {!data.zepto.connected ? (
-                  <button
-                    type="button"
-                    disabled={busy}
-                    onClick={() => void handleConnect()}
-                    className="rounded-full bg-primary px-4 py-2 text-[11px] font-bold text-white disabled:opacity-50"
-                  >
-                    Connect Zepto account
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    disabled={busy}
-                    onClick={() => void handleDisconnect()}
-                    className="rounded-full border border-[var(--border-strong)] bg-[var(--card)] px-4 py-2 text-[11px] font-bold text-[var(--text-secondary)]"
-                  >
-                    Disconnect
-                  </button>
-                )}
-                <a
-                  href={data.zepto.partnerTrack}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 rounded-full border border-[var(--border-strong)] px-4 py-2 text-[11px] font-bold text-[var(--text-secondary)]"
-                >
-                  Whitelist help <ExternalLink className="h-3 w-3" />
-                </a>
-              </div>
-            )}
-          </div>
+          <McpPartnerCard
+            title="Zepto"
+            icon={Plug}
+            partner="zepto"
+            info={data.zepto}
+            canConnect={canConnect}
+            busy={busy}
+            onConnect={handleConnect}
+            onDisconnect={handleDisconnect}
+          />
+          <McpPartnerCard
+            title="Swiggy Food"
+            icon={UtensilsCrossed}
+            partner="swiggy"
+            info={data.swiggy}
+            canConnect={canConnect}
+            busy={busy}
+            onConnect={handleConnect}
+            onDisconnect={handleDisconnect}
+          />
+          <McpPartnerCard
+            title="Instamart"
+            icon={ShoppingBag}
+            partner="instamart"
+            info={data.instamart}
+            canConnect={canConnect}
+            busy={busy}
+            onConnect={handleConnect}
+            onDisconnect={handleDisconnect}
+          />
 
           <div className="panel-card p-5">
             <div className="mb-3 flex items-center justify-between">
