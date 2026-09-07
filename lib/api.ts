@@ -700,6 +700,83 @@ export async function triggerSaheliCheckIn(
   return parseResponse<{ reply: string; conversationId: string }>(res);
 }
 
+export type SaheliCompanionProfile = {
+  enabled: boolean;
+  childName: string;
+  relationshipLabel: string;
+  personaNotes?: string;
+  outreachSlots: Array<"morning" | "afternoon" | "evening">;
+  outreachTopics: string[];
+  shareWithFamily: boolean;
+  preferredChannel: "dashboard" | "whatsapp" | "phone";
+  timezone: string;
+  lastOutreachAt?: string | null;
+};
+
+export type FamilyMemoryItem = {
+  id: string;
+  category: string;
+  topic: string;
+  content: string;
+  share_with_family: boolean;
+  importance: number;
+  created_at: string | null;
+};
+
+export async function getSaheliCompanion(
+  familyId: string,
+  recipientUserId: string,
+) {
+  const res = await timedFetch(
+    `/api/families/${familyId}/recipients/${recipientUserId}/saheli/companion`,
+  );
+  return parseResponse<SaheliCompanionProfile>(res);
+}
+
+export async function updateSaheliCompanion(
+  familyId: string,
+  recipientUserId: string,
+  patch: Partial<SaheliCompanionProfile>,
+) {
+  const res = await timedFetch(
+    `/api/families/${familyId}/recipients/${recipientUserId}/saheli/companion`,
+    {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(patch),
+    },
+    WRITE_TIMEOUT_MS,
+  );
+  return parseResponse<SaheliCompanionProfile>(res);
+}
+
+export async function triggerSaheliOutreach(
+  familyId: string,
+  recipientUserId: string,
+  outreachKind?: "casual" | "care" | "mixed",
+) {
+  const res = await timedFetch(
+    `/api/families/${familyId}/recipients/${recipientUserId}/saheli/outreach`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ outreachKind: outreachKind ?? "casual" }),
+    },
+    WRITE_TIMEOUT_MS,
+  );
+  return parseResponse<{ reply: string; delivered: boolean; topicBucket?: string }>(res);
+}
+
+export async function getFamilyMemories(
+  familyId: string,
+  recipientUserId: string,
+) {
+  const res = await timedFetch(
+    `/api/families/${familyId}/recipients/${recipientUserId}/saheli/memories`,
+  );
+  return parseResponse<{ memories: FamilyMemoryItem[] }>(res);
+}
+
 export async function getCaregiverSaheliChat(
   familyId: string,
   recipientUserId: string,

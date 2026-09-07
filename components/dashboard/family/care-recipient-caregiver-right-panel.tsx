@@ -15,6 +15,7 @@ import type { FamilyMember } from "./family-data";
 import { formatDisplayName, formatPhone, getInitials } from "./family-data";
 import { useOptionalCareSchedule } from "./care-recipient-schedule-context";
 import { SaheliThreadPanel } from "./saheli-thread-panel";
+import { SaheliCompanionPanel } from "./saheli-companion-panel";
 import {
   getActiveSchedulesForDate,
   getNextScheduleItem,
@@ -161,11 +162,17 @@ export function CareRecipientCaregiverRightPanel({ member }: { member: FamilyMem
       </div>
 
       {member.userId && (
-        <SaheliThreadPanel
-          recipientUserId={member.userId}
-          recipientName={firstName}
-          compact
-        />
+        <>
+          <SaheliCompanionPanel
+            recipientUserId={member.userId}
+            recipientName={firstName}
+          />
+          <SaheliThreadPanel
+            recipientUserId={member.userId}
+            recipientName={firstName}
+            compact
+          />
+        </>
       )}
 
       <p className="mb-3 text-[12px] font-bold text-[var(--text-primary)]">
