@@ -18,8 +18,6 @@ import { canApproveOrders } from "@/components/dashboard/family/family-data";
 import {
   disconnectMcp,
   getFamilyIntegrations,
-  getFamilyMembers,
-  linkChannelIdentity,
   startMcpConnect,
   syncPartnerAddresses,
   type FamilyIntegrations,
@@ -274,53 +272,14 @@ function SwiggyCard({
   );
 }
 
-function WhatsAppCard({
-  familyId,
-  info,
-  canConnect,
-  busy,
-  members,
-  onLinked,
-}: {
-  familyId: string;
-  info: FamilyIntegrations["whatsapp"];
-  canConnect: boolean;
-  busy: boolean;
-  members: Array<{ userId: string; name: string; role: string }>;
-  onLinked: () => void;
-}) {
-  const [phone, setPhone] = useState("");
-  const [memberUserId, setMemberUserId] = useState("");
-  const [linkError, setLinkError] = useState<string | null>(null);
-
-  const linkableMembers = members.filter((m) => m.userId);
-
-  async function handleLink() {
-    if (!memberUserId || !phone.trim()) return;
-    setLinkError(null);
-    const member = linkableMembers.find((m) => m.userId === memberUserId);
-    if (!member) return;
-    try {
-      await linkChannelIdentity(familyId, {
-        channelType: "whatsapp",
-        channelIdentifier: phone.trim(),
-        userId: memberUserId,
-        role: member.role,
-        label: member.name,
-      });
-      setPhone("");
-      onLinked();
-    } catch (err) {
-      setLinkError(err instanceof Error ? err.message : "Could not link number");
-    }
-  }
-
+function WhatsAppCard({ info }: { info: FamilyIntegrations["whatsapp"] }) {
   const status = info.status;
   const connected = status === "baileys_connected";
+  const displayNumber = info.kavachNumber ?? "+918310905372";
 
   return (
     <div className="panel-card overflow-hidden sm:col-span-2">
-      <div className="flex gap-4 border-b border-[var(--border-strong)] p-5">
+      <div className="flex gap-4 p-5">
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-600">
           <MessageCircle className="h-5 w-5" strokeWidth={2} />
         </div>
@@ -329,71 +288,23 @@ function WhatsAppCard({
             <h2 className="text-[14px] font-bold text-[var(--text-primary)]">WhatsApp</h2>
             <ConnectionPill
               state={connected ? "connected" : status === "baileys_disconnected" ? "partial" : "disconnected"}
-              label={connected ? "Pilot live" : status === "baileys_disconnected" ? "Bridge offline" : "Setup needed"}
+              label={connected ? "Live" : status === "baileys_disconnected" ? "Bridge offline" : "Setup needed"}
             />
           </div>
           <p className="mt-1 text-[12px] leading-relaxed text-[var(--text-secondary)]">{info.description}</p>
-        </div>
-      </div>
-      <div className="space-y-4 p-5">
-        {info.identities.length > 0 ? (
-          <div className="space-y-2">
-            <p className="text-[11px] font-bold uppercase tracking-wider text-[var(--text-tertiary)]">
-              Linked numbers
+          <div className="mt-4 rounded-xl border border-emerald-500/20 bg-emerald-500/5 px-4 py-3">
+            <p className="text-[11px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
+              Kavach WhatsApp
             </p>
-            {info.identities.map((row) => (
-              <div
-                key={row.identifier}
-                className="flex items-center justify-between rounded-xl border border-[var(--border-strong)] px-3 py-2"
-              >
-                <div>
-                  <p className="text-[12px] font-semibold text-[var(--text-primary)]">
-                    {row.label || row.identifier}
-                  </p>
-                  <p className="text-[11px] text-[var(--text-tertiary)]">
-                    {row.identifier} · {row.role.replace(/_/g, " ").toLowerCase()}
-                  </p>
-                </div>
-              </div>
-            ))}
+            <p className="mt-1 text-[18px] font-extrabold tracking-tight text-[var(--text-primary)]">
+              {displayNumber}
+            </p>
+            <p className="mt-2 text-[12px] leading-relaxed text-[var(--text-secondary)]">
+              Everyone messages this one number. Saheli recognizes you by the mobile number on your Kavach profile —
+              no per-family setup needed.
+            </p>
           </div>
-        ) : (
-          <p className="text-[12px] text-[var(--text-secondary)]">
-            Link your parent&apos;s or caregiver&apos;s WhatsApp number so Saheli can chat with them here.
-          </p>
-        )}
-
-        {canConnect && (
-          <div className="grid gap-3 sm:grid-cols-[1fr_1fr_auto]">
-            <select
-              value={memberUserId}
-              onChange={(e) => setMemberUserId(e.target.value)}
-              className="rounded-xl border border-[var(--border-strong)] bg-[var(--input-bg)] px-3 py-2 text-[12px]"
-            >
-              <option value="">Family member</option>
-              {linkableMembers.map((m) => (
-                <option key={m.userId} value={m.userId}>
-                  {m.name} ({m.role.replace(/_/g, " ").toLowerCase()})
-                </option>
-              ))}
-            </select>
-            <input
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              placeholder="+91XXXXXXXXXX"
-              className="rounded-xl border border-[var(--border-strong)] bg-[var(--input-bg)] px-3 py-2 text-[12px]"
-            />
-            <button
-              type="button"
-              disabled={busy || !phone.trim() || !memberUserId}
-              onClick={() => void handleLink()}
-              className="rounded-full bg-primary px-4 py-2 text-[11px] font-bold text-white disabled:opacity-50"
-            >
-              Link
-            </button>
-          </div>
-        )}
-        {linkError && <p className="text-[12px] text-red-600">{linkError}</p>}
+        </div>
       </div>
     </div>
   );
@@ -443,9 +354,6 @@ export function IntegrationsPage() {
   const { activeFamilyId, activeFamily } = useFamily();
   const searchParams = useSearchParams();
   const [data, setData] = useState<FamilyIntegrations | null>(null);
-  const [members, setMembers] = useState<Array<{ userId: string; name: string; role: string }>>(
-    [],
-  );
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [banner, setBanner] = useState<{ type: "success" | "error"; text: string } | null>(null);
@@ -454,29 +362,15 @@ export function IntegrationsPage() {
   const load = useCallback(async () => {
     if (!activeFamilyId) {
       setData(null);
-      setMembers([]);
       setLoading(false);
       return;
     }
     setLoading(true);
     try {
-      const [{ data: integrations }, membersRes] = await Promise.all([
-        getFamilyIntegrations(activeFamilyId),
-        getFamilyMembers(activeFamilyId),
-      ]);
+      const { data: integrations } = await getFamilyIntegrations(activeFamilyId);
       setData(integrations ?? null);
-      setMembers(
-        (membersRes.data?.members ?? [])
-          .filter((m) => m.userId && m.status === "JOINED")
-          .map((m) => ({
-            userId: m.userId as string,
-            name: m.name ?? "Family member",
-            role: m.role,
-          })),
-      );
     } catch {
       setData(null);
-      setMembers([]);
     } finally {
       setLoading(false);
     }
@@ -627,16 +521,7 @@ export function IntegrationsPage() {
               Stay in touch
             </h2>
             <div className="grid gap-4 sm:grid-cols-2">
-              {activeFamilyId && (
-                <WhatsAppCard
-                  familyId={activeFamilyId}
-                  info={data.whatsapp}
-                  canConnect={canConnect}
-                  busy={busy}
-                  members={members}
-                  onLinked={() => void load()}
-                />
-              )}
+              <WhatsAppCard info={data.whatsapp} />
               <ChannelCard
                 icon={Phone}
                 title="Phone & voice"

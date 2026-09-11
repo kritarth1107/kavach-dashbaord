@@ -1172,6 +1172,7 @@ export type FamilyIntegrations = {
   whatsapp: {
     status: string;
     description: string;
+    kavachNumber?: string;
     linkedIdentities: number;
     identities: Array<{ label?: string; role: string; identifier: string }>;
   };
