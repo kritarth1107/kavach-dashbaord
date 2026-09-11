@@ -1,0 +1,68 @@
+name: Deploy dashboard to GCP Cloud Run
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-dashboard-gcp
+  cancel-in-progress: true
+
+env:
+  GCP_PROJECT_ID: kavach-care
+  GCP_REGION: asia-south1
+  ARTIFACT_REPO: kavach
+  SERVICE: kavach-dashboard
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - uses: google-github-actions/setup-gcloud@v2
+
+      - name: Build, push, and deploy
+        env:
+          NEXT_PUBLIC_API_URL: ${{ vars.NEXT_PUBLIC_API_URL }}
+          AUTH_URL: ${{ vars.AUTH_URL }}
+          AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
+          AUTH_GOOGLE_ID: ${{ secrets.AUTH_GOOGLE_ID }}
+          AUTH_GOOGLE_SECRET: ${{ secrets.AUTH_GOOGLE_SECRET }}
+        run: |
+          gcloud auth configure-docker ${{ env.GCP_REGION }}-docker.pkg.dev --quiet
+          IMAGE=${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.ARTIFACT_REPO }}/${{ env.SERVICE }}
+          docker build \
+            --build-arg "NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL" \
+            -t "$IMAGE:${{ github.sha }}" \
+            -t "$IMAGE:latest" \
+            .
+          docker push "$IMAGE:${{ github.sha }}"
+          docker push "$IMAGE:latest"
+          gcloud run deploy ${{ env.SERVICE }} \
+            --project=${{ env.GCP_PROJECT_ID }} \
+            --image="$IMAGE:${{ github.sha }}" \
+            --region=${{ env.GCP_REGION }} \
+            --platform=managed \
+            --allow-unauthenticated \
+            --port=3000 \
+            --memory=512Mi \
+            --min-instances=0 \
+            --max-instances=3 \
+            --set-env-vars="NODE_ENV=production,NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL,AUTH_URL=$AUTH_URL,AUTH_SECRET=$AUTH_SECRET,AUTH_GOOGLE_ID=$AUTH_GOOGLE_ID,AUTH_GOOGLE_SECRET=$AUTH_GOOGLE_SECRET" \
+            --quiet
+
+      - name: Smoke test
+        run: |
+          URL="$(gcloud run services describe ${{ env.SERVICE }} --region=${{ env.GCP_REGION }} --format='value(status.url)')"
+          curl -fsSI "$URL" | grep -E 'HTTP/2 (200|307)'
