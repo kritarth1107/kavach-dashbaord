@@ -578,6 +578,22 @@ export type SaheliMessage = {
   role: string;
   content: string;
   createdAt?: string | null;
+  order?: SaheliOrderSuggestion;
+};
+
+export type SaheliOrderSuggestion = {
+  orderId: string;
+  partner: string;
+  partnerLabel: string;
+  totalPaise: number;
+  items: Array<{ name: string; quantity: number }>;
+  status: string;
+};
+
+export type SaheliChatResponse = {
+  reply: string;
+  conversationId: string;
+  order?: SaheliOrderSuggestion;
 };
 
 export type BriefingItem = {
@@ -681,7 +697,7 @@ export async function sendSaheliChat(
     },
     WRITE_TIMEOUT_MS,
   );
-  return parseResponse<{ reply: string; conversationId: string }>(res);
+  return parseResponse<SaheliChatResponse>(res);
 }
 
 export async function triggerSaheliCheckIn(
@@ -804,7 +820,7 @@ export async function sendCaregiverSaheliChat(
     },
     WRITE_TIMEOUT_MS,
   );
-  return parseResponse<{ reply: string; conversationId: string }>(res);
+  return parseResponse<SaheliChatResponse>(res);
 }
 
 export async function getRecipientBriefing(
@@ -1125,6 +1141,30 @@ export type McpIntegrationInfo = {
   label?: string;
 };
 
+export type PartnerAddress = {
+  address_id: string;
+  partner: McpIntegrationPartner;
+  partner_address_id: string;
+  label: string;
+  line1: string;
+  line2: string;
+  city: string;
+  pincode: string;
+  is_default: boolean;
+  synced_at: string | null;
+};
+
+export type ChannelIdentity = {
+  identityId?: string;
+  channelType: string;
+  channelIdentifier: string;
+  familyId: string;
+  userId: string;
+  role: string;
+  label?: string;
+  active?: boolean;
+};
+
 export type FamilyIntegrations = {
   zepto: McpIntegrationInfo;
   swiggy: McpIntegrationInfo;
@@ -1144,6 +1184,7 @@ export type FamilyIntegrations = {
     total_paise: number;
     created_at: string | null;
   }>;
+  partnerAddresses?: PartnerAddress[];
 };
 
 export async function getFamilyIntegrations(familyId: string) {
@@ -1187,4 +1228,35 @@ export async function getZeptoStatus(familyId: string) {
 
 export async function disconnectZepto(familyId: string) {
   return disconnectMcp(familyId, "zepto");
+}
+
+export async function syncPartnerAddresses(familyId: string, partner: McpIntegrationPartner) {
+  const res = await timedFetch(
+    `/api/families/${familyId}/integrations/${partner}/sync-addresses`,
+    { method: "POST" },
+  );
+  return parseResponse<{ synced: number }>(res);
+}
+
+export async function getChannelIdentities(familyId: string) {
+  const res = await timedFetch(`/api/families/${familyId}/channel-identities`);
+  return parseResponse<{ identities: ChannelIdentity[] }>(res);
+}
+
+export async function linkChannelIdentity(
+  familyId: string,
+  body: {
+    channelType: "whatsapp" | "phone" | "smart_speaker";
+    channelIdentifier: string;
+    userId: string;
+    role: string;
+    label?: string;
+  },
+) {
+  const res = await timedFetch(`/api/families/${familyId}/channel-identities`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  return parseResponse<ChannelIdentity>(res);
 }
