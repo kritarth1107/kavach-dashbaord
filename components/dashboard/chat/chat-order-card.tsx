@@ -211,7 +211,9 @@ export function ChatOrderCard({
         <div className="border-t border-emerald-500/15 px-3.5 py-2.5">
           <p className="mb-2 flex items-center gap-1 text-[11px] font-bold text-[var(--text-secondary)]">
             <MapPin className="h-3 w-3" />
-            Delivery address
+            {order.addresses!.length > 1
+              ? "Which address should we deliver to?"
+              : "Delivery address from Swiggy"}
           </p>
           <div className="space-y-1.5">
             {order.addresses!.map((addr) => (
