@@ -24,17 +24,19 @@ function getDisplayName(fullName: string, firstName?: string): string {
   return fullName.trim().split(/\s+/)[0] || "there";
 }
 
-const subtitles = {
+const defaultSubtitles = {
   caregiver:
-    "Mama's 10 o'clock check-in came through cheerful. 2 of 3 morning medicines are confirmed — Tab Perinorm 10mg is still unconfirmed after a second nudge. One Zepto payment needs your approval.",
+    "Your family's care at a glance — schedules, Saheli chat, and orders in one place.",
   recipient:
     "Here is your care summary for today — check-ins, medicines, and reports in one place. Your family is kept in the loop automatically.",
 } as const;
 
 export function DashboardGreeting({
   variant = "caregiver",
+  subtitle,
 }: {
   variant?: "caregiver" | "recipient";
+  subtitle?: string;
 }) {
   const [name, setName] = useState("");
 
@@ -60,8 +62,8 @@ export function DashboardGreeting({
       <h1 className="mt-1 text-[1.75rem] font-extrabold leading-tight tracking-[-0.03em] text-[var(--text-primary)]">
         {heading}
       </h1>
-      <p className="mt-1.5 max-w-lg text-[13px] leading-relaxed text-[var(--text-tertiary)]">
-        {subtitles[variant]}
+      <p className="mt-1.5 max-w-2xl text-[13px] leading-relaxed text-[var(--text-tertiary)]">
+        {subtitle ?? defaultSubtitles[variant]}
       </p>
     </div>
   );

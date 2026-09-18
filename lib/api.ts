@@ -574,11 +574,20 @@ export async function deleteCareScheduleItem(
   return parseResponse<null>(res);
 }
 
-export type SaheliMessage = {
-  role: string;
-  content: string;
-  createdAt?: string | null;
-  order?: SaheliOrderSuggestion;
+export type SaheliOrderItem = {
+  name: string;
+  quantity: number;
+  unitPricePaise?: number;
+  matchedName?: string;
+};
+
+export type SaheliPartnerAddress = {
+  id: string;
+  label: string;
+  line1: string;
+  city?: string;
+  pincode?: string;
+  isDefault?: boolean;
 };
 
 export type SaheliOrderSuggestion = {
@@ -586,14 +595,43 @@ export type SaheliOrderSuggestion = {
   partner: string;
   partnerLabel: string;
   totalPaise: number;
-  items: Array<{ name: string; quantity: number }>;
+  items: SaheliOrderItem[];
   status: string;
+  source?: "mock" | "zepto_mcp" | "swiggy_mcp" | "instamart_mcp";
+  searchResults?: Array<{ query: string; name: string; pricePaise?: number }>;
+  addresses?: SaheliPartnerAddress[];
+};
+
+export type SaheliConnectSuggestion = {
+  partner: string;
+  partnerLabel: string;
+  connectPartner: McpIntegrationPartner;
+  connectUrl?: string | null;
+  note?: string;
+};
+
+export type SaheliMessage = {
+  role: string;
+  content: string;
+  createdAt?: string | null;
+  order?: SaheliOrderSuggestion;
+  connect?: SaheliConnectSuggestion;
+};
+
+export type SaheliChatSession = {
+  sessionId: string;
+  title: string;
+  preview: string;
+  createdAt: string | null;
+  updatedAt: string | null;
 };
 
 export type SaheliChatResponse = {
   reply: string;
   conversationId: string;
+  sessionId?: string;
   order?: SaheliOrderSuggestion;
+  connect?: SaheliConnectSuggestion;
 };
 
 export type BriefingItem = {
@@ -673,11 +711,36 @@ export async function getFamilyActivity(familyId: string) {
   return parseResponse<{ items: ActivityItem[] }>(res);
 }
 
-export async function getSaheliChat(familyId: string, recipientUserId: string) {
+export async function listSaheliChatSessions(familyId: string, recipientUserId: string) {
   const res = await timedFetch(
-    `/api/families/${familyId}/recipients/${recipientUserId}/saheli/chat`,
+    `/api/families/${familyId}/recipients/${recipientUserId}/saheli/chat/sessions`,
+  );
+  return parseResponse<{ sessions: SaheliChatSession[] }>(res);
+}
+
+export async function createSaheliChatSession(familyId: string, recipientUserId: string) {
+  const res = await timedFetch(
+    `/api/families/${familyId}/recipients/${recipientUserId}/saheli/chat/sessions`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({}),
+    },
+  );
+  return parseResponse<SaheliChatSession>(res);
+}
+
+export async function getSaheliChat(
+  familyId: string,
+  recipientUserId: string,
+  sessionId?: string,
+) {
+  const query = sessionId ? `?sessionId=${encodeURIComponent(sessionId)}` : "";
+  const res = await timedFetch(
+    `/api/families/${familyId}/recipients/${recipientUserId}/saheli/chat${query}`,
   );
   return parseResponse<{
+    sessionId: string | null;
     conversationId: string;
     messages: SaheliMessage[];
   }>(res);
@@ -687,13 +750,14 @@ export async function sendSaheliChat(
   familyId: string,
   recipientUserId: string,
   message: string,
+  sessionId?: string,
 ) {
   const res = await timedFetch(
     `/api/families/${familyId}/recipients/${recipientUserId}/saheli/chat`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message }),
+      body: JSON.stringify({ message, sessionId }),
     },
     WRITE_TIMEOUT_MS,
   );
@@ -793,14 +857,42 @@ export async function getFamilyMemories(
   return parseResponse<{ memories: FamilyMemoryItem[] }>(res);
 }
 
-export async function getCaregiverSaheliChat(
+export async function listCaregiverSaheliChatSessions(
   familyId: string,
   recipientUserId: string,
 ) {
   const res = await timedFetch(
-    `/api/families/${familyId}/recipients/${recipientUserId}/saheli/caregiver/chat`,
+    `/api/families/${familyId}/recipients/${recipientUserId}/saheli/caregiver/chat/sessions`,
+  );
+  return parseResponse<{ sessions: SaheliChatSession[] }>(res);
+}
+
+export async function createCaregiverSaheliChatSession(
+  familyId: string,
+  recipientUserId: string,
+) {
+  const res = await timedFetch(
+    `/api/families/${familyId}/recipients/${recipientUserId}/saheli/caregiver/chat/sessions`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({}),
+    },
+  );
+  return parseResponse<SaheliChatSession>(res);
+}
+
+export async function getCaregiverSaheliChat(
+  familyId: string,
+  recipientUserId: string,
+  sessionId?: string,
+) {
+  const query = sessionId ? `?sessionId=${encodeURIComponent(sessionId)}` : "";
+  const res = await timedFetch(
+    `/api/families/${familyId}/recipients/${recipientUserId}/saheli/caregiver/chat${query}`,
   );
   return parseResponse<{
+    sessionId: string | null;
     conversationId: string;
     messages: SaheliMessage[];
   }>(res);
@@ -810,13 +902,14 @@ export async function sendCaregiverSaheliChat(
   familyId: string,
   recipientUserId: string,
   message: string,
+  sessionId?: string,
 ) {
   const res = await timedFetch(
     `/api/families/${familyId}/recipients/${recipientUserId}/saheli/caregiver/chat`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message }),
+      body: JSON.stringify({ message, sessionId }),
     },
     WRITE_TIMEOUT_MS,
   );
@@ -1086,13 +1179,20 @@ export async function approveOrder(familyId: string, orderId: string) {
   return parseResponse<{ order_id: string; status: string }>(res);
 }
 
-export async function payOrder(familyId: string, orderId: string) {
+export async function payOrder(
+  familyId: string,
+  orderId: string,
+  opts?: { partnerAddressId?: string; deliveryAddress?: string },
+) {
   const res = await timedFetch(
     `/api/families/${familyId}/orders/${orderId}/pay`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({}),
+      body: JSON.stringify({
+        partnerAddressId: opts?.partnerAddressId,
+        deliveryAddress: opts?.deliveryAddress,
+      }),
     },
     WRITE_TIMEOUT_MS,
   );
@@ -1171,6 +1271,9 @@ export type FamilyIntegrations = {
   instamart: McpIntegrationInfo;
   whatsapp: {
     status: string;
+    bridgeState?: string;
+    hasQr?: boolean;
+    lastDisconnectReason?: string | null;
     description: string;
     kavachNumber?: string;
     linkedIdentities: number;

@@ -242,7 +242,7 @@ function SwiggyCard({
     <PartnerCard
       icon={UtensilsCrossed}
       title="Swiggy"
-      subtitle="One account for restaurant orders and Instamart groceries. Saheli picks the right service automatically."
+      subtitle="Same Swiggy phone login — but Food and Instamart are two separate MCP connections. Connect both for full ordering from Saheli."
       pill={<ConnectionPill state={overall} label={pillLabel} />}
     >
       <ServiceRow
@@ -266,7 +266,7 @@ function SwiggyCard({
         onDisconnect={() => onDisconnect("instamart")}
       />
       <p className="text-[11px] leading-relaxed text-[var(--text-tertiary)]">
-        Food and groceries use separate Swiggy sign-ins. Connect both so Saheli can order khana or doodh from chat.
+        Official Swiggy MCP requires connecting Food (mcp.swiggy.com/food) and Instamart (mcp.swiggy.com/im) separately. Saheli routes grocery vs restaurant orders automatically once both are linked.
       </p>
     </PartnerCard>
   );
@@ -275,34 +275,68 @@ function SwiggyCard({
 function WhatsAppCard({ info }: { info: FamilyIntegrations["whatsapp"] }) {
   const status = info.status;
   const connected = status === "baileys_connected";
+  const connecting = status === "baileys_connecting";
   const displayNumber = info.kavachNumber ?? "+918310905372";
+
+  const pillState: ConnectionState = connected ? "connected" : connecting ? "partial" : "disconnected";
+  const pillLabel = connected
+    ? "Live"
+    : connecting
+      ? "Reconnecting…"
+      : status === "baileys_disconnected"
+        ? "Bridge offline"
+        : "Setup needed";
 
   return (
     <div className="panel-card overflow-hidden sm:col-span-2">
       <div className="flex gap-4 p-5">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-600">
+        <div
+          className={cn(
+            "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl",
+            connected ? "bg-emerald-500/10 text-emerald-600" : "bg-[var(--input-bg)] text-[var(--text-secondary)]",
+          )}
+        >
           <MessageCircle className="h-5 w-5" strokeWidth={2} />
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <h2 className="text-[14px] font-bold text-[var(--text-primary)]">WhatsApp</h2>
-            <ConnectionPill
-              state={connected ? "connected" : status === "baileys_disconnected" ? "partial" : "disconnected"}
-              label={connected ? "Live" : status === "baileys_disconnected" ? "Bridge offline" : "Setup needed"}
-            />
+            <ConnectionPill state={pillState} label={pillLabel} />
           </div>
           <p className="mt-1 text-[12px] leading-relaxed text-[var(--text-secondary)]">{info.description}</p>
-          <div className="mt-4 rounded-xl border border-emerald-500/20 bg-emerald-500/5 px-4 py-3">
-            <p className="text-[11px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
+          {info.lastDisconnectReason && !connected && (
+            <p className="mt-1 text-[11px] text-amber-700 dark:text-amber-400">
+              Last disconnect: {info.lastDisconnectReason.replace(/_/g, " ")}
+            </p>
+          )}
+          <div
+            className={cn(
+              "mt-4 rounded-xl border px-4 py-3",
+              connected
+                ? "border-emerald-500/20 bg-emerald-500/5"
+                : "border-[var(--border-strong)] bg-[var(--input-bg)]",
+            )}
+          >
+            <p
+              className={cn(
+                "text-[11px] font-bold uppercase tracking-wider",
+                connected ? "text-emerald-700 dark:text-emerald-400" : "text-[var(--text-secondary)]",
+              )}
+            >
               Kavach WhatsApp
             </p>
             <p className="mt-1 text-[18px] font-extrabold tracking-tight text-[var(--text-primary)]">
               {displayNumber}
             </p>
             <p className="mt-2 text-[12px] leading-relaxed text-[var(--text-secondary)]">
-              Everyone messages this one number. Saheli recognizes you by the mobile number on your Kavach profile —
-              no per-family setup needed.
+              One shared Kavach WhatsApp line for every family. Users message Saheli here — no linking or setup on
+              their side.
             </p>
+            {!connected && info.hasQr && (
+              <p className="mt-2 text-[11px] font-medium text-amber-700 dark:text-amber-400">
+                QR ready — open bridge /logs to scan and reconnect.
+              </p>
+            )}
           </div>
         </div>
       </div>
@@ -379,6 +413,18 @@ export function IntegrationsPage() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  useEffect(() => {
+    if (!activeFamilyId) return;
+    const timer = setInterval(() => {
+      void getFamilyIntegrations(activeFamilyId)
+        .then(({ data: integrations }) => {
+          if (integrations) setData(integrations);
+        })
+        .catch(() => undefined);
+    }, 20_000);
+    return () => clearInterval(timer);
+  }, [activeFamilyId]);
 
   useEffect(() => {
     for (const partner of OAUTH_PARTNERS) {

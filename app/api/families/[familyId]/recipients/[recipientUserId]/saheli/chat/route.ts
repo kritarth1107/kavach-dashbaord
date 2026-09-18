@@ -9,7 +9,7 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
   const { familyId, recipientUserId } = await params;
   return proxyAuthGet(
     req,
-    `/api/families/${familyId}/recipients/${recipientUserId}/saheli/chat`,
+    `/api/families/${familyId}/recipients/${recipientUserId}/saheli/chat${req.nextUrl.search}`,
   );
 }
 

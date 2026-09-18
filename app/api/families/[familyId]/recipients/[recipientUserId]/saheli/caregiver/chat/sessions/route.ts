@@ -9,7 +9,7 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
   const { familyId, recipientUserId } = await params;
   return proxyAuthGet(
     req,
-    `/api/families/${familyId}/recipients/${recipientUserId}/saheli/caregiver/chat${req.nextUrl.search}`,
+    `/api/families/${familyId}/recipients/${recipientUserId}/saheli/caregiver/chat/sessions`,
   );
 }
 
@@ -17,6 +17,6 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
   const { familyId, recipientUserId } = await params;
   return proxyAuthPost(
     req,
-    `/api/families/${familyId}/recipients/${recipientUserId}/saheli/caregiver/chat`,
+    `/api/families/${familyId}/recipients/${recipientUserId}/saheli/caregiver/chat/sessions`,
   );
 }

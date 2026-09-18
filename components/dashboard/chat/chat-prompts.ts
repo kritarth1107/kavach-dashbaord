@@ -1,9 +1,10 @@
 import type { LabDocument } from "@/lib/api";
 
 const ELDER_PROMPTS = [
-  "I took Shelcal after lunch.",
+  "Order 2 Maggi and 1 litre milk from Instamart.",
+  "Mujhe khana mangao — dal rice from Swiggy.",
+  "Zepto se bread aur eggs mangao.",
   "Feeling okay this morning.",
-  "BP done — 118/76.",
 ];
 
 function firstName(name: string): string {
@@ -29,7 +30,8 @@ export function buildChatPrompts(
   if (/pet[-\s]?ct|pet scan/.test(blob)) prompts.push("Latest PET-CT?");
   if (/vitamin d|vit d/.test(blob)) prompts.push("Latest vitamin D?");
 
+  prompts.push("Order dal makhani from Swiggy for lunch.");
   prompts.push(labs.length ? "Summarize saved reports" : "What reports are saved?");
 
-  return [...new Set(prompts)].slice(0, 5);
+  return [...new Set(prompts)].slice(0, 6);
 }

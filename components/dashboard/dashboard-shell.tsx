@@ -18,9 +18,14 @@ function isCareRecipientFamilyRoute(pathname: string) {
   return /^\/dashboard\/family\/[^/]+(\/health-record)?$/.test(pathname);
 }
 
+function isChatRoute(pathname: string) {
+  return pathname === "/dashboard/chat";
+}
+
 export function DashboardShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const isOverview = pathname === "/dashboard";
+  const isChat = isChatRoute(pathname);
   const isRecipientView = isCareRecipientSplitView(pathname);
   const isRecipientFamilyRoute = isCareRecipientFamilyRoute(pathname);
   const splitLayout = isOverview || isRecipientView;
@@ -30,13 +35,18 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
     <>
       <main
         className={cn(
-          "no-scrollbar theme-surface flex min-w-0 flex-col overflow-y-auto",
+          "no-scrollbar theme-surface flex min-w-0 flex-col",
+          isChat ? "min-h-0 flex-1 overflow-hidden" : "overflow-y-auto",
           splitLayout ? "flex-[3]" : "flex-1",
         )}
       >
-        {!isOverview && <PageHeader />}
-        <div className="px-6 py-6">
-          {familyAccessAlert && (
+        {!isOverview && !isChat && <PageHeader />}
+        <div
+          className={cn(
+            isChat ? "flex min-h-0 flex-1 flex-col" : "px-6 py-6",
+          )}
+        >
+          {familyAccessAlert && !isChat && (
             <FamilyAccessBanner
               alert={familyAccessAlert}
               onDismiss={dismissFamilyAccessAlert}
