@@ -647,6 +647,26 @@ export type SaheliInsight = {
   detail: string;
 };
 
+export function formatSaheliError(message: string): string {
+  const trimmed = message.trim();
+  if (!trimmed) return "Saheli is reconnecting — try again in a moment.";
+  if (trimmed.includes("<html")) return "Saheli is reconnecting — try again in a moment.";
+  try {
+    const parsed = JSON.parse(trimmed) as {
+      detail?: string | Array<{ msg?: string; type?: string }>;
+      message?: string;
+    };
+    if (typeof parsed.detail === "string") return parsed.detail;
+    if (Array.isArray(parsed.detail)) {
+      return parsed.detail.map((row) => row.msg ?? row.type ?? "Request failed").join(" ");
+    }
+    if (parsed.message) return parsed.message;
+  } catch {
+    // keep raw message
+  }
+  return trimmed;
+}
+
 export type SaheliStreamEvent =
   | { type: "token"; delta: string }
   | { type: "tool_start"; id: string; name: string; label?: string }

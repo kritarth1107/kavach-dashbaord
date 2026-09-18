@@ -13,6 +13,7 @@ import {
   listSaheliChatSessions,
   sendCaregiverSaheliChat,
   sendSaheliChat,
+  formatSaheliError,
   streamCaregiverSaheliChat,
   type LabDocument,
   type SaheliChatSession,
@@ -271,7 +272,7 @@ export function ChatPage() {
               setStreamingConnect(event.connect);
             }
           } else if (event.type === "error") {
-            throw new Error(event.message);
+            throw new Error(formatSaheliError(event.message));
           }
         }
 
@@ -323,7 +324,9 @@ export function ChatPage() {
 
       void loadSessions();
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Failed to send message";
+      const message = formatSaheliError(
+        err instanceof Error ? err.message : "Failed to send message",
+      );
       const isOffline =
         /reconnecting|503|offline|too long|cannot reach/i.test(message);
       setMessages((prev) => {
