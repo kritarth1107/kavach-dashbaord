@@ -598,7 +598,14 @@ export type SaheliOrderSuggestion = {
   items: SaheliOrderItem[];
   status: string;
   source?: "mock" | "zepto_mcp" | "swiggy_mcp" | "instamart_mcp";
-  searchResults?: Array<{ query: string; name: string; pricePaise?: number }>;
+  searchResults?: Array<{
+    query: string;
+    name: string;
+    pricePaise?: number;
+    kind?: "restaurant" | "dish" | "product";
+    restaurantName?: string;
+    restaurantId?: string;
+  }>;
   addresses?: SaheliPartnerAddress[];
 };
 

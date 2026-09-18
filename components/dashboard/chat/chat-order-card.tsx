@@ -35,13 +35,28 @@ export function ChatOrderCard({
 
   const isLive = order.source && order.source !== "mock";
   const groupedSearch = useMemo(() => {
-    const map = new Map<string, Array<{ name: string; pricePaise?: number }>>();
+    const map = new Map<
+      string,
+      Array<{ name: string; pricePaise?: number; kind?: string; restaurantName?: string }>
+    >();
     for (const hit of order.searchResults ?? []) {
       const list = map.get(hit.query) ?? [];
-      list.push({ name: hit.name, pricePaise: hit.pricePaise });
+      list.push({
+        name: hit.name,
+        pricePaise: hit.pricePaise,
+        kind: hit.kind,
+        restaurantName: hit.restaurantName,
+      });
       map.set(hit.query, list);
     }
     return map;
+  }, [order.searchResults]);
+
+  const catalogPreview = useMemo(() => {
+    const hits = order.searchResults ?? [];
+    const restaurants = hits.filter((h) => h.kind === "restaurant");
+    const dishes = hits.filter((h) => h.kind === "dish" || h.kind === "product" || !h.kind);
+    return { restaurants, dishes };
   }, [order.searchResults]);
 
   async function handleApproveAndPlace() {
@@ -126,17 +141,71 @@ export function ChatOrderCard({
             </div>
             {groupedSearch.get(item.name)?.length ? (
               <p className="mt-0.5 text-[10px] text-[var(--text-tertiary)]">
-                Found:{" "}
+                Matched:{" "}
                 {groupedSearch
                   .get(item.name)!
+                  .filter((h) => h.kind !== "restaurant")
                   .slice(0, 2)
-                  .map((h) => h.name)
+                  .map((h) =>
+                    h.pricePaise != null
+                      ? `${h.name} (₹${(h.pricePaise / 100).toFixed(0)})`
+                      : h.name,
+                  )
                   .join(" · ")}
               </p>
             ) : null}
           </li>
         ))}
       </ul>
+
+      {isLive && (catalogPreview.restaurants.length > 0 || catalogPreview.dishes.length > 0) && (
+        <div className="border-t border-emerald-500/15 px-3.5 py-2.5">
+          {catalogPreview.restaurants.length > 0 && (
+            <div className="mb-2">
+              <p className="mb-1.5 text-[10px] font-bold uppercase tracking-wide text-[var(--text-tertiary)]">
+                Restaurants nearby
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                {catalogPreview.restaurants.slice(0, 4).map((hit, i) => (
+                  <span
+                    key={`${hit.restaurantId ?? hit.name}-${i}`}
+                    className="rounded-full border border-emerald-500/20 bg-[var(--card)] px-2 py-0.5 text-[10px] text-[var(--text-secondary)]"
+                  >
+                    {hit.name}
+                    {hit.pricePaise != null && (
+                      <span className="ml-1 text-[var(--text-tertiary)]">
+                        ~₹{(hit.pricePaise / 100).toFixed(0)}
+                      </span>
+                    )}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+          {catalogPreview.dishes.length > 0 && (
+            <div>
+              <p className="mb-1.5 text-[10px] font-bold uppercase tracking-wide text-[var(--text-tertiary)]">
+                Dishes &amp; items
+              </p>
+              <div className="space-y-1">
+                {catalogPreview.dishes.slice(0, 5).map((hit, i) => (
+                  <div
+                    key={`${hit.name}-${i}`}
+                    className="flex items-center justify-between gap-2 text-[10px] text-[var(--text-secondary)]"
+                  >
+                    <span className="min-w-0 truncate">{hit.name}</span>
+                    {hit.pricePaise != null && (
+                      <span className="shrink-0 font-semibold text-[var(--text-primary)]">
+                        ₹{(hit.pricePaise / 100).toFixed(0)}
+                      </span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {(order.addresses?.length ?? 0) > 0 && !placed && canApprove && (
         <div className="border-t border-emerald-500/15 px-3.5 py-2.5">
