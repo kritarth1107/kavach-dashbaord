@@ -51,20 +51,39 @@ export function SaheliInsightsBanner({
         </div>
       </div>
       <ul className="space-y-2">
-        {insights.slice(0, 3).map((item, idx) => (
-          <li
-            key={`${item.kind}-${idx}`}
-            className={cn(
-              "flex items-start gap-2 rounded-xl border border-[var(--border-strong)] bg-[var(--card)] px-3 py-2.5",
-            )}
-          >
-            <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-600" />
-            <div className="min-w-0">
-              <p className="text-[12px] font-semibold text-[var(--text-primary)]">{item.title}</p>
-              <p className="text-[11px] leading-relaxed text-[var(--text-secondary)]">{item.detail}</p>
-            </div>
-          </li>
-        ))}
+        {insights.slice(0, 3).map((item, idx) => {
+          const inner = (
+            <>
+              <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-600" />
+              <div className="min-w-0">
+                <p className="text-[12px] font-semibold text-[var(--text-primary)]">{item.title}</p>
+                <p className="text-[11px] leading-relaxed text-[var(--text-secondary)]">{item.detail}</p>
+              </div>
+            </>
+          );
+          return (
+            <li key={`${item.kind}-${idx}`}>
+              {item.actionUrl ? (
+                <Link
+                  href={item.actionUrl}
+                  className={cn(
+                    "flex items-start gap-2 rounded-xl border border-[var(--border-strong)] bg-[var(--card)] px-3 py-2.5 hover:border-primary/30",
+                  )}
+                >
+                  {inner}
+                </Link>
+              ) : (
+                <div
+                  className={cn(
+                    "flex items-start gap-2 rounded-xl border border-[var(--border-strong)] bg-[var(--card)] px-3 py-2.5",
+                  )}
+                >
+                  {inner}
+                </div>
+              )}
+            </li>
+          );
+        })}
       </ul>
       <Link
         href={chatHref}

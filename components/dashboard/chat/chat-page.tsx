@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import {
+  getActiveOrderFlow,
   getCaregiverSaheliChat,
   getFamilyMembers,
   getRecipientLabs,
@@ -17,6 +18,8 @@ import {
   streamCaregiverSaheliChat,
   type LabDocument,
   type SaheliChatSession,
+  type SaheliOrderFlow,
+  type SaheliOrderSuggestion,
   type SaheliMessage,
 } from "@/lib/api";
 import { useFamily } from "@/components/dashboard/family-context";
@@ -29,6 +32,7 @@ import { buildChatPrompts } from "@/components/dashboard/chat/chat-prompts";
 import { ChatHistorySidebar } from "@/components/dashboard/chat/chat-history-sidebar";
 import { ChatConnectPartnerCard } from "@/components/dashboard/chat/chat-connect-partner-card";
 import { ChatOrderCard } from "@/components/dashboard/chat/chat-order-card";
+import { OrderFlowContainer } from "@/components/dashboard/chat/order-flow/order-flow-container";
 import { SaheliReply } from "@/components/dashboard/chat/saheli-reply";
 import { useSidebar } from "@/components/dashboard/sidebar-context";
 import { cn } from "@/lib/utils";
@@ -78,6 +82,7 @@ export function ChatPage() {
   const [lastFailedText, setLastFailedText] = useState("");
   const [streamingText, setStreamingText] = useState("");
   const [streamingOrder, setStreamingOrder] = useState<SaheliMessage["order"]>();
+  const [streamingOrderFlow, setStreamingOrderFlow] = useState<SaheliOrderFlow>();
   const [streamingConnect, setStreamingConnect] = useState<SaheliMessage["connect"]>();
   const [streamingTools, setStreamingTools] = useState<string[]>([]);
   const { setCollapsed } = useSidebar();
@@ -156,8 +161,28 @@ export function ChatPage() {
             : getCaregiverSaheliChat(activeFamilyId, selectedRecipientId, sessionId),
           getRecipientLabs(activeFamilyId, selectedRecipientId).catch(() => ({ data: undefined })),
         ]);
-        setMessages(data?.messages ?? []);
+        const loaded = data?.messages ?? [];
+        setMessages(loaded);
         setLabs(labsRes.data?.documents ?? []);
+
+        const hasActiveFlow = loaded.some(
+          (msg) => msg.orderFlow?.sessionId && msg.orderFlow.phase !== "submitted",
+        );
+        if (!hasActiveFlow && sessionId) {
+          const { data: activeFlow } = await getActiveOrderFlow(
+            activeFamilyId,
+            selectedRecipientId,
+            sessionId,
+          );
+          if (activeFlow?.sessionId && activeFlow.phase !== "submitted") {
+            setMessages((prev) => {
+              const lastSaheliIdx = [...prev].reverse().findIndex((m) => m.role === "saheli");
+              if (lastSaheliIdx === -1) return prev;
+              const idx = prev.length - 1 - lastSaheliIdx;
+              return prev.map((msg, i) => (i === idx ? { ...msg, orderFlow: activeFlow } : msg));
+            });
+          }
+        }
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load messages");
         setMessages([]);
@@ -209,6 +234,30 @@ export function ChatPage() {
 
   const messageGroups = useMemo(() => groupMessagesByDay(messages), [messages]);
 
+  function messageKey(msg: SaheliMessage, fallback: string) {
+    return `${msg.role}:${msg.createdAt ?? fallback}`;
+  }
+
+  function updateMessageOrderFlow(key: string, flow: SaheliOrderFlow) {
+    setMessages((prev) =>
+      prev.map((msg) => (messageKey(msg, "") === key ? { ...msg, orderFlow: flow } : msg)),
+    );
+  }
+
+  function attachOrderToMessage(key: string, order: SaheliOrderSuggestion) {
+    setMessages((prev) =>
+      prev.map((msg) =>
+        messageKey(msg, "") === key
+          ? {
+              ...msg,
+              order,
+              orderFlow: msg.orderFlow ? { ...msg.orderFlow, phase: "submitted" as const } : msg.orderFlow,
+            }
+          : msg,
+      ),
+    );
+  }
+
   async function sendText(text: string) {
     if (!activeFamilyId || !selectedRecipientId || !text.trim() || sending) return;
     const trimmed = text.trim();
@@ -220,6 +269,7 @@ export function ChatPage() {
     setLastFailedText("");
     setStreamingText("");
     setStreamingOrder(undefined);
+    setStreamingOrderFlow(undefined);
     setStreamingConnect(undefined);
     setStreamingTools([]);
     setMessages((prev) => [
@@ -236,6 +286,7 @@ export function ChatPage() {
         let nextSessionId = activeSessionId ?? undefined;
         let finalReply = "";
         let finalOrder: SaheliMessage["order"];
+        let finalOrderFlow: SaheliOrderFlow | undefined;
         let finalConnect: SaheliMessage["connect"];
 
         for await (const event of streamCaregiverSaheliChat(
@@ -271,6 +322,10 @@ export function ChatPage() {
               finalConnect = event.connect;
               setStreamingConnect(event.connect);
             }
+            if (event.orderFlow) {
+              finalOrderFlow = event.orderFlow;
+              setStreamingOrderFlow(event.orderFlow);
+            }
           } else if (event.type === "error") {
             throw new Error(formatSaheliError(event.message));
           }
@@ -288,6 +343,7 @@ export function ChatPage() {
               content: finalReply,
               createdAt: new Date().toISOString(),
               order: finalOrder,
+              orderFlow: finalOrderFlow,
               connect: finalConnect,
             },
           ]);
@@ -314,6 +370,7 @@ export function ChatPage() {
               content: data.reply,
               createdAt: new Date().toISOString(),
               order: data.order,
+              orderFlow: data.orderFlow,
               connect: data.connect,
             },
           ]);
@@ -512,6 +569,7 @@ export function ChatPage() {
                         </div>
                         <div className="space-y-6">
                           {group.messages.map((msg, i) => {
+                            const msgKey = messageKey(msg, `${group.label}-${i}`);
                             if (msg.role === "system") {
                               return (
                                 <div key={`system-${i}`} className="flex justify-center">
@@ -562,6 +620,13 @@ export function ChatPage() {
                                       <div className="text-[14px] leading-relaxed">
                                         <SaheliReply content={msg.content} />
                                         {msg.connect && <ChatConnectPartnerCard connect={msg.connect} />}
+                                        {msg.orderFlow?.sessionId && (
+                                          <OrderFlowContainer
+                                            flow={msg.orderFlow}
+                                            onFlowUpdate={(flow) => updateMessageOrderFlow(msgKey, flow)}
+                                            onOrderSubmitted={(order) => attachOrderToMessage(msgKey, order)}
+                                          />
+                                        )}
                                         {msg.order && <ChatOrderCard order={msg.order} />}
                                       </div>
                                     )}
@@ -596,6 +661,9 @@ export function ChatPage() {
                               </div>
                             )}
                             {streamingConnect && <ChatConnectPartnerCard connect={streamingConnect} />}
+                            {streamingOrderFlow?.sessionId && (
+                              <OrderFlowContainer flow={streamingOrderFlow} />
+                            )}
                             {streamingOrder && <ChatOrderCard order={streamingOrder} />}
                           </div>
                         </div>
@@ -660,7 +728,7 @@ export function ChatPage() {
                     </button>
                   </form>
                   <p className="mt-2 text-center text-[10px] text-[var(--text-tertiary)]">
-                    Connect Swiggy in Integrations to place live food orders · family approves before checkout
+                    Swiggy orders: pick address → browse dishes → confirm basket · family approves before checkout
                   </p>
                 </div>
               </div>

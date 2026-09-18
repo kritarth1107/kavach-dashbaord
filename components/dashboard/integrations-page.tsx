@@ -10,6 +10,7 @@ import {
   disconnectMcp,
   getFamilyIntegrations,
   startMcpConnect,
+  syncPartnerAddresses,
   type FamilyIntegrations,
   type McpIntegrationInfo,
   type McpIntegrationPartner,
@@ -63,6 +64,7 @@ function ServiceRow({
   busy,
   onConnect,
   onDisconnect,
+  onSyncAddresses,
 }: {
   label: string;
   logoSrc?: string;
@@ -73,6 +75,7 @@ function ServiceRow({
   busy: boolean;
   onConnect: () => void;
   onDisconnect: () => void;
+  onSyncAddresses?: () => void;
 }) {
   return (
     <div className="flex flex-col gap-3 border-t border-[var(--border-strong)] pt-4 first:border-t-0 first:pt-0 sm:flex-row sm:items-center sm:justify-between">
@@ -111,14 +114,26 @@ function ServiceRow({
               Connect
             </button>
           ) : (
-            <button
-              type="button"
-              disabled={busy}
-              onClick={onDisconnect}
-              className="rounded-full border border-[var(--border-strong)] bg-[var(--card)] px-4 py-2 text-[11px] font-bold text-[var(--text-secondary)] hover:border-red-300 hover:text-red-600"
-            >
-              Disconnect
-            </button>
+            <>
+              {onSyncAddresses ? (
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={onSyncAddresses}
+                  className="rounded-full border border-[var(--border-strong)] bg-[var(--card)] px-4 py-2 text-[11px] font-bold text-[var(--text-secondary)] hover:border-primary/30 hover:text-primary"
+                >
+                  Sync addresses
+                </button>
+              ) : null}
+              <button
+                type="button"
+                disabled={busy}
+                onClick={onDisconnect}
+                className="rounded-full border border-[var(--border-strong)] bg-[var(--card)] px-4 py-2 text-[11px] font-bold text-[var(--text-secondary)] hover:border-red-300 hover:text-red-600"
+              >
+                Disconnect
+              </button>
+            </>
           )}
         </div>
       )}
@@ -221,6 +236,7 @@ function SwiggyCard({
   busy,
   onConnect,
   onDisconnect,
+  onSyncAddresses,
 }: {
   food: McpIntegrationInfo;
   groceries: McpIntegrationInfo;
@@ -228,6 +244,7 @@ function SwiggyCard({
   busy: boolean;
   onConnect: (partner: McpIntegrationPartner) => void;
   onDisconnect: (partner: McpIntegrationPartner) => void;
+  onSyncAddresses: (partner: McpIntegrationPartner) => void;
 }) {
   const foodOn = food.connected;
   const groceryOn = groceries.connected;
@@ -259,6 +276,7 @@ function SwiggyCard({
         busy={busy}
         onConnect={() => onConnect("swiggy")}
         onDisconnect={() => onDisconnect("swiggy")}
+        onSyncAddresses={() => onSyncAddresses("swiggy")}
       />
       <ServiceRow
         label="Instamart"
@@ -270,6 +288,7 @@ function SwiggyCard({
         busy={busy}
         onConnect={() => onConnect("instamart")}
         onDisconnect={() => onDisconnect("instamart")}
+        onSyncAddresses={() => onSyncAddresses("instamart")}
       />
     </PartnerCard>
   );
@@ -384,6 +403,24 @@ export function IntegrationsPage() {
     }
   }
 
+  async function handleSyncAddresses(partner: McpIntegrationPartner) {
+    if (!activeFamilyId || !canConnect) return;
+    setBusy(true);
+    setBanner(null);
+    try {
+      const { data } = await syncPartnerAddresses(activeFamilyId, partner);
+      setBanner({
+        type: "success",
+        text: `Synced ${data?.synced ?? 0} delivery address${data?.synced === 1 ? "" : "es"}.`,
+      });
+      await load();
+    } catch (err) {
+      setBanner({ type: "error", text: err instanceof Error ? err.message : "Sync failed" });
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function handleDisconnect(partner: McpIntegrationPartner) {
     if (!activeFamilyId || !canConnect) return;
     setBusy(true);
@@ -459,6 +496,7 @@ export function IntegrationsPage() {
               busy={busy}
               onConnect={handleConnect}
               onDisconnect={handleDisconnect}
+              onSyncAddresses={handleSyncAddresses}
             />
             <ZeptoCard
               info={data.zepto}

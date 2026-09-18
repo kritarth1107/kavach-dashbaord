@@ -609,6 +609,40 @@ export type SaheliOrderSuggestion = {
   addresses?: SaheliPartnerAddress[];
 };
 
+export type SaheliOrderFlowCatalogItem = {
+  id?: string;
+  itemId?: string;
+  name: string;
+  pricePaise?: number;
+  kind?: "restaurant" | "dish" | "product";
+  restaurantId?: string;
+  restaurantName?: string;
+};
+
+export type SaheliOrderFlow = {
+  sessionId: string;
+  phase: "select_address" | "browse" | "review_cart" | "submitted" | "expired";
+  partner: string;
+  partnerLabel: string;
+  query: string;
+  selectedAddressId?: string;
+  addresses?: SaheliPartnerAddress[];
+  catalog?: {
+    restaurants: SaheliOrderFlowCatalogItem[];
+    dishes: SaheliOrderFlowCatalogItem[];
+  };
+  cartItems?: Array<{
+    itemId?: string;
+    name: string;
+    quantity: number;
+    pricePaise: number;
+    restaurantId?: string;
+    restaurantName?: string;
+  }>;
+  orderId?: string;
+  message?: string;
+};
+
 export type SaheliConnectSuggestion = {
   partner: string;
   partnerLabel: string;
@@ -622,6 +656,7 @@ export type SaheliMessage = {
   content: string;
   createdAt?: string | null;
   order?: SaheliOrderSuggestion;
+  orderFlow?: SaheliOrderFlow;
   connect?: SaheliConnectSuggestion;
 };
 
@@ -638,6 +673,7 @@ export type SaheliChatResponse = {
   conversationId: string;
   sessionId?: string;
   order?: SaheliOrderSuggestion;
+  orderFlow?: SaheliOrderFlow;
   connect?: SaheliConnectSuggestion;
 };
 
@@ -645,6 +681,55 @@ export type SaheliInsight = {
   kind: string;
   title: string;
   detail: string;
+  actionUrl?: string;
+  recipientUserId?: string;
+};
+
+export type CommandCenterRecipient = {
+  userId: string;
+  name: string;
+  insightCount: number;
+  activeOrderPhase: string | null;
+  lastElderSnippet: string | null;
+  lastElderAt: string | null;
+  nextScheduleTitle: string | null;
+  nextScheduleTime: string | null;
+  pendingApprovals: number;
+  swiggyConnected: boolean;
+  swiggyAddressCount: number;
+};
+
+export type CommandCenterPayload = {
+  pendingApprovalsTotal: number;
+  recipients: CommandCenterRecipient[];
+  quickPrompts: string[];
+};
+
+export type NotificationItem = {
+  notificationId: string;
+  kind: string;
+  title: string;
+  body: string;
+  actionUrl?: string;
+  recipientUserId?: string;
+  readAt: string | null;
+  createdAt: string | null;
+};
+
+export type SearchResult = {
+  type: "recipient" | "lab" | "chat" | "order" | "member" | "page";
+  id: string;
+  title: string;
+  subtitle: string;
+  url: string;
+};
+
+export type LabTrendPoint = {
+  value: string;
+  unit?: string;
+  date: string;
+  documentId: string;
+  title: string;
 };
 
 export function formatSaheliError(message: string): string {
@@ -682,6 +767,7 @@ export type SaheliStreamEvent =
       conversationId?: string;
       reply?: string;
       order?: SaheliOrderSuggestion;
+      orderFlow?: SaheliOrderFlow;
       connect?: SaheliConnectSuggestion;
     }
   | { type: "error"; message: string };
@@ -1027,11 +1113,212 @@ export async function* streamCaregiverSaheliChat(
   }
 }
 
+export async function startOrderFlow(
+  familyId: string,
+  recipientUserId: string,
+  message: string,
+  saheliSessionId?: string,
+) {
+  const res = await timedFetch(
+    `/api/families/${familyId}/recipients/${recipientUserId}/saheli/order-sessions`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message, saheliSessionId }),
+    },
+    WRITE_TIMEOUT_MS,
+  );
+  return parseResponse<SaheliOrderFlow>(res);
+}
+
+export async function getOrderSession(familyId: string, sessionId: string) {
+  const res = await timedFetch(
+    `/api/families/${familyId}/saheli/order-sessions/${sessionId}`,
+    {},
+    WRITE_TIMEOUT_MS,
+  );
+  return parseResponse<SaheliOrderFlow>(res);
+}
+
+export async function searchOrderFlowCatalog(
+  familyId: string,
+  sessionId: string,
+  query: string,
+) {
+  const qs = query ? `?query=${encodeURIComponent(query)}` : "";
+  const res = await timedFetch(
+    `/api/families/${familyId}/saheli/order-sessions/${sessionId}/catalog${qs}`,
+    {},
+    WRITE_TIMEOUT_MS,
+  );
+  return parseResponse<SaheliOrderFlow>(res);
+}
+
+export async function selectOrderFlowAddress(
+  familyId: string,
+  sessionId: string,
+  addressId: string,
+) {
+  const res = await timedFetch(
+    `/api/families/${familyId}/saheli/order-sessions/${sessionId}/address`,
+    {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ addressId }),
+    },
+    WRITE_TIMEOUT_MS,
+  );
+  return parseResponse<SaheliOrderFlow>(res);
+}
+
+export async function loadOrderFlowRestaurantMenu(
+  familyId: string,
+  sessionId: string,
+  restaurantId: string,
+) {
+  const res = await timedFetch(
+    `/api/families/${familyId}/saheli/order-sessions/${sessionId}/menu/${restaurantId}`,
+    {},
+    WRITE_TIMEOUT_MS,
+  );
+  return parseResponse<SaheliOrderFlow>(res);
+}
+
+export async function addOrderFlowCartItem(
+  familyId: string,
+  sessionId: string,
+  item: {
+    itemId?: string;
+    name: string;
+    quantity?: number;
+    pricePaise?: number;
+    restaurantId?: string;
+    restaurantName?: string;
+  },
+) {
+  const res = await timedFetch(
+    `/api/families/${familyId}/saheli/order-sessions/${sessionId}/cart/items`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ item }),
+    },
+    WRITE_TIMEOUT_MS,
+  );
+  return parseResponse<SaheliOrderFlow>(res);
+}
+
+export async function updateOrderFlowCartItem(
+  familyId: string,
+  sessionId: string,
+  itemIndex: number,
+  quantity: number,
+) {
+  const res = await timedFetch(
+    `/api/families/${familyId}/saheli/order-sessions/${sessionId}/cart/items`,
+    {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ itemIndex, quantity }),
+    },
+    WRITE_TIMEOUT_MS,
+  );
+  return parseResponse<SaheliOrderFlow>(res);
+}
+
+export async function submitOrderFlowCart(familyId: string, sessionId: string) {
+  const res = await timedFetch(
+    `/api/families/${familyId}/saheli/order-sessions/${sessionId}/submit`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({}),
+    },
+    WRITE_TIMEOUT_MS,
+  );
+  return parseResponse<{ flow: SaheliOrderFlow; order: SaheliOrderSuggestion }>(res);
+}
+
+export async function getActiveOrderFlow(
+  familyId: string,
+  recipientUserId: string,
+  saheliSessionId?: string,
+) {
+  const qs = saheliSessionId ? `?saheliSessionId=${encodeURIComponent(saheliSessionId)}` : "";
+  const res = await timedFetch(
+    `/api/families/${familyId}/recipients/${recipientUserId}/saheli/order-sessions/active${qs}`,
+  );
+  return parseResponse<SaheliOrderFlow | null>(res);
+}
+
 export async function getSaheliInsights(familyId: string, recipientUserId: string) {
   const res = await timedFetch(
     `/api/families/${familyId}/recipients/${recipientUserId}/saheli/insights`,
   );
   return parseResponse<{ insights: SaheliInsight[] }>(res);
+}
+
+export async function getCommandCenter(familyId: string) {
+  const res = await timedFetch(`/api/families/${familyId}/dashboard/command-center`);
+  return parseResponse<CommandCenterPayload>(res);
+}
+
+export async function getNotifications(familyId: string) {
+  const res = await timedFetch(`/api/families/${familyId}/notifications`);
+  return parseResponse<{ notifications: NotificationItem[]; unreadCount: number }>(res);
+}
+
+export async function markNotificationRead(familyId: string, notificationId: string) {
+  const res = await timedFetch(
+    `/api/families/${familyId}/notifications/${notificationId}/read`,
+    { method: "PATCH" },
+  );
+  return parseResponse<unknown>(res);
+}
+
+export async function markAllNotificationsRead(familyId: string) {
+  const res = await timedFetch(`/api/families/${familyId}/notifications/read-all`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({}),
+  });
+  return parseResponse<unknown>(res);
+}
+
+export async function searchFamily(familyId: string, query: string, limit = 20) {
+  const qs = `?q=${encodeURIComponent(query)}&limit=${limit}`;
+  const res = await timedFetch(`/api/families/${familyId}/search${qs}`);
+  return parseResponse<{ results: SearchResult[] }>(res);
+}
+
+export async function refreshSaheliMemory(
+  familyId: string,
+  recipientUserId: string,
+  sessionId?: string,
+) {
+  const res = await timedFetch(
+    `/api/families/${familyId}/recipients/${recipientUserId}/saheli/memory/refresh`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sessionId }),
+    },
+    WRITE_TIMEOUT_MS,
+  );
+  return parseResponse<unknown>(res);
+}
+
+export async function getLabTrends(
+  familyId: string,
+  recipientUserId: string,
+  marker: string,
+  limit = 12,
+) {
+  const qs = `?marker=${encodeURIComponent(marker)}&limit=${limit}`;
+  const res = await timedFetch(
+    `/api/families/${familyId}/recipients/${recipientUserId}/labs/trends${qs}`,
+  );
+  return parseResponse<{ marker: string; points: LabTrendPoint[] }>(res);
 }
 
 export async function getRecipientBriefing(

@@ -12,9 +12,8 @@ import {
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { DashboardGreeting } from "@/components/dashboard/dashboard-greeting";
+import { CommandCenterHome } from "@/components/dashboard/home/command-center";
 import { MorningBriefingCard, formatWhen } from "@/components/dashboard/family/morning-briefing-card";
-import { SaheliAskBar } from "@/components/dashboard/saheli-ask-bar";
-import { SaheliInsightsBanner } from "@/components/dashboard/saheli-insights-banner";
 import { useFamily } from "@/components/dashboard/family-context";
 import {
   getFamilyMembers,
@@ -205,88 +204,33 @@ export function CaregiverDashboardHome() {
     ? `/dashboard/chat?recipient=${encodeURIComponent(subjectUserId)}`
     : "/dashboard/chat";
 
-  const quickAsks = [
-    `How is ${who} today?`,
-    "Order dal rice from Swiggy",
-    "Latest labs on file",
-    "What's due today?",
-  ];
-
   const recentActivity = (overview?.recentActivity ?? []).slice(0, 6);
 
   return (
     <div className="mx-auto max-w-6xl">
       <DashboardGreeting variant="caregiver" subtitle={subtitle} />
 
-      {activeFamilyId && subjectUserId ? (
-        <SaheliInsightsBanner
-          familyId={activeFamilyId}
-          recipientUserId={subjectUserId}
-          chatHref={chatHref}
-        />
-      ) : null}
+      <CommandCenterHome />
 
-      {/* Saheli hero */}
-      <section className="mb-6 overflow-hidden rounded-2xl border border-primary/15 bg-gradient-to-br from-primary/8 via-[var(--card)] to-emerald-500/5 p-5 sm:p-6">
-        <div className="mb-4 flex items-center gap-2">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/15 text-primary">
-            <Sparkles className="h-4 w-4" />
+      {subjectUserId ? (
+        <div className="mb-6 mt-6 grid grid-cols-1 gap-4 lg:grid-cols-12">
+          <div className="lg:col-span-5">
+            <CareStatusHero
+              name={recipientName}
+              briefing={briefing}
+              loading={loading}
+              pendingApprovals={overview?.pendingApprovals ?? 0}
+              chatHref={chatHref}
+            />
           </div>
-          <div>
-            <p className="text-[14px] font-bold text-[var(--text-primary)]">Ask Saheli</p>
-            <p className="text-[11px] text-[var(--text-secondary)]">
-              Labs · mood · orders · care timeline — powered by your family data
-            </p>
-          </div>
-        </div>
-        <SaheliAskBar recipientUserId={subjectUserId} />
-        <div className="mt-3 flex flex-wrap gap-2">
-          {quickAsks.map((ask) => (
-            <Link
-              key={ask}
-              href={`${chatHref}&q=${encodeURIComponent(ask)}`}
-              className="rounded-full border border-[var(--border-strong)] bg-[var(--card)] px-3 py-1.5 text-[11px] font-medium text-[var(--text-secondary)] hover:border-primary/30 hover:text-[var(--text-primary)]"
-            >
-              {ask}
-            </Link>
-          ))}
-        </div>
-      </section>
-
-      {/* Main grid */}
-      <div className="mb-6 grid grid-cols-1 gap-4 lg:grid-cols-12">
-        <div className="lg:col-span-5">
-          <CareStatusHero
-            name={recipientName}
-            briefing={briefing}
-            loading={loading}
-            pendingApprovals={overview?.pendingApprovals ?? 0}
-            chatHref={chatHref}
-          />
-        </div>
-        <div className="lg:col-span-7">
-          {subjectUserId ? (
+          <div className="lg:col-span-7">
             <MorningBriefingCard
               recipientUserId={subjectUserId}
               recipientName={recipientName}
             />
-          ) : (
-            <div className="panel-card flex h-full min-h-[240px] flex-col items-center justify-center p-8 text-center">
-              <MessageCircle className="mb-3 h-8 w-8 text-[var(--text-tertiary)]" />
-              <p className="text-[14px] font-semibold">Invite a care recipient</p>
-              <p className="mt-1 text-[12px] text-[var(--text-secondary)]">
-                Add a parent to see schedules and Saheli check-ins here.
-              </p>
-              <Link
-                href="/dashboard/family"
-                className="mt-4 inline-flex items-center gap-1 rounded-full bg-primary px-4 py-2 text-[12px] font-bold text-white"
-              >
-                Family settings <ArrowRight className="h-3.5 w-3.5" />
-              </Link>
-            </div>
-          )}
+          </div>
         </div>
-      </div>
+      ) : null}
 
       {/* Stats strip */}
       <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">

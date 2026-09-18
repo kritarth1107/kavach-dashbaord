@@ -1,3 +1,4 @@
+import { CommandPalette } from "@/components/dashboard/command-palette";
 import { DashboardSidebar } from "@/components/dashboard/sidebar";
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
 import { FamilyProvider } from "@/components/dashboard/family-context";
@@ -12,6 +13,7 @@ export default function DashboardLayout({
         <div className="flex h-screen w-full overflow-hidden bg-[var(--background)]">
           <DashboardSidebar />
           <DashboardShell>{children}</DashboardShell>
+          <CommandPalette />
         </div>
       </FamilyProvider>
     </SidebarProvider>

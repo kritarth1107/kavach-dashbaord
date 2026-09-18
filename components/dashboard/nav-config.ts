@@ -1,7 +1,9 @@
 import {
   BarChart3,
+  Bell,
   CreditCard,
   FileText,
+  HelpCircle,
   LayoutDashboard,
   MessageSquare,
   Plug,
@@ -49,6 +51,7 @@ export const navGroups: NavGroup[] = [
     items: [
       { label: "Reports", href: "/dashboard/reports", icon: BarChart3 },
       { label: "Approvals", href: "/dashboard/approvals", icon: CreditCard },
+      { label: "Notifications", href: "/dashboard/notifications", icon: Bell },
       { label: "Documents", href: "/dashboard/record", icon: FileText },
     ],
   },
@@ -57,6 +60,7 @@ export const navGroups: NavGroup[] = [
     items: [
       { label: "Billing", href: "/dashboard/billing", icon: CreditCard },
       { label: "Integrations", href: "/dashboard/integrations", icon: Plug },
+      { label: "Help", href: "/dashboard/help", icon: HelpCircle },
       { label: "Settings", href: "/dashboard/settings", icon: Shield },
     ],
   },

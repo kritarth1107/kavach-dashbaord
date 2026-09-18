@@ -6,58 +6,86 @@ import {
   ChevronRight,
   FileText,
   Heart,
+  Loader2,
   Pill,
   Settings,
   Users,
 } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
 import { useFamily } from "@/components/dashboard/family-context";
-
-const todaySchedule = [
-  { time: "8:00 AM", label: "Morning check-in", done: true },
-  { time: "9:00 AM", label: "Blood pressure medicine", done: true },
-  { time: "6:00 PM", label: "Evening medicines", done: false },
-];
-
-const recentReports = [
-  {
-    title: "TSH panel",
-    date: "8 Aug 2026",
-    href: "/dashboard/reports",
-  },
-  {
-    title: "Monthly vitals summary",
-    date: "1 Aug 2026",
-    href: "/dashboard/reports",
-  },
-];
-
-const careCircle = [
-  { name: "Kritarth Agrawal", role: "Primary caregiver" },
-  { name: "Priya Sharma", role: "Co-caregiver" },
-];
+import {
+  getFamilyMembers,
+  getRecipientBriefing,
+  getRecipientLabs,
+  type RecipientBriefing,
+} from "@/lib/api";
+import { apiMemberToFamilyMember } from "@/components/dashboard/family/family-data";
 
 export function RecipientRightPanel() {
-  const { activeFamily } = useFamily();
+  const { activeFamilyId, activeFamily, userId } = useFamily();
   const familyName = activeFamily?.name ?? "Your family";
+  const [briefing, setBriefing] = useState<RecipientBriefing | null>(null);
+  const [labs, setLabs] = useState<Array<{ title: string; recordDate?: string }>>([]);
+  const [members, setMembers] = useState<Array<{ name: string; role: string }>>([]);
+  const [loading, setLoading] = useState(true);
+
+  const load = useCallback(async () => {
+    if (!activeFamilyId || !userId) {
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    try {
+      const [{ data: briefingData }, { data: labsData }, { data: membersData }] =
+        await Promise.all([
+          getRecipientBriefing(activeFamilyId, userId),
+          getRecipientLabs(activeFamilyId, userId),
+          getFamilyMembers(activeFamilyId),
+        ]);
+      setBriefing(briefingData ?? null);
+      setLabs(
+        (labsData?.documents ?? []).slice(0, 3).map((d) => ({
+          title: d.title,
+          recordDate: d.record_date ?? undefined,
+        })),
+      );
+      setMembers(
+        (membersData?.members ?? [])
+          .map(apiMemberToFamilyMember)
+          .filter((m) => m.status === "joined")
+          .slice(0, 4)
+          .map((m) => ({ name: m.name, role: m.role.replace(/_/g, " ").toLowerCase() })),
+      );
+    } catch {
+      setBriefing(null);
+    } finally {
+      setLoading(false);
+    }
+  }, [activeFamilyId, userId]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  const schedule = briefing?.todayItems ?? [];
 
   return (
     <aside className="no-scrollbar flex h-screen min-w-0 flex-1 shrink-0 flex-col overflow-y-auto border-l border-[var(--border-strong)] px-5 py-6">
       <div className="mb-5 flex items-center gap-2">
-        <button
-          type="button"
+        <Link
+          href="/dashboard/settings"
           aria-label="Settings"
           className="flex h-9 w-9 items-center justify-center rounded-lg bg-[var(--surface)] text-[var(--text-secondary)] hover:bg-[var(--surface-hover)]"
         >
           <Settings className="h-[16px] w-[16px]" strokeWidth={2} />
-        </button>
-        <button
-          type="button"
+        </Link>
+        <Link
+          href="/dashboard/notifications"
           aria-label="Notifications"
           className="relative flex h-9 w-9 items-center justify-center rounded-lg bg-[var(--surface)] text-[var(--text-secondary)] hover:bg-[var(--surface-hover)]"
         >
           <Bell className="h-[16px] w-[16px]" strokeWidth={2} />
-          <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-primary" />
-        </button>
+        </Link>
       </div>
 
       <div className="mb-5 rounded-2xl border border-primary/20 bg-primary-light p-4">
@@ -77,99 +105,58 @@ export function RecipientRightPanel() {
 
       <p className="mb-3 text-[12px] font-bold text-[var(--text-primary)]">Today&apos;s schedule</p>
       <div className="panel-card mb-5 p-3">
-        {todaySchedule.map((item) => (
-          <div
-            key={item.label}
-            className="flex items-start gap-3 border-b border-[var(--border-strong)] py-3 last:border-0 last:pb-0 first:pt-0"
-          >
-            <div
-              className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full ${
-                item.done ? "bg-primary text-white" : "border-2 border-[var(--border-strong)] bg-[var(--card)]"
-              }`}
+        {loading ? (
+          <Loader2 className="mx-auto h-5 w-5 animate-spin text-primary" />
+        ) : schedule.length === 0 ? (
+          <p className="text-[11px] text-[var(--text-tertiary)]">Nothing scheduled today.</p>
+        ) : (
+          schedule.map((item) => (
+            <div key={`${item.time}-${item.title}`} className="flex items-center gap-3 py-2">
+              <Pill className="h-3.5 w-3.5 text-primary" />
+              <div className="min-w-0 flex-1">
+                <p className="text-[12px] font-semibold">{item.title}</p>
+                <p className="text-[10px] text-[var(--text-tertiary)]">{item.time}</p>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+      <p className="mb-3 text-[12px] font-bold text-[var(--text-primary)]">Recent reports</p>
+      <div className="panel-card mb-5 divide-y divide-[var(--border-strong)]">
+        {labs.length === 0 ? (
+          <p className="p-3 text-[11px] text-[var(--text-tertiary)]">No reports uploaded yet.</p>
+        ) : (
+          labs.map((report) => (
+            <Link
+              key={report.title}
+              href="/dashboard/reports"
+              className="flex items-center justify-between gap-2 p-3 hover:bg-[var(--input-bg)]"
             >
-              {item.done && (
-                <span className="text-[10px] font-bold leading-none">✓</span>
-              )}
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-[12px] font-bold text-[var(--text-primary)]">{item.label}</p>
-              <p className="text-[11px] text-[var(--text-tertiary)]">{item.time}</p>
+              <div className="flex items-center gap-2">
+                <FileText className="h-3.5 w-3.5 text-[var(--text-tertiary)]" />
+                <div>
+                  <p className="text-[12px] font-semibold">{report.title}</p>
+                  <p className="text-[10px] text-[var(--text-tertiary)]">{report.recordDate ?? "—"}</p>
+                </div>
+              </div>
+              <ChevronRight className="h-3.5 w-3.5 text-[var(--text-tertiary)]" />
+            </Link>
+          ))
+        )}
+      </div>
+
+      <p className="mb-3 text-[12px] font-bold text-[var(--text-primary)]">Care circle</p>
+      <div className="panel-card p-3">
+        {members.map((m) => (
+          <div key={m.name} className="flex items-center gap-2 py-2">
+            <Users className="h-3.5 w-3.5 text-[var(--text-tertiary)]" />
+            <div>
+              <p className="text-[12px] font-semibold">{m.name}</p>
+              <p className="text-[10px] text-[var(--text-tertiary)]">{m.role}</p>
             </div>
           </div>
         ))}
-      </div>
-
-      <div className="mb-3 flex items-center justify-between">
-        <p className="text-[12px] font-bold text-[var(--text-primary)]">Recent reports</p>
-        <Link
-          href="/dashboard/reports"
-          className="text-[11px] font-semibold text-primary hover:underline"
-        >
-          View all
-        </Link>
-      </div>
-      <div className="panel-card mb-5 p-2">
-        {recentReports.map((report) => (
-          <Link
-            key={report.title}
-            href={report.href}
-            className="flex items-center gap-3 rounded-xl p-2.5 transition-colors hover:bg-[var(--input-bg)]"
-          >
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[var(--surface)]">
-              <FileText className="h-4 w-4 text-[#60a5fa]" strokeWidth={2} />
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-[12px] font-bold text-[var(--text-primary)]">{report.title}</p>
-              <p className="text-[11px] text-[var(--text-tertiary)]">{report.date}</p>
-            </div>
-            <ChevronRight className="h-4 w-4 shrink-0 text-[var(--text-tertiary)]" strokeWidth={2} />
-          </Link>
-        ))}
-      </div>
-
-      <p className="mb-3 text-[12px] font-bold text-[var(--text-primary)]">Your care circle</p>
-      <div className="panel-card mb-5 p-3">
-        {careCircle.map((person) => (
-          <div
-            key={person.name}
-            className="flex items-center gap-3 border-b border-[var(--border-strong)] py-3 last:border-0 last:pb-0 first:pt-0"
-          >
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary-light text-[11px] font-bold text-primary">
-              {person.name
-                .split(" ")
-                .map((part) => part[0])
-                .join("")
-                .slice(0, 2)}
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-[12px] font-bold text-[var(--text-primary)]">{person.name}</p>
-              <p className="text-[11px] text-[var(--text-tertiary)]">{person.role}</p>
-            </div>
-          </div>
-        ))}
-        <Link
-          href="/dashboard/chat"
-          className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg border border-[var(--border-strong)] py-2 text-[11px] font-bold text-[var(--text-secondary)] hover:bg-[var(--input-bg)]"
-        >
-          <Users className="h-3.5 w-3.5" strokeWidth={2} />
-          Message Saheli
-        </Link>
-      </div>
-
-      <div className="dark-card relative overflow-hidden p-5">
-        <div className="pointer-events-none absolute -right-4 bottom-0 h-28 w-28 rounded-full bg-primary/20 blur-2xl" />
-        <div className="relative z-10">
-          <p className="text-[11px] font-medium text-white/50">Next reminder</p>
-          <p className="mt-1 text-[15px] font-extrabold leading-snug text-white">
-            Evening medicines at 6:00 PM
-          </p>
-          <p className="mt-2 text-[12px] text-white/60">
-            2 tablets · take after dinner
-          </p>
-        </div>
-        <div className="absolute -right-1 bottom-0 flex h-[90px] w-[80px] items-end justify-center pb-3">
-          <Pill className="h-10 w-10 text-primary/40" strokeWidth={1.5} />
-        </div>
       </div>
     </aside>
   );

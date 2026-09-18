@@ -7,15 +7,37 @@ import {
   apiMemberToFamilyMember,
   isCareRecipientRole,
 } from "@/components/dashboard/family/family-data";
-import { getCareBrief, getFamilyMembers, type CareBrief } from "@/lib/api";
+import { getCareBrief, getFamilyMembers, getLabTrends, type CareBrief } from "@/lib/api";
 import { CareRecordTimeline } from "@/components/dashboard/care-record/care-record-timeline";
 
 export function ReportsPage() {
   const { activeFamilyId, activeFamily, userId } = useFamily();
   const [brief, setBrief] = useState<CareBrief | null>(null);
+  const [recipients, setRecipients] = useState<Array<{ userId: string; name: string }>>([]);
   const [subjectUserId, setSubjectUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [tshTrend, setTshTrend] = useState<Array<{ value: string; date: string }>>([]);
   const isRecipient = isCareRecipientRole(activeFamily?.role);
+
+  const loadBrief = useCallback(
+    async (recipientId: string) => {
+      if (!activeFamilyId) return;
+      setLoading(true);
+      try {
+        const [{ data }, trendsRes] = await Promise.all([
+          getCareBrief(activeFamilyId, recipientId),
+          getLabTrends(activeFamilyId, recipientId, "TSH").catch(() => ({ data: undefined })),
+        ]);
+        setBrief(data ?? null);
+        setTshTrend(trendsRes.data?.points ?? []);
+      } catch {
+        setBrief(null);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [activeFamilyId],
+  );
 
   const load = useCallback(async () => {
     if (!activeFamilyId) {
@@ -26,32 +48,52 @@ export function ReportsPage() {
     try {
       const { data: membersData } = await getFamilyMembers(activeFamilyId);
       const members = (membersData?.members ?? []).map(apiMemberToFamilyMember);
-      const target = isRecipient
-        ? members.find((m) => m.userId === userId)
-        : members.find(
+      const list = isRecipient
+        ? members.filter((m) => m.userId === userId && m.userId)
+        : members.filter(
             (m) => isCareRecipientRole(m.role) && m.status === "joined" && m.userId,
           );
-      if (!target?.userId) {
-        setBrief(null);
-        setSubjectUserId(null);
-        return;
-      }
-      setSubjectUserId(target.userId);
-      const { data } = await getCareBrief(activeFamilyId, target.userId);
-      setBrief(data ?? null);
+      const mapped = list.map((m) => ({ userId: m.userId!, name: m.name }));
+      setRecipients(mapped);
+      const targetId = mapped[0]?.userId ?? null;
+      setSubjectUserId(targetId);
+      if (targetId) await loadBrief(targetId);
+      else setBrief(null);
     } catch {
       setBrief(null);
     } finally {
       setLoading(false);
     }
-  }, [activeFamilyId, isRecipient, userId]);
+  }, [activeFamilyId, isRecipient, userId, loadBrief]);
 
   useEffect(() => {
     void load();
   }, [load]);
 
+  useEffect(() => {
+    if (subjectUserId) void loadBrief(subjectUserId);
+  }, [subjectUserId, loadBrief]);
+
   return (
     <div className="space-y-4">
+      {recipients.length > 1 && (
+        <div className="flex flex-wrap gap-2">
+          {recipients.map((r) => (
+            <button
+              key={r.userId}
+              type="button"
+              onClick={() => setSubjectUserId(r.userId)}
+              className={`rounded-full px-3 py-1.5 text-[11px] font-semibold ${
+                subjectUserId === r.userId
+                  ? "bg-primary text-white"
+                  : "border border-[var(--border-strong)] bg-[var(--card)] text-[var(--text-secondary)]"
+              }`}
+            >
+              {r.name}
+            </button>
+          ))}
+        </div>
+      )}
       <div className="panel-card overflow-hidden">
         <div className="flex items-center gap-2 border-b border-[var(--border-strong)] px-5 py-4">
           <Sparkles className="h-4 w-4 text-primary" strokeWidth={2.25} />
@@ -94,6 +136,27 @@ export function ReportsPage() {
           </div>
         )}
       </div>
+
+      {tshTrend.length >= 2 && (
+        <div className="panel-card p-5">
+          <h2 className="text-[14px] font-bold">TSH trend</h2>
+          <p className="mt-1 text-[11px] text-[var(--text-tertiary)]">
+            Reported values only — not a clinical interpretation
+          </p>
+          <div className="mt-4 flex items-end gap-2">
+            {tshTrend.map((point) => (
+              <div key={`${point.date}-${point.value}`} className="flex flex-1 flex-col items-center gap-1">
+                <div
+                  className="w-full max-w-[48px] rounded-t bg-primary/70"
+                  style={{ height: `${Math.min(80, Math.max(16, Number.parseFloat(point.value) * 8))}px` }}
+                />
+                <span className="text-[9px] font-bold text-[var(--text-primary)]">{point.value}</span>
+                <span className="text-[8px] text-[var(--text-tertiary)]">{point.date}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {activeFamilyId && subjectUserId && (
         <CareRecordTimeline familyId={activeFamilyId} subjectUserId={subjectUserId} />

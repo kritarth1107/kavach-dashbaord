@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import {
   getFamilyMemories,
   getSaheliCompanion,
+  refreshSaheliMemory,
   triggerSaheliOutreach,
   updateSaheliCompanion,
   type FamilyMemoryItem,
@@ -38,6 +39,7 @@ export function SaheliCompanionPanel({
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [outreaching, setOutreaching] = useState(false);
+  const [refreshingMemory, setRefreshingMemory] = useState(false);
   const [error, setError] = useState("");
 
   const load = useCallback(async () => {
@@ -222,14 +224,30 @@ export function SaheliCompanionPanel({
         </button>
       </div>
 
-      {memories.length > 0 && (
-        <div className="border-t border-[var(--border-strong)] px-4 py-3">
-          <div className="mb-2 flex items-center gap-1.5">
+      <div className="border-t border-[var(--border-strong)] px-4 py-3">
+        <div className="mb-2 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-1.5">
             <Heart className="h-3.5 w-3.5 text-primary" />
             <p className="text-[11px] font-bold text-[var(--text-primary)]">
               What Saheli remembers
             </p>
           </div>
+          <button
+            type="button"
+            disabled={refreshingMemory}
+            onClick={() => {
+              if (!activeFamilyId) return;
+              setRefreshingMemory(true);
+              void refreshSaheliMemory(activeFamilyId, recipientUserId)
+                .then(() => load())
+                .finally(() => setRefreshingMemory(false));
+            }}
+            className="text-[10px] font-semibold text-primary hover:underline disabled:opacity-50"
+          >
+            {refreshingMemory ? "Syncing…" : "Refresh memory"}
+          </button>
+        </div>
+        {memories.length > 0 ? (
           <ul className="max-h-40 space-y-2 overflow-y-auto">
             {memories.slice(0, 8).map((m) => (
               <li
@@ -245,8 +263,12 @@ export function SaheliCompanionPanel({
               </li>
             ))}
           </ul>
-        </div>
-      )}
+        ) : (
+          <p className="text-[11px] text-[var(--text-tertiary)]">
+            No memories yet — Saheli learns from chats and uploaded reports.
+          </p>
+        )}
+      </div>
     </section>
   );
 }

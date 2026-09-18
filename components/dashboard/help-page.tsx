@@ -39,6 +39,19 @@ export function HelpPage() {
           <p className="text-[12px] text-[var(--text-secondary)]">Live summary from the Care Record</p>
         </Link>
       </div>
+
+      <div className="panel-card p-5">
+        <h2 className="text-[15px] font-bold text-[var(--text-primary)]">How to order from Swiggy</h2>
+        <ol className="mt-3 list-decimal space-y-2 pl-5 text-[13px] leading-relaxed text-[var(--text-secondary)]">
+          <li>Connect Swiggy under Integrations and tap Sync addresses.</li>
+          <li>Open Ask Saheli and say e.g. &ldquo;Order dal makhani from Swiggy for lunch.&rdquo;</li>
+          <li>Pick a delivery address, browse dishes, and add items to your basket.</li>
+          <li>Confirm the basket — a family member approves before checkout.</li>
+        </ol>
+        <p className="mt-4 text-[12px] text-[var(--text-tertiary)]">
+          Press ⌘K (Ctrl+K) anywhere in the dashboard to search reports, chats, and people.
+        </p>
+      </div>
     </div>
   );
 }
