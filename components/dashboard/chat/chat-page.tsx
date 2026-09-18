@@ -13,6 +13,7 @@ import {
   listSaheliChatSessions,
   sendCaregiverSaheliChat,
   sendSaheliChat,
+  streamCaregiverSaheliChat,
   type LabDocument,
   type SaheliChatSession,
   type SaheliMessage,
@@ -72,6 +73,12 @@ export function ChatPage() {
   const [loadingSessions, setLoadingSessions] = useState(false);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
+  const [retryable, setRetryable] = useState(false);
+  const [lastFailedText, setLastFailedText] = useState("");
+  const [streamingText, setStreamingText] = useState("");
+  const [streamingOrder, setStreamingOrder] = useState<SaheliMessage["order"]>();
+  const [streamingConnect, setStreamingConnect] = useState<SaheliMessage["connect"]>();
+  const [streamingTools, setStreamingTools] = useState<string[]>([]);
   const { setCollapsed } = useSidebar();
   const bottomRef = useRef<HTMLDivElement>(null);
   const boxRef = useRef<HTMLTextAreaElement>(null);
@@ -180,7 +187,7 @@ export function ChatPage() {
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, sending]);
+  }, [messages, sending, streamingText]);
 
   useEffect(() => {
     const el = boxRef.current;
@@ -208,6 +215,12 @@ export function ChatPage() {
     setInput("");
     setSending(true);
     setError("");
+    setRetryable(false);
+    setLastFailedText("");
+    setStreamingText("");
+    setStreamingOrder(undefined);
+    setStreamingConnect(undefined);
+    setStreamingTools([]);
     setMessages((prev) => [
       ...prev,
       {
@@ -218,36 +231,101 @@ export function ChatPage() {
     ]);
 
     try {
-      const { data } = isRecipient
-        ? await sendSaheliChat(activeFamilyId, selectedRecipientId, trimmed, activeSessionId ?? undefined)
-        : await sendCaregiverSaheliChat(
-            activeFamilyId,
-            selectedRecipientId,
-            trimmed,
-            activeSessionId ?? undefined,
-          );
+      if (!isRecipient) {
+        let nextSessionId = activeSessionId ?? undefined;
+        let finalReply = "";
+        let finalOrder: SaheliMessage["order"];
+        let finalConnect: SaheliMessage["connect"];
 
-      if (data?.sessionId && !activeSessionId) {
-        setActiveSessionId(data.sessionId);
-      }
+        for await (const event of streamCaregiverSaheliChat(
+          activeFamilyId,
+          selectedRecipientId,
+          trimmed,
+          activeSessionId ?? undefined,
+        )) {
+          if (event.type === "token") {
+            finalReply += event.delta;
+            setStreamingText((prev) => prev + event.delta);
+          } else if (event.type === "tool_start") {
+            setStreamingTools((prev) =>
+              prev.includes(event.name) ? prev : [...prev, event.name],
+            );
+          } else if (event.type === "tool_result") {
+            if (event.order) {
+              finalOrder = event.order;
+              setStreamingOrder(event.order);
+            }
+            if (event.connect) {
+              finalConnect = event.connect;
+              setStreamingConnect(event.connect);
+            }
+          } else if (event.type === "done") {
+            if (event.sessionId) nextSessionId = event.sessionId;
+            if (event.reply?.trim()) finalReply = event.reply.trim();
+            if (event.order) {
+              finalOrder = event.order;
+              setStreamingOrder(event.order);
+            }
+            if (event.connect) {
+              finalConnect = event.connect;
+              setStreamingConnect(event.connect);
+            }
+          } else if (event.type === "error") {
+            throw new Error(event.message);
+          }
+        }
 
-      if (data?.reply) {
-        setMessages((prev) => [
-          ...prev,
-          {
-            role: "saheli",
-            content: data.reply,
-            createdAt: new Date().toISOString(),
-            order: data.order,
-            connect: data.connect,
-          },
-        ]);
-      } else if (data?.sessionId) {
-        await loadChat(data.sessionId);
+        if (nextSessionId && !activeSessionId) {
+          setActiveSessionId(nextSessionId);
+        }
+
+        if (finalReply) {
+          setMessages((prev) => [
+            ...prev,
+            {
+              role: "saheli",
+              content: finalReply,
+              createdAt: new Date().toISOString(),
+              order: finalOrder,
+              connect: finalConnect,
+            },
+          ]);
+        } else if (nextSessionId) {
+          await loadChat(nextSessionId);
+        }
+      } else {
+        const { data } = await sendSaheliChat(
+          activeFamilyId,
+          selectedRecipientId,
+          trimmed,
+          activeSessionId ?? undefined,
+        );
+
+        if (data?.sessionId && !activeSessionId) {
+          setActiveSessionId(data.sessionId);
+        }
+
+        if (data?.reply) {
+          setMessages((prev) => [
+            ...prev,
+            {
+              role: "saheli",
+              content: data.reply,
+              createdAt: new Date().toISOString(),
+              order: data.order,
+              connect: data.connect,
+            },
+          ]);
+        } else if (data?.sessionId) {
+          await loadChat(data.sessionId);
+        }
       }
 
       void loadSessions();
     } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to send message";
+      const isOffline =
+        /reconnecting|503|offline|too long|cannot reach/i.test(message);
       setMessages((prev) => {
         const last = prev[prev.length - 1];
         if (last?.role === outgoingRole && last.content === trimmed) {
@@ -256,9 +334,15 @@ export function ChatPage() {
         return prev;
       });
       setInput(trimmed);
-      setError(err instanceof Error ? err.message : "Failed to send message");
+      setError(message);
+      setRetryable(isOffline);
+      setLastFailedText(trimmed);
     } finally {
       setSending(false);
+      setStreamingText("");
+      setStreamingOrder(undefined);
+      setStreamingConnect(undefined);
+      setStreamingTools([]);
       boxRef.current?.focus();
     }
   }
@@ -357,7 +441,18 @@ export function ChatPage() {
         </header>
 
         {error && (
-          <div className="alert-error mx-auto mt-3 max-w-2xl rounded-lg px-4 py-2.5 text-[12px]">{error}</div>
+          <div className="alert-error mx-auto mt-3 flex max-w-2xl flex-wrap items-center justify-between gap-2 rounded-lg px-4 py-2.5 text-[12px]">
+            <span>{error}</span>
+            {retryable && lastFailedText ? (
+              <button
+                type="button"
+                onClick={() => void sendText(lastFailedText)}
+                className="rounded-full bg-white/90 px-3 py-1 text-[11px] font-semibold text-red-700 hover:bg-white"
+              >
+                Retry
+              </button>
+            ) : null}
+          </div>
         )}
 
         {recipients.length === 0 && !loading ? (
@@ -481,10 +576,25 @@ export function ChatPage() {
                         <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary to-emerald-600 text-[11px] font-bold text-white">
                           S
                         </div>
-                        <div className="flex items-center gap-1 rounded-2xl bg-[var(--input-bg)] px-4 py-3">
-                          <span className="h-2 w-2 animate-bounce rounded-full bg-primary/70 [animation-delay:-0.2s]" />
-                          <span className="h-2 w-2 animate-bounce rounded-full bg-primary/70 [animation-delay:-0.1s]" />
-                          <span className="h-2 w-2 animate-bounce rounded-full bg-primary/70" />
+                        <div className="min-w-0 max-w-[85%] sm:max-w-[75%]">
+                          {streamingTools.length > 0 && (
+                            <p className="mb-1 text-[10px] font-medium text-[var(--text-tertiary)]">
+                              Checking {streamingTools.join(", ").replaceAll("_", " ")}…
+                            </p>
+                          )}
+                          <div className="rounded-2xl bg-[var(--input-bg)] px-4 py-3 text-left text-[14px] leading-relaxed text-[var(--text-primary)]">
+                            {streamingText ? (
+                              <SaheliReply content={streamingText} />
+                            ) : (
+                              <div className="flex items-center gap-1 py-0.5">
+                                <span className="h-2 w-2 animate-bounce rounded-full bg-primary/70 [animation-delay:-0.2s]" />
+                                <span className="h-2 w-2 animate-bounce rounded-full bg-primary/70 [animation-delay:-0.1s]" />
+                                <span className="h-2 w-2 animate-bounce rounded-full bg-primary/70" />
+                              </div>
+                            )}
+                            {streamingConnect && <ChatConnectPartnerCard connect={streamingConnect} />}
+                            {streamingOrder && <ChatOrderCard order={streamingOrder} />}
+                          </div>
                         </div>
                       </div>
                     )}

@@ -14,6 +14,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { DashboardGreeting } from "@/components/dashboard/dashboard-greeting";
 import { MorningBriefingCard, formatWhen } from "@/components/dashboard/family/morning-briefing-card";
 import { SaheliAskBar } from "@/components/dashboard/saheli-ask-bar";
+import { SaheliInsightsBanner } from "@/components/dashboard/saheli-insights-banner";
 import { useFamily } from "@/components/dashboard/family-context";
 import {
   getFamilyMembers,
@@ -216,6 +217,14 @@ export function CaregiverDashboardHome() {
   return (
     <div className="mx-auto max-w-6xl">
       <DashboardGreeting variant="caregiver" subtitle={subtitle} />
+
+      {activeFamilyId && subjectUserId ? (
+        <SaheliInsightsBanner
+          familyId={activeFamilyId}
+          recipientUserId={subjectUserId}
+          chatHref={chatHref}
+        />
+      ) : null}
 
       {/* Saheli hero */}
       <section className="mb-6 overflow-hidden rounded-2xl border border-primary/15 bg-gradient-to-br from-primary/8 via-[var(--card)] to-emerald-500/5 p-5 sm:p-6">

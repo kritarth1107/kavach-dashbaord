@@ -158,6 +158,48 @@ export async function proxyAuthGet(req: NextRequest, backendPath: string) {
   return NextResponse.json(json, { status: ok ? status : status === 503 ? 503 : status });
 }
 
+export async function proxyAuthStream(req: NextRequest, backendPath: string, timeoutMs = 120_000) {
+  const token = req.cookies.get(SESSION_COOKIE)?.value;
+  const body = await req.json();
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const backendRes = await fetch(`${getBackendUrl()}${backendPath}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-fingerprint": "N/A",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify(body),
+      signal: controller.signal,
+    });
+
+    return new Response(backendRes.body, {
+      status: backendRes.status,
+      headers: {
+        "Content-Type": backendRes.headers.get("Content-Type") ?? "text/event-stream",
+        "Cache-Control": "no-cache",
+        Connection: "keep-alive",
+      },
+    });
+  } catch (err) {
+    const timedOut = err instanceof Error && err.name === "AbortError";
+    return NextResponse.json(
+      {
+        success: false,
+        message: timedOut
+          ? "Saheli is taking too long. Memory may be offline."
+          : "Cannot reach the API server. Make sure the backend is running on port 5000.",
+      },
+      { status: 503 },
+    );
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 export async function proxyAuthFormPost(
   req: NextRequest,
   backendPath: string,

@@ -641,6 +641,31 @@ export type SaheliChatResponse = {
   connect?: SaheliConnectSuggestion;
 };
 
+export type SaheliInsight = {
+  kind: string;
+  title: string;
+  detail: string;
+};
+
+export type SaheliStreamEvent =
+  | { type: "token"; delta: string }
+  | { type: "tool_start"; id: string; name: string; label?: string }
+  | {
+      type: "tool_result";
+      id: string;
+      order?: SaheliOrderSuggestion;
+      connect?: SaheliConnectSuggestion;
+    }
+  | {
+      type: "done";
+      sessionId?: string;
+      conversationId?: string;
+      reply?: string;
+      order?: SaheliOrderSuggestion;
+      connect?: SaheliConnectSuggestion;
+    }
+  | { type: "error"; message: string };
+
 export type BriefingItem = {
   title: string;
   time: string;
@@ -921,6 +946,72 @@ export async function sendCaregiverSaheliChat(
     WRITE_TIMEOUT_MS,
   );
   return parseResponse<SaheliChatResponse>(res);
+}
+
+export async function* streamCaregiverSaheliChat(
+  familyId: string,
+  recipientUserId: string,
+  message: string,
+  sessionId?: string,
+): AsyncGenerator<SaheliStreamEvent> {
+  const res = await fetch(
+    `/api/families/${familyId}/recipients/${recipientUserId}/saheli/caregiver/chat?stream=1`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ message, sessionId }),
+    },
+  );
+
+  if (!res.ok || !res.body) {
+    const text = await res.text().catch(() => "");
+    let messageText = text;
+    try {
+      const json = JSON.parse(text) as ApiResponse<unknown>;
+      messageText = json.message ?? text;
+    } catch {
+      // keep raw text
+    }
+    yield {
+      type: "error",
+      message:
+        res.status === 503
+          ? "Saheli is reconnecting — try again in a moment."
+          : messageText || `Request failed (${res.status})`,
+    };
+    return;
+  }
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    const parts = buffer.split("\n\n");
+    buffer = parts.pop() ?? "";
+    for (const part of parts) {
+      const line = part.trim();
+      if (!line.startsWith("data:")) continue;
+      const json = line.slice(5).trim();
+      if (!json || json === "[DONE]") continue;
+      try {
+        yield JSON.parse(json) as SaheliStreamEvent;
+      } catch {
+        // skip malformed chunk
+      }
+    }
+  }
+}
+
+export async function getSaheliInsights(familyId: string, recipientUserId: string) {
+  const res = await timedFetch(
+    `/api/families/${familyId}/recipients/${recipientUserId}/saheli/insights`,
+  );
+  return parseResponse<{ insights: SaheliInsight[] }>(res);
 }
 
 export async function getRecipientBriefing(
