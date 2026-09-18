@@ -55,6 +55,8 @@ function groupMessagesByDay(messages: SaheliMessage[]) {
 export function ChatPage() {
   const searchParams = useSearchParams();
   const requestedRecipient = searchParams.get("recipient");
+  const initialQuery = searchParams.get("q");
+  const initialQuerySent = useRef(false);
   const { activeFamilyId, activeFamily, userId } = useFamily();
   const isRecipient = isCareRecipientRole(activeFamily?.role);
 
@@ -260,6 +262,22 @@ export function ChatPage() {
       boxRef.current?.focus();
     }
   }
+
+  useEffect(() => {
+    if (
+      !initialQuery?.trim() ||
+      initialQuerySent.current ||
+      !activeFamilyId ||
+      !selectedRecipientId ||
+      loading ||
+      sending
+    ) {
+      return;
+    }
+    initialQuerySent.current = true;
+    void sendText(initialQuery.trim());
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- fire once when chat is ready
+  }, [initialQuery, activeFamilyId, selectedRecipientId, loading, sending]);
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
     if (e.key === "Enter" && !e.shiftKey) {
