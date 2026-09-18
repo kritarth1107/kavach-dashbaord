@@ -248,7 +248,13 @@ export function OrderFlowContainer({
               onClick={() => void handleSelectAddress()}
               className="w-full rounded-lg bg-primary px-3 py-2 text-[12px] font-bold text-white disabled:opacity-50"
             >
-              {busy ? "Loading restaurants…" : "Continue to restaurants"}
+              {busy
+                ? isInstamart
+                  ? "Loading products…"
+                  : "Loading restaurants…"
+                : isInstamart
+                  ? "Continue to products"
+                  : "Continue to restaurants"}
             </button>
           </div>
         )}
@@ -320,7 +326,62 @@ export function OrderFlowContainer({
               </div>
             )}
 
-            {flow.phase === "browse" && (
+            {flow.phase === "browse" && isInstamart && (flow.catalog?.products?.length ?? 0) === 0 && (
+              <p className="text-[11px] text-[var(--text-tertiary)]">
+                No products found — try a broader grocery search.
+              </p>
+            )}
+
+            {flow.phase === "browse" && isInstamart && (flow.catalog?.products?.length ?? 0) > 0 && (
+              <div>
+                <p className="mb-1.5 text-[11px] font-semibold text-[var(--text-secondary)]">
+                  Products for &ldquo;{flow.query}&rdquo;
+                </p>
+                <ul className="space-y-2">
+                  {flow.catalog!.products!.slice(0, 12).map((product) => {
+                    const key = product.itemId ?? product.id ?? product.name;
+                    return (
+                      <li
+                        key={key}
+                        className="flex items-center justify-between gap-2 rounded-lg border border-[var(--border-strong)] px-3 py-2"
+                      >
+                        <div className="min-w-0">
+                          <p className="truncate text-[12px] font-semibold">{product.name}</p>
+                        </div>
+                        <div className="flex shrink-0 items-center gap-2">
+                          {product.pricePaise ? (
+                            <span className="text-[11px] font-bold">{formatPrice(product.pricePaise)}</span>
+                          ) : null}
+                          <input
+                            type="number"
+                            min={1}
+                            max={20}
+                            value={dishQty[key] ?? 1}
+                            onChange={(e) =>
+                              setDishQty((prev) => ({
+                                ...prev,
+                                [key]: Math.min(20, Math.max(1, Number(e.target.value) || 1)),
+                              }))
+                            }
+                            className="w-12 rounded border border-[var(--border-strong)] bg-[var(--input-bg)] px-1 py-0.5 text-center text-[11px]"
+                          />
+                          <button
+                            type="button"
+                            disabled={busy}
+                            onClick={() => void handleAddDish(product)}
+                            className="rounded-md bg-emerald-600 px-2 py-1 text-[10px] font-bold text-white disabled:opacity-50"
+                          >
+                            Add
+                          </button>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            )}
+
+            {flow.phase === "browse" && !isInstamart && (
               <div>
                 <p className="mb-1.5 text-[11px] font-semibold text-[var(--text-secondary)]">
                   Dishes for &ldquo;{flow.query}&rdquo;

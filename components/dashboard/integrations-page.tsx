@@ -65,12 +65,14 @@ function ServiceRow({
   onConnect,
   onDisconnect,
   onSyncAddresses,
+  addressCount,
 }: {
   label: string;
   logoSrc?: string;
   description: string;
   connected: boolean;
   connectedAt: string | null;
+  addressCount?: number;
   canConnect: boolean;
   busy: boolean;
   onConnect: () => void;
@@ -90,14 +92,18 @@ function ServiceRow({
             />
           </div>
           <p className="mt-1 text-[12px] leading-relaxed text-[var(--text-secondary)]">{description}</p>
-          {connected && connectedAt && (
+          {connected && (
             <p className="mt-1.5 text-[11px] text-[var(--text-tertiary)]">
-              Linked{" "}
-              {new Date(connectedAt).toLocaleDateString("en-IN", {
-                day: "numeric",
-                month: "short",
-                year: "numeric",
-              })}
+              {typeof addressCount === "number"
+                ? `${addressCount} saved address${addressCount === 1 ? "" : "es"} synced`
+                : null}
+              {connectedAt
+                ? `${typeof addressCount === "number" ? " · " : ""}Linked ${new Date(connectedAt).toLocaleDateString("en-IN", {
+                    day: "numeric",
+                    month: "short",
+                    year: "numeric",
+                  })}`
+                : null}
             </p>
           )}
         </div>
@@ -272,6 +278,7 @@ function SwiggyCard({
         description="Restaurant meals and food delivery."
         connected={foodOn}
         connectedAt={food.connectedAt}
+        addressCount={food.addressCount}
         canConnect={canConnect}
         busy={busy}
         onConnect={() => onConnect("swiggy")}
@@ -284,6 +291,7 @@ function SwiggyCard({
         description="Groceries and daily essentials."
         connected={groceryOn}
         connectedAt={groceries.connectedAt}
+        addressCount={groceries.addressCount}
         canConnect={canConnect}
         busy={busy}
         onConnect={() => onConnect("instamart")}

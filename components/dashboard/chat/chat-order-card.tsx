@@ -213,7 +213,7 @@ export function ChatOrderCard({
             <MapPin className="h-3 w-3" />
             {order.addresses!.length > 1
               ? "Which address should we deliver to?"
-              : "Delivery address from Swiggy"}
+              : `Delivery address from ${order.partnerLabel}`}
           </p>
           <div className="space-y-1.5">
             {order.addresses!.map((addr) => (
@@ -275,7 +275,7 @@ export function ChatOrderCard({
               ) : (
                 <CheckCircle2 className="h-3 w-3" />
               )}
-              Approve &amp; place order
+              Place COD now
             </button>
           ) : (
             <Link

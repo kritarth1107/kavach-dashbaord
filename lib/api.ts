@@ -630,6 +630,7 @@ export type SaheliOrderFlow = {
   catalog?: {
     restaurants: SaheliOrderFlowCatalogItem[];
     dishes: SaheliOrderFlowCatalogItem[];
+    products?: SaheliOrderFlowCatalogItem[];
   };
   cartItems?: Array<{
     itemId?: string;
@@ -651,12 +652,33 @@ export type SaheliConnectSuggestion = {
   note?: string;
 };
 
+export type SaheliOrderPreview = {
+  kind?: "order_preview";
+  previewId: string;
+  partner: string;
+  partnerLabel: string;
+  addressLabel?: string;
+  deliveryAddress: string;
+  items: Array<{
+    name: string;
+    quantity: number;
+    unitPricePaise: number;
+    itemId?: string;
+    spinId?: string;
+    restaurantId?: string;
+    restaurantName?: string;
+  }>;
+  totalPaise: number;
+  notes?: string;
+};
+
 export type SaheliMessage = {
   role: string;
   content: string;
   createdAt?: string | null;
   order?: SaheliOrderSuggestion;
   orderFlow?: SaheliOrderFlow;
+  orderPreview?: SaheliOrderPreview;
   connect?: SaheliConnectSuggestion;
 };
 
@@ -674,6 +696,7 @@ export type SaheliChatResponse = {
   sessionId?: string;
   order?: SaheliOrderSuggestion;
   orderFlow?: SaheliOrderFlow;
+  orderPreview?: SaheliOrderPreview;
   connect?: SaheliConnectSuggestion;
 };
 
@@ -760,6 +783,7 @@ export type SaheliStreamEvent =
       id: string;
       order?: SaheliOrderSuggestion;
       connect?: SaheliConnectSuggestion;
+      orderPreview?: SaheliOrderPreview;
     }
   | {
       type: "done";
@@ -768,6 +792,7 @@ export type SaheliStreamEvent =
       reply?: string;
       order?: SaheliOrderSuggestion;
       orderFlow?: SaheliOrderFlow;
+      orderPreview?: SaheliOrderPreview;
       connect?: SaheliConnectSuggestion;
     }
   | { type: "error"; message: string };
@@ -1105,7 +1130,16 @@ export async function* streamCaregiverSaheliChat(
       const json = line.slice(5).trim();
       if (!json || json === "[DONE]") continue;
       try {
-        yield JSON.parse(json) as SaheliStreamEvent;
+        const parsed = JSON.parse(json) as SaheliStreamEvent & {
+          order_preview?: SaheliOrderPreview;
+        };
+        if (parsed.type === "tool_result" && parsed.order_preview && !parsed.orderPreview) {
+          parsed.orderPreview = parsed.order_preview;
+        }
+        if (parsed.type === "done" && parsed.order_preview && !parsed.orderPreview) {
+          parsed.orderPreview = parsed.order_preview;
+        }
+        yield parsed;
       } catch {
         // skip malformed chunk
       }
@@ -1237,6 +1271,23 @@ export async function submitOrderFlowCart(familyId: string, sessionId: string) {
     WRITE_TIMEOUT_MS,
   );
   return parseResponse<{ flow: SaheliOrderFlow; order: SaheliOrderSuggestion }>(res);
+}
+
+export async function placeCodOrder(familyId: string, previewId: string) {
+  const res = await timedFetch(`/api/families/${familyId}/saheli/orders/place-cod`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ previewId }),
+  }, WRITE_TIMEOUT_MS);
+  return parseResponse<{
+    kind: string;
+    orderId: string;
+    partner: string;
+    partnerLabel: string;
+    totalPaise: number;
+    partnerRef?: string;
+    status: string;
+  }>(res);
 }
 
 export async function getActiveOrderFlow(
@@ -1638,6 +1689,7 @@ export type McpIntegrationInfo = {
   description: string;
   connected: boolean;
   connectedAt: string | null;
+  addressCount?: number;
   redirectUri: string;
   mcpUrl?: string;
   pendingApprovals: number;

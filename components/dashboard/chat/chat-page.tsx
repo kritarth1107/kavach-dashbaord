@@ -19,6 +19,7 @@ import {
   type LabDocument,
   type SaheliChatSession,
   type SaheliOrderFlow,
+  type SaheliOrderPreview,
   type SaheliOrderSuggestion,
   type SaheliMessage,
 } from "@/lib/api";
@@ -33,6 +34,7 @@ import { ChatHistorySidebar } from "@/components/dashboard/chat/chat-history-sid
 import { ChatConnectPartnerCard } from "@/components/dashboard/chat/chat-connect-partner-card";
 import { ChatOrderCard } from "@/components/dashboard/chat/chat-order-card";
 import { OrderFlowContainer } from "@/components/dashboard/chat/order-flow/order-flow-container";
+import { OrderConfirmCard } from "@/components/dashboard/chat/order-confirm-card";
 import { SaheliReply } from "@/components/dashboard/chat/saheli-reply";
 import { useSidebar } from "@/components/dashboard/sidebar-context";
 import { cn } from "@/lib/utils";
@@ -83,6 +85,7 @@ export function ChatPage() {
   const [streamingText, setStreamingText] = useState("");
   const [streamingOrder, setStreamingOrder] = useState<SaheliMessage["order"]>();
   const [streamingOrderFlow, setStreamingOrderFlow] = useState<SaheliOrderFlow>();
+  const [streamingOrderPreview, setStreamingOrderPreview] = useState<SaheliOrderPreview>();
   const [streamingConnect, setStreamingConnect] = useState<SaheliMessage["connect"]>();
   const [streamingTools, setStreamingTools] = useState<string[]>([]);
   const { setCollapsed } = useSidebar();
@@ -270,6 +273,7 @@ export function ChatPage() {
     setStreamingText("");
     setStreamingOrder(undefined);
     setStreamingOrderFlow(undefined);
+    setStreamingOrderPreview(undefined);
     setStreamingConnect(undefined);
     setStreamingTools([]);
     setMessages((prev) => [
@@ -287,6 +291,7 @@ export function ChatPage() {
         let finalReply = "";
         let finalOrder: SaheliMessage["order"];
         let finalOrderFlow: SaheliOrderFlow | undefined;
+        let finalOrderPreview: SaheliOrderPreview | undefined;
         let finalConnect: SaheliMessage["connect"];
 
         for await (const event of streamCaregiverSaheliChat(
@@ -307,6 +312,10 @@ export function ChatPage() {
               finalOrder = event.order;
               setStreamingOrder(event.order);
             }
+            if (event.orderPreview) {
+              finalOrderPreview = event.orderPreview;
+              setStreamingOrderPreview(event.orderPreview);
+            }
             if (event.connect) {
               finalConnect = event.connect;
               setStreamingConnect(event.connect);
@@ -326,6 +335,10 @@ export function ChatPage() {
               finalOrderFlow = event.orderFlow;
               setStreamingOrderFlow(event.orderFlow);
             }
+            if (event.orderPreview) {
+              finalOrderPreview = event.orderPreview;
+              setStreamingOrderPreview(event.orderPreview);
+            }
           } else if (event.type === "error") {
             throw new Error(formatSaheliError(event.message));
           }
@@ -344,6 +357,7 @@ export function ChatPage() {
               createdAt: new Date().toISOString(),
               order: finalOrder,
               orderFlow: finalOrderFlow,
+              orderPreview: finalOrderPreview,
               connect: finalConnect,
             },
           ]);
@@ -401,6 +415,8 @@ export function ChatPage() {
       setSending(false);
       setStreamingText("");
       setStreamingOrder(undefined);
+      setStreamingOrderFlow(undefined);
+      setStreamingOrderPreview(undefined);
       setStreamingConnect(undefined);
       setStreamingTools([]);
       boxRef.current?.focus();
@@ -627,6 +643,9 @@ export function ChatPage() {
                                             onOrderSubmitted={(order) => attachOrderToMessage(msgKey, order)}
                                           />
                                         )}
+                                        {msg.orderPreview && (
+                                          <OrderConfirmCard preview={msg.orderPreview} />
+                                        )}
                                         {msg.order && <ChatOrderCard order={msg.order} />}
                                       </div>
                                     )}
@@ -663,6 +682,9 @@ export function ChatPage() {
                             {streamingConnect && <ChatConnectPartnerCard connect={streamingConnect} />}
                             {streamingOrderFlow?.sessionId && (
                               <OrderFlowContainer flow={streamingOrderFlow} />
+                            )}
+                            {streamingOrderPreview && (
+                              <OrderConfirmCard preview={streamingOrderPreview} />
                             )}
                             {streamingOrder && <ChatOrderCard order={streamingOrder} />}
                           </div>
