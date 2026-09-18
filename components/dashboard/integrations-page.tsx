@@ -1,16 +1,7 @@
 "use client";
 
-import {
-  Check,
-  ExternalLink,
-  Loader2,
-  MessageCircle,
-  Phone,
-  ShoppingBag,
-  Sparkles,
-  UtensilsCrossed,
-  Zap,
-} from "lucide-react";
+import { Check, ExternalLink, Loader2, MessageCircle, Sparkles } from "lucide-react";
+import Image from "next/image";
 import { useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useFamily } from "@/components/dashboard/family-context";
@@ -19,7 +10,6 @@ import {
   disconnectMcp,
   getFamilyIntegrations,
   startMcpConnect,
-  syncPartnerAddresses,
   type FamilyIntegrations,
   type McpIntegrationInfo,
   type McpIntegrationPartner,
@@ -55,8 +45,17 @@ function ConnectionPill({ state, label }: { state: ConnectionState; label?: stri
   );
 }
 
+function PartnerLogo({ src, alt }: { src: string; alt: string }) {
+  return (
+    <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-black/5">
+      <Image src={src} alt={alt} width={40} height={40} className="h-10 w-10 object-cover" />
+    </div>
+  );
+}
+
 function ServiceRow({
   label,
+  logoSrc,
   description,
   connected,
   connectedAt,
@@ -66,6 +65,7 @@ function ServiceRow({
   onDisconnect,
 }: {
   label: string;
+  logoSrc?: string;
   description: string;
   connected: boolean;
   connectedAt: string | null;
@@ -76,20 +76,28 @@ function ServiceRow({
 }) {
   return (
     <div className="flex flex-col gap-3 border-t border-[var(--border-strong)] pt-4 first:border-t-0 first:pt-0 sm:flex-row sm:items-center sm:justify-between">
-      <div className="min-w-0 flex-1">
-        <div className="flex flex-wrap items-center gap-2">
-          <p className="text-[13px] font-bold text-[var(--text-primary)]">{label}</p>
-          <ConnectionPill
-            state={connected ? "connected" : "disconnected"}
-            label={connected ? "Connected" : "Not connected"}
-          />
+      <div className="flex min-w-0 flex-1 gap-3">
+        {logoSrc && <PartnerLogo src={logoSrc} alt={label} />}
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="text-[13px] font-bold text-[var(--text-primary)]">{label}</p>
+            <ConnectionPill
+              state={connected ? "connected" : "disconnected"}
+              label={connected ? "Connected" : "Not connected"}
+            />
+          </div>
+          <p className="mt-1 text-[12px] leading-relaxed text-[var(--text-secondary)]">{description}</p>
+          {connected && connectedAt && (
+            <p className="mt-1.5 text-[11px] text-[var(--text-tertiary)]">
+              Linked{" "}
+              {new Date(connectedAt).toLocaleDateString("en-IN", {
+                day: "numeric",
+                month: "short",
+                year: "numeric",
+              })}
+            </p>
+          )}
         </div>
-        <p className="mt-1 text-[12px] leading-relaxed text-[var(--text-secondary)]">{description}</p>
-        {connected && connectedAt && (
-          <p className="mt-1.5 text-[11px] text-[var(--text-tertiary)]">
-            Linked {new Date(connectedAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
-          </p>
-        )}
       </div>
       {canConnect && (
         <div className="flex shrink-0 gap-2">
@@ -119,13 +127,13 @@ function ServiceRow({
 }
 
 function PartnerCard({
-  icon: Icon,
+  logoSrc,
   title,
   subtitle,
   children,
   pill,
 }: {
-  icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
+  logoSrc: string;
   title: string;
   subtitle: string;
   pill: React.ReactNode;
@@ -136,9 +144,7 @@ function PartnerCard({
       <div className="border-b border-[var(--border-strong)] bg-[var(--surface)]/50 px-5 py-4">
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-start gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-              <Icon className="h-5 w-5" strokeWidth={2} />
-            </div>
+            <PartnerLogo src={logoSrc} alt={title} />
             <div>
               <h2 className="text-[15px] font-extrabold text-[var(--text-primary)]">{title}</h2>
               <p className="mt-0.5 text-[12px] leading-relaxed text-[var(--text-secondary)]">{subtitle}</p>
@@ -167,12 +173,10 @@ function ZeptoCard({
 }) {
   return (
     <PartnerCard
-      icon={Zap}
+      logoSrc="/assets/zepto.svg"
       title="Zepto"
-      subtitle="10-minute grocery delivery when Swiggy isn't connected."
-      pill={
-        <ConnectionPill state={info.connected ? "connected" : "disconnected"} />
-      }
+      subtitle="10-minute grocery delivery."
+      pill={<ConnectionPill state={info.connected ? "connected" : "disconnected"} />}
     >
       <p className="text-[12px] text-[var(--text-secondary)]">{info.description}</p>
       {canConnect && (
@@ -240,14 +244,15 @@ function SwiggyCard({
 
   return (
     <PartnerCard
-      icon={UtensilsCrossed}
+      logoSrc="/assets/swiggy.svg"
       title="Swiggy"
-      subtitle="Same Swiggy phone login — but Food and Instamart are two separate MCP connections. Connect both for full ordering from Saheli."
+      subtitle="Same Swiggy login — connect Food and Instamart separately for full ordering from Saheli."
       pill={<ConnectionPill state={overall} label={pillLabel} />}
     >
       <ServiceRow
         label="Swiggy Food"
-        description="Order meals and restaurant food for your parent."
+        logoSrc="/assets/swiggy.svg"
+        description="Restaurant meals and food delivery."
         connected={foodOn}
         connectedAt={food.connectedAt}
         canConnect={canConnect}
@@ -257,7 +262,8 @@ function SwiggyCard({
       />
       <ServiceRow
         label="Instamart"
-        description="Groceries, essentials, and household items — delivered fast."
+        logoSrc="/assets/instamart.svg"
+        description="Groceries and daily essentials."
         connected={groceryOn}
         connectedAt={groceries.connectedAt}
         canConnect={canConnect}
@@ -265,112 +271,31 @@ function SwiggyCard({
         onConnect={() => onConnect("instamart")}
         onDisconnect={() => onDisconnect("instamart")}
       />
-      <p className="text-[11px] leading-relaxed text-[var(--text-tertiary)]">
-        Official Swiggy MCP requires connecting Food (mcp.swiggy.com/food) and Instamart (mcp.swiggy.com/im) separately. Saheli routes grocery vs restaurant orders automatically once both are linked.
-      </p>
     </PartnerCard>
   );
 }
 
 function WhatsAppCard({ info }: { info: FamilyIntegrations["whatsapp"] }) {
-  const status = info.status;
-  const connected = status === "baileys_connected";
-  const connecting = status === "baileys_connecting";
-  const displayNumber = info.kavachNumber ?? "+918310905372";
-
-  const pillState: ConnectionState = connected ? "connected" : connecting ? "partial" : "disconnected";
-  const pillLabel = connected
-    ? "Live"
-    : connecting
-      ? "Reconnecting…"
-      : status === "baileys_disconnected"
-        ? "Bridge offline"
-        : "Setup needed";
+  const displayNumber = info.kavachNumber ?? "+91 83109 05372";
 
   return (
-    <div className="panel-card overflow-hidden sm:col-span-2">
-      <div className="flex gap-4 p-5">
-        <div
-          className={cn(
-            "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl",
-            connected ? "bg-emerald-500/10 text-emerald-600" : "bg-[var(--input-bg)] text-[var(--text-secondary)]",
-          )}
-        >
+    <div className="panel-card p-5">
+      <div className="flex gap-4">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-600">
           <MessageCircle className="h-5 w-5" strokeWidth={2} />
         </div>
         <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <h2 className="text-[14px] font-bold text-[var(--text-primary)]">WhatsApp</h2>
-            <ConnectionPill state={pillState} label={pillLabel} />
-          </div>
-          <p className="mt-1 text-[12px] leading-relaxed text-[var(--text-secondary)]">{info.description}</p>
-          {info.lastDisconnectReason && !connected && (
-            <p className="mt-1 text-[11px] text-amber-700 dark:text-amber-400">
-              Last disconnect: {info.lastDisconnectReason.replace(/_/g, " ")}
-            </p>
-          )}
-          <div
-            className={cn(
-              "mt-4 rounded-xl border px-4 py-3",
-              connected
-                ? "border-emerald-500/20 bg-emerald-500/5"
-                : "border-[var(--border-strong)] bg-[var(--input-bg)]",
-            )}
-          >
-            <p
-              className={cn(
-                "text-[11px] font-bold uppercase tracking-wider",
-                connected ? "text-emerald-700 dark:text-emerald-400" : "text-[var(--text-secondary)]",
-              )}
-            >
-              Kavach WhatsApp
-            </p>
-            <p className="mt-1 text-[18px] font-extrabold tracking-tight text-[var(--text-primary)]">
-              {displayNumber}
-            </p>
-            <p className="mt-2 text-[12px] leading-relaxed text-[var(--text-secondary)]">
-              One shared Kavach WhatsApp line for every family. Users message Saheli here — no linking or setup on
-              their side.
-            </p>
-            {!connected && info.hasQr && (
-              <p className="mt-2 text-[11px] font-medium text-amber-700 dark:text-amber-400">
-                QR ready — open bridge /logs to scan and reconnect.
-              </p>
-            )}
-          </div>
+          <h2 className="text-[14px] font-bold text-[var(--text-primary)]">WhatsApp</h2>
+          <p className="mt-1 text-[12px] leading-relaxed text-[var(--text-secondary)]">
+            {info.description}
+          </p>
+          <p className="mt-3 text-[20px] font-extrabold tracking-tight text-[var(--text-primary)]">
+            {displayNumber}
+          </p>
+          <p className="mt-2 text-[11px] text-[var(--text-tertiary)]">
+            Save this number and message Saheli anytime — no setup in the dashboard.
+          </p>
         </div>
-      </div>
-    </div>
-  );
-}
-
-function ChannelCard({
-  icon: Icon,
-  title,
-  description,
-  status,
-  comingSoon,
-}: {
-  icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
-  title: string;
-  description: string;
-  status: string;
-  comingSoon?: boolean;
-}) {
-  return (
-    <div className="panel-card flex gap-4 p-5">
-      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--input-bg)] text-[var(--text-secondary)]">
-        <Icon className="h-5 w-5" strokeWidth={2} />
-      </div>
-      <div className="min-w-0 flex-1">
-        <div className="flex flex-wrap items-center gap-2">
-          <h2 className="text-[14px] font-bold text-[var(--text-primary)]">{title}</h2>
-          <ConnectionPill
-            state={comingSoon ? "disconnected" : "disconnected"}
-            label={comingSoon ? "Coming soon" : status.replace(/_/g, " ")}
-          />
-        </div>
-        <p className="mt-1 text-[12px] leading-relaxed text-[var(--text-secondary)]">{description}</p>
       </div>
     </div>
   );
@@ -415,29 +340,15 @@ export function IntegrationsPage() {
   }, [load]);
 
   useEffect(() => {
-    if (!activeFamilyId) return;
-    const timer = setInterval(() => {
-      void getFamilyIntegrations(activeFamilyId)
-        .then(({ data: integrations }) => {
-          if (integrations) setData(integrations);
-        })
-        .catch(() => undefined);
-    }, 20_000);
-    return () => clearInterval(timer);
-  }, [activeFamilyId]);
-
-  useEffect(() => {
     for (const partner of OAUTH_PARTNERS) {
       const result = searchParams.get(partner);
       const message = searchParams.get("message");
       if (result === "connected") {
         setBanner({
           type: "success",
-          text: `${PARTNER_LABELS[partner]} connected — syncing saved addresses and enabling orders for Saheli.`,
+          text: `${PARTNER_LABELS[partner]} connected — Saheli can order from here in chat.`,
         });
-        if (activeFamilyId) {
-          void syncPartnerAddresses(activeFamilyId, partner).then(() => load());
-        }
+        void load();
         break;
       }
       if (result === "error") {
@@ -448,7 +359,7 @@ export function IntegrationsPage() {
         break;
       }
     }
-  }, [searchParams]);
+  }, [searchParams, load]);
 
   async function handleConnect(partner: McpIntegrationPartner) {
     if (!activeFamilyId || !canConnect) return;
@@ -486,16 +397,14 @@ export function IntegrationsPage() {
   }
 
   const connectedCount =
-    data &&
-    [data.zepto, data.swiggy, data.instamart].filter((p) => p.connected).length;
+    data && [data.zepto, data.swiggy, data.instamart].filter((p) => p.connected).length;
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       <div>
         <h1 className="text-[22px] font-extrabold tracking-tight text-[var(--text-primary)]">Integrations</h1>
         <p className="mt-1.5 text-[14px] leading-relaxed text-[var(--text-secondary)]">
-          Connect delivery partners so Saheli can suggest orders from chat. Your family approves every basket before
-          checkout.
+          Connect delivery partners so Saheli can search items, build carts, and place orders from chat.
         </p>
       </div>
 
@@ -508,9 +417,7 @@ export function IntegrationsPage() {
               : "border-red-500/30 bg-red-500/10 text-red-800 dark:text-red-300",
           )}
         >
-          {banner.type === "success" ? (
-            <Check className="mt-0.5 h-4 w-4 shrink-0" />
-          ) : null}
+          {banner.type === "success" ? <Check className="mt-0.5 h-4 w-4 shrink-0" /> : null}
           {banner.text}
         </div>
       )}
@@ -535,8 +442,8 @@ export function IntegrationsPage() {
             <div className="flex items-center gap-2 rounded-xl border border-primary/20 bg-primary-light px-4 py-3 text-[12px] text-primary">
               <Sparkles className="h-4 w-4 shrink-0" />
               <span>
-                {connectedCount} delivery {connectedCount === 1 ? "partner" : "partners"} connected — ask Saheli to
-                order groceries or food in chat.
+                {connectedCount} delivery {connectedCount === 1 ? "partner" : "partners"} connected — ask Saheli
+                in chat to order.
               </span>
             </div>
           )}
@@ -564,18 +471,9 @@ export function IntegrationsPage() {
 
           <section className="space-y-4">
             <h2 className="text-[11px] font-bold uppercase tracking-wider text-[var(--text-tertiary)]">
-              Stay in touch
+              Message Saheli
             </h2>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <WhatsAppCard info={data.whatsapp} />
-              <ChannelCard
-                icon={Phone}
-                title="Phone & voice"
-                description="Call or smart-speaker check-ins — same Saheli, hands-free for your parent."
-                status={data.phone.status}
-                comingSoon
-              />
-            </div>
+            <WhatsAppCard info={data.whatsapp} />
           </section>
 
           {(data.partnerAddresses?.length ?? 0) > 0 && (
@@ -601,34 +499,6 @@ export function IntegrationsPage() {
                     </p>
                     <p className="text-[11px] text-[var(--text-tertiary)]">
                       {[addr.line1, addr.line2, addr.city, addr.pincode].filter(Boolean).join(", ")}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </section>
-          )}
-
-          {data.recentOrders.length > 0 && (
-            <section className="space-y-3">
-              <h2 className="text-[11px] font-bold uppercase tracking-wider text-[var(--text-tertiary)]">
-                Recent orders
-              </h2>
-              <div className="panel-card divide-y divide-[var(--border-strong)]">
-                {data.recentOrders.slice(0, 5).map((o) => (
-                  <div key={o.order_id} className="flex items-center justify-between gap-3 px-4 py-3">
-                    <div className="flex items-center gap-2">
-                      <ShoppingBag className="h-4 w-4 text-[var(--text-tertiary)]" />
-                      <div>
-                        <p className="text-[12px] font-semibold capitalize text-[var(--text-primary)]">
-                          {o.partner?.replace(/_/g, " ") ?? "Order"}
-                        </p>
-                        <p className="text-[11px] capitalize text-[var(--text-tertiary)]">
-                          {o.status.replace(/_/g, " ")}
-                        </p>
-                      </div>
-                    </div>
-                    <p className="text-[13px] font-bold text-[var(--text-primary)]">
-                      ₹{(o.total_paise / 100).toFixed(0)}
                     </p>
                   </div>
                 ))}
