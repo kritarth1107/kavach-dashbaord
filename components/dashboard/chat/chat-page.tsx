@@ -636,7 +636,7 @@ export function ChatPage() {
                                       <div className="text-[14px] leading-relaxed">
                                         <SaheliReply content={msg.content} />
                                         {msg.connect && <ChatConnectPartnerCard connect={msg.connect} />}
-                                        {msg.orderFlow?.sessionId && (
+                                        {msg.orderFlow && (
                                           <OrderFlowContainer
                                             flow={msg.orderFlow}
                                             onFlowUpdate={(flow) => updateMessageOrderFlow(msgKey, flow)}
@@ -680,7 +680,7 @@ export function ChatPage() {
                               </div>
                             )}
                             {streamingConnect && <ChatConnectPartnerCard connect={streamingConnect} />}
-                            {streamingOrderFlow?.sessionId && (
+                            {streamingOrderFlow && (
                               <OrderFlowContainer flow={streamingOrderFlow} />
                             )}
                             {streamingOrderPreview && (

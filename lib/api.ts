@@ -642,6 +642,8 @@ export type SaheliOrderFlow = {
   }>;
   orderId?: string;
   message?: string;
+  connectPartner?: McpIntegrationPartner;
+  connectUrl?: string | null;
   disambiguation?: {
     query: string;
     candidates: Array<{

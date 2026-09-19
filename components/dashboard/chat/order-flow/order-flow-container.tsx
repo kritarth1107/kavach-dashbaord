@@ -1,6 +1,8 @@
 "use client";
 
 import { Loader2, MapPin, ShoppingBag, Store } from "lucide-react";
+import { ChatConnectPartnerCard } from "@/components/dashboard/chat/chat-connect-partner-card";
+import type { McpIntegrationPartner } from "@/lib/api";
 import { useMemo, useState } from "react";
 import {
   addOrderFlowCartItem,
@@ -182,7 +184,27 @@ export function OrderFlowContainer({
     }
   }
 
-  if (!flow.sessionId) return null;
+  if (!flow.sessionId) {
+    const connectPartner = (flow.connectPartner ?? flow.partner) as McpIntegrationPartner;
+    return (
+      <div className="mt-3 overflow-hidden rounded-xl border border-amber-500/25 bg-amber-500/5 px-3.5 py-3">
+        <p className="text-[13px] leading-relaxed text-[var(--text-primary)]">
+          {flow.message ?? `Connect ${flow.partnerLabel} to continue this order.`}
+        </p>
+        <div className="mt-2">
+          <ChatConnectPartnerCard
+            connect={{
+              partner: flow.partner,
+              partnerLabel: flow.partnerLabel,
+              connectPartner,
+              connectUrl: flow.connectUrl ?? undefined,
+              note: flow.query ? `Then say: order ${flow.query} from ${flow.partnerLabel.toLowerCase()}` : undefined,
+            }}
+          />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="mt-3 overflow-hidden rounded-xl border border-primary/20 bg-primary/5">
