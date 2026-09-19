@@ -1844,6 +1844,63 @@ export async function syncPartnerAddresses(familyId: string, partner: McpIntegra
   return parseResponse<{ synced: number }>(res);
 }
 
+export type PartnerOrderSettings = {
+  allowRecipientDirectOrders: boolean;
+  approvalThresholdPaise: number | null;
+};
+
+export type PartnerIntegrationDetail = {
+  partner: McpIntegrationPartner;
+  label: string;
+  connected: boolean;
+  connectedAt: string | null;
+  addressCount: number;
+  addresses: PartnerAddress[];
+  capabilities: string[];
+  paymentNote: string;
+  partnerTrack: string;
+  mcpUrl?: string;
+  description: string;
+  pendingApprovals: number;
+  orderSettings: PartnerOrderSettings;
+  recentOrders: Array<{
+    order_id: string;
+    status: string;
+    total_paise: number;
+    created_at: string | null;
+  }>;
+};
+
+export async function getPartnerIntegrationDetail(
+  familyId: string,
+  partner: McpIntegrationPartner,
+) {
+  const res = await timedFetch(
+    `/api/families/${familyId}/integrations/${partner}/detail`,
+  );
+  return parseResponse<PartnerIntegrationDetail>(res);
+}
+
+export async function updatePartnerOrderSettings(
+  familyId: string,
+  partner: McpIntegrationPartner,
+  patch: {
+    allowRecipientDirectOrders?: boolean;
+    approvalThresholdRupees?: number | null;
+    approvalThresholdPaise?: number | null;
+  },
+) {
+  const res = await timedFetch(
+    `/api/families/${familyId}/integrations/${partner}/settings`,
+    {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(patch),
+    },
+  );
+  return parseResponse<PartnerOrderSettings>(res);
+}
+
 export async function getChannelIdentities(familyId: string) {
   const res = await timedFetch(`/api/families/${familyId}/channel-identities`);
   return parseResponse<{ identities: ChannelIdentity[] }>(res);
