@@ -1728,9 +1728,6 @@ export type FamilyIntegrations = {
   instamart: McpIntegrationInfo;
   whatsapp: {
     status: string;
-    bridgeState?: string;
-    hasQr?: boolean;
-    lastDisconnectReason?: string | null;
     description: string;
     kavachNumber?: string;
     linkedIdentities: number;
