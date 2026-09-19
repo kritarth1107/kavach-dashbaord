@@ -982,7 +982,29 @@ export type SaheliCompanionProfile = {
   shareWithFamily: boolean;
   preferredChannel: "dashboard" | "whatsapp" | "phone";
   timezone: string;
+  quietHoursStart?: string;
+  quietHoursEnd?: string;
+  nudgeIntensity?: "gentle" | "standard" | "persistent";
+  preferredLanguage?: "hinglish" | "hindi" | "english";
+  birthday?: string;
+  importantDates?: Array<{ label: string; date: string }>;
   lastOutreachAt?: string | null;
+  lastWhatsAppInboundAt?: string | null;
+};
+
+export type SaheliCompanionActivity = {
+  nudges: Array<{
+    nudgeKind: string;
+    messagePreview?: string;
+    delivered: boolean;
+    channel?: string;
+    createdAt: string | null;
+  }>;
+  escalations: Array<{
+    message: string;
+    caregiversNotified: number;
+    createdAt: string | null;
+  }>;
 };
 
 export type FamilyMemoryItem = {
@@ -1020,6 +1042,16 @@ export async function updateSaheliCompanion(
     WRITE_TIMEOUT_MS,
   );
   return parseResponse<SaheliCompanionProfile>(res);
+}
+
+export async function getSaheliCompanionActivity(
+  familyId: string,
+  recipientUserId: string,
+) {
+  const res = await timedFetch(
+    `/api/families/${familyId}/recipients/${recipientUserId}/saheli/companion/activity`,
+  );
+  return parseResponse<SaheliCompanionActivity>(res);
 }
 
 export async function triggerSaheliOutreach(
