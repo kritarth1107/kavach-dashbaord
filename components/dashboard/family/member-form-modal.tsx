@@ -20,6 +20,9 @@ type MemberFormModalProps = {
   mode?: "invite" | "edit";
   initialData?: MemberFormData;
   saving?: boolean;
+  lockRole?: boolean;
+  formTitle?: string;
+  formDescription?: string;
   onClose: () => void;
   onInvite: (data: MemberFormData) => Promise<void>;
   onSave?: (data: MemberFormData) => Promise<void>;
@@ -33,6 +36,9 @@ export function MemberFormModal({
   mode = "invite",
   initialData,
   saving,
+  lockRole = false,
+  formTitle,
+  formDescription,
   onClose,
   onInvite,
   onSave,
@@ -120,14 +126,15 @@ export function MemberFormModal({
         <div className="flex items-center justify-between border-b border-[var(--border-strong)] px-5 py-3.5">
           <div>
             <h2 className="text-[15px] font-extrabold text-[var(--text-primary)]">
-              {isEdit ? "Edit family member" : "Add family member"}
+              {formTitle ?? (isEdit ? "Edit family member" : "Add family member")}
             </h2>
             <p className="text-[11px] text-[var(--text-tertiary)]">
-              {isEdit
-                ? "Update role and contact details for this member"
-                : isCareRecipient
-                  ? "Care recipients are added immediately — email or mobile required"
-                  : "They'll receive an invite and must accept to join"}
+              {formDescription ??
+                (isEdit
+                  ? "Update role and contact details for this member"
+                  : isCareRecipient
+                    ? "Care recipients are added immediately — email or mobile required"
+                    : "They'll receive an invite and must accept to join")}
             </p>
           </div>
           <button
@@ -194,7 +201,9 @@ export function MemberFormModal({
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <FieldLabel>{contactHint ? "Mobile (or use email above)" : "Phone"}</FieldLabel>
+                <FieldLabel>
+                  {lockRole || contactHint ? "Mobile number" : "Phone"}
+                </FieldLabel>
                 <div className="flex gap-1.5">
                   <Select
                     value={form.phoneCountryCode}
@@ -250,6 +259,7 @@ export function MemberFormModal({
               </p>
             )}
 
+            {!lockRole && (
             <div>
               <FieldLabel>Access role</FieldLabel>
               <div className="grid grid-cols-2 gap-2">
@@ -302,6 +312,7 @@ export function MemberFormModal({
                 })}
               </div>
             </div>
+            )}
           </div>
 
           <div className="flex justify-end gap-2 border-t border-[var(--border-strong)] px-5 py-3">

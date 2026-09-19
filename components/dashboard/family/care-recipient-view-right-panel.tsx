@@ -1,48 +1,29 @@
 "use client";
 
 import { Loader2 } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
-import { useParams } from "next/navigation";
-import { getFamilyMembers } from "@/lib/api";
+import { useState } from "react";
 import { useFamily } from "@/components/dashboard/family-context";
-import { apiMemberToFamilyMember, type FamilyMember } from "./family-data";
+import { canManageFamilyMembers } from "./family-data";
 import { CareRecipientCaregiverRightPanel } from "./care-recipient-caregiver-right-panel";
+import { useCareRecipientProfile } from "./care-recipient-profile-context";
+import { MemberFormModal } from "./member-form-modal";
+import { useSaveFamilyMember } from "./use-save-family-member";
 
 export function CareRecipientViewRightPanel() {
-  const params = useParams();
-  const userId = params.userId as string | undefined;
-  const { activeFamilyId } = useFamily();
-  const [member, setMember] = useState<FamilyMember | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { activeFamilyId, activeFamily } = useFamily();
+  const { member, loading, applyMembersList } = useCareRecipientProfile();
+  const { saving, saveMember, memberToFormData } = useSaveFamilyMember(activeFamilyId);
+  const [modalOpen, setModalOpen] = useState(false);
 
-  const loadMember = useCallback(async () => {
-    if (!activeFamilyId || !userId) {
-      setLoading(false);
-      return;
-    }
+  const canManage = canManageFamilyMembers(activeFamily?.role);
 
-    setLoading(true);
-    try {
-      const { data } = await getFamilyMembers(activeFamilyId);
-      const found = data?.members
-        .map(apiMemberToFamilyMember)
-        .find(
-          (m) =>
-            m.userId === userId &&
-            m.role === "care_recipient" &&
-            m.status === "joined",
-        );
-      setMember(found ?? null);
-    } catch {
-      setMember(null);
-    } finally {
-      setLoading(false);
-    }
-  }, [activeFamilyId, userId]);
+  async function handleSave(data: Parameters<typeof saveMember>[1]) {
+    if (!member) return;
 
-  useEffect(() => {
-    void loadMember();
-  }, [loadMember]);
+    const members = await saveMember(member, data);
+    applyMembersList(members);
+    setModalOpen(false);
+  }
 
   if (loading) {
     return (
@@ -54,5 +35,28 @@ export function CareRecipientViewRightPanel() {
 
   if (!member) return null;
 
-  return <CareRecipientCaregiverRightPanel member={member} />;
+  return (
+    <>
+      <CareRecipientCaregiverRightPanel
+        member={member}
+        canManage={canManage}
+        onEditDetails={canManage ? () => setModalOpen(true) : undefined}
+      />
+
+      {canManage && (
+        <MemberFormModal
+          open={modalOpen}
+          mode="edit"
+          lockRole
+          formTitle="Edit care recipient"
+          formDescription="Update name, mobile, relationship, and location."
+          initialData={memberToFormData(member)}
+          saving={saving}
+          onClose={() => setModalOpen(false)}
+          onInvite={async () => {}}
+          onSave={handleSave}
+        />
+      )}
+    </>
+  );
 }

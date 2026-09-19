@@ -8,6 +8,7 @@ import {
   Mail,
   MapPin,
   MessageSquare,
+  Pencil,
   Phone,
   Stethoscope,
 } from "lucide-react";
@@ -24,7 +25,15 @@ import {
 import { useOptionalRecipientDate } from "@/components/dashboard/recipient/recipient-date-context";
 import { formatDayLabel } from "@/lib/date-utils";
 
-export function CareRecipientCaregiverRightPanel({ member }: { member: FamilyMember }) {
+export function CareRecipientCaregiverRightPanel({
+  member,
+  canManage = false,
+  onEditDetails,
+}: {
+  member: FamilyMember;
+  canManage?: boolean;
+  onEditDetails?: () => void;
+}) {
   const scheduleCtx = useOptionalCareSchedule();
   const dateCtx = useOptionalRecipientDate();
   const selectedDate = dateCtx?.selectedDate ?? new Date();
@@ -90,56 +99,63 @@ export function CareRecipientCaregiverRightPanel({ member }: { member: FamilyMem
                 </span>
               </div>
             </div>
+
+            {canManage && onEditDetails && (
+              <button
+                type="button"
+                onClick={onEditDetails}
+                className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-[var(--border-strong)] bg-[var(--input-bg)] px-2.5 py-1.5 text-[11px] font-semibold text-[var(--text-secondary)] transition-colors hover:border-primary/40 hover:text-primary"
+              >
+                <Pencil className="h-3.5 w-3.5" strokeWidth={2.25} />
+                Edit
+              </button>
+            )}
           </div>
         </div>
 
-        {(email || phone || location) && (
-          <div className="divide-y divide-[#f5f5f7] border-b border-[var(--border-strong)]">
-            {email && (
-              <div className="flex items-start gap-3 px-4 py-3.5">
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[var(--surface)]">
-                  <Mail className="h-3.5 w-3.5 text-[var(--text-secondary)]" strokeWidth={2} />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="mb-1 text-[10px] font-bold uppercase tracking-wide text-[var(--text-tertiary)]">
-                    Email
-                  </p>
-                  <p className="break-all text-[12px] font-semibold leading-normal text-[var(--text-primary)]">
-                    {email}
-                  </p>
-                </div>
+        <div className="divide-y divide-[#f5f5f7] border-b border-[var(--border-strong)]">
+          {email && (
+            <div className="flex items-start gap-3 px-4 py-3.5">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[var(--surface)]">
+                <Mail className="h-3.5 w-3.5 text-[var(--text-secondary)]" strokeWidth={2} />
               </div>
-            )}
-            {phone && (
-              <div className="flex items-start gap-3 px-4 py-3.5">
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[var(--surface)]">
-                  <Phone className="h-3.5 w-3.5 text-[var(--text-secondary)]" strokeWidth={2} />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="mb-1 text-[10px] font-bold uppercase tracking-wide text-[var(--text-tertiary)]">
-                    Phone
-                  </p>
-                  <p className="text-[12px] font-semibold leading-normal text-[var(--text-primary)]">{phone}</p>
-                </div>
+              <div className="min-w-0 flex-1">
+                <p className="mb-1 text-[10px] font-bold uppercase tracking-wide text-[var(--text-tertiary)]">
+                  Email
+                </p>
+                <p className="break-all text-[12px] font-semibold leading-normal text-[var(--text-primary)]">
+                  {email}
+                </p>
               </div>
-            )}
-            {location && (
-              <div className="flex items-start gap-3 px-4 py-3.5">
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[var(--surface)]">
-                  <MapPin className="h-3.5 w-3.5 text-[var(--text-secondary)]" strokeWidth={2} />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="mb-1 text-[10px] font-bold uppercase tracking-wide text-[var(--text-tertiary)]">
-                    Location
-                  </p>
-                  <p className="break-words text-[12px] font-semibold leading-normal text-[var(--text-primary)]">
-                    {location}
-                  </p>
-                </div>
-              </div>
-            )}
+            </div>
+          )}
+          <div className="flex items-start gap-3 px-4 py-3.5">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[var(--surface)]">
+              <Phone className="h-3.5 w-3.5 text-[var(--text-secondary)]" strokeWidth={2} />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="mb-1 text-[10px] font-bold uppercase tracking-wide text-[var(--text-tertiary)]">
+                Mobile
+              </p>
+              <p className="text-[12px] font-semibold leading-normal text-[var(--text-primary)]">
+                {phone || "Not set"}
+              </p>
+            </div>
           </div>
-        )}
+          <div className="flex items-start gap-3 px-4 py-3.5">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[var(--surface)]">
+              <MapPin className="h-3.5 w-3.5 text-[var(--text-secondary)]" strokeWidth={2} />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="mb-1 text-[10px] font-bold uppercase tracking-wide text-[var(--text-tertiary)]">
+                Location
+              </p>
+              <p className="break-words text-[12px] font-semibold leading-normal text-[var(--text-primary)]">
+                {location || "Not set"}
+              </p>
+            </div>
+          </div>
+        </div>
 
         <div className="flex items-start gap-2 px-4 py-3.5">
           <Heart className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" strokeWidth={2.25} />

@@ -2,64 +2,17 @@
 
 import Link from "next/link";
 import { ArrowLeft, Loader2 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { useParams } from "next/navigation";
-import { getFamilyMembers } from "@/lib/api";
+import { useMemo } from "react";
 import { useFamily } from "@/components/dashboard/family-context";
 import { RecipientDashboardHome } from "@/components/dashboard/recipient/recipient-dashboard-home";
 import { CareScheduleSection } from "@/components/dashboard/family/care-schedule-section";
 import { MorningBriefingCard } from "@/components/dashboard/family/morning-briefing-card";
-import {
-  apiMemberToFamilyMember,
-  isCareRecipientRole,
-  type FamilyMember,
-} from "./family-data";
+import { isCareRecipientRole } from "./family-data";
+import { useCareRecipientProfile } from "./care-recipient-profile-context";
 
 export function CareRecipientViewPage() {
-  const params = useParams();
-  const userId = params.userId as string;
-  const { activeFamilyId, activeFamily, loading: familyLoading } = useFamily();
-  const [member, setMember] = useState<FamilyMember | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-
-  const loadMember = useCallback(async () => {
-    if (!activeFamilyId || !userId) return;
-
-    setLoading(true);
-    setError("");
-
-    try {
-      const { data } = await getFamilyMembers(activeFamilyId);
-      if (!data) throw new Error("Failed to load family members");
-
-      const found = data.members
-        .map(apiMemberToFamilyMember)
-        .find(
-          (m) =>
-            m.userId === userId &&
-            m.role === "care_recipient" &&
-            m.status === "joined",
-        );
-
-      if (!found) {
-        setError("Care recipient not found or you don't have access.");
-        setMember(null);
-        return;
-      }
-
-      setMember(found);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load care recipient");
-      setMember(null);
-    } finally {
-      setLoading(false);
-    }
-  }, [activeFamilyId, userId]);
-
-  useEffect(() => {
-    void loadMember();
-  }, [loadMember]);
+  const { activeFamily, loading: familyLoading } = useFamily();
+  const { member, loading, error } = useCareRecipientProfile();
 
   const subjectName = useMemo(() => {
     if (!member) return "";
