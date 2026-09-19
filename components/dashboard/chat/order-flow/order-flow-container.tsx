@@ -259,6 +259,38 @@ export function OrderFlowContainer({
           </div>
         )}
 
+        {flow.disambiguation?.candidates?.length ? (
+          <div className="space-y-2">
+            <p className="text-[11px] font-semibold text-[var(--text-secondary)]">
+              Which &ldquo;{flow.disambiguation.query}&rdquo; did you mean?
+            </p>
+            <ul className="space-y-1.5">
+              {flow.disambiguation.candidates.map((item) => (
+                <li key={item.candidateId ?? item.name}>
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() =>
+                      void handleAddDish({
+                        itemId: item.candidateId ?? item.name,
+                        name: item.name,
+                        pricePaise: item.pricePaise,
+                        kind: item.kind as SaheliOrderFlowCatalogItem["kind"],
+                      })
+                    }
+                    className="flex w-full items-center justify-between rounded-lg border border-[var(--border-strong)] px-3 py-2 text-left text-[12px] hover:border-primary/40"
+                  >
+                    <span>{item.name}</span>
+                    {item.pricePaise ? (
+                      <span className="font-semibold text-primary">{formatPrice(item.pricePaise)}</span>
+                    ) : null}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
+
         {(flow.phase === "browse" || flow.phase === "review_cart") && (
           <div className="space-y-3">
             {flow.selectedAddressId ? (

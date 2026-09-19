@@ -642,6 +642,16 @@ export type SaheliOrderFlow = {
   }>;
   orderId?: string;
   message?: string;
+  disambiguation?: {
+    query: string;
+    candidates: Array<{
+      candidateId?: string;
+      name: string;
+      pricePaise?: number;
+      kind?: string;
+      confidence?: number;
+    }>;
+  };
 };
 
 export type SaheliConnectSuggestion = {
