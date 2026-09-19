@@ -797,11 +797,22 @@ export type SaheliStreamEvent =
     }
   | { type: "error"; message: string };
 
+export type ScheduleDayStatus = "upcoming" | "due" | "completed" | "missed";
+
 export type BriefingItem = {
+  scheduleId?: string;
   title: string;
   time: string;
   dosage?: string;
   type: string;
+  status?: ScheduleDayStatus;
+};
+
+export type ScheduleStatusItem = BriefingItem & {
+  scheduleId: string;
+  status: ScheduleDayStatus;
+  markedBy?: string | null;
+  markedAt?: string | null;
 };
 
 export type RecipientBriefing = {
@@ -811,6 +822,24 @@ export type RecipientBriefing = {
   lastCheckInAt: string | null;
   todayItems: BriefingItem[];
   unconfirmedItems: BriefingItem[];
+  scheduleStatuses?: ScheduleStatusItem[];
+  completedCount?: number;
+  missedCount?: number;
+  upcomingCount?: number;
+  elapsedCount?: number;
+  adherencePercent?: number | null;
+  dateKey?: string;
+};
+
+export type ScheduleDayStatusResponse = {
+  dateKey: string;
+  items: ScheduleStatusItem[];
+  completedCount: number;
+  missedCount: number;
+  upcomingCount: number;
+  dueCount: number;
+  elapsedCount: number;
+  adherencePercent: number | null;
 };
 
 export type LabDocument = {
@@ -1375,11 +1404,30 @@ export async function getLabTrends(
 export async function getRecipientBriefing(
   familyId: string,
   recipientUserId: string,
+  dateKey?: string,
 ) {
+  const qs = dateKey ? `?date=${encodeURIComponent(dateKey)}` : "";
   const res = await timedFetch(
-    `/api/families/${familyId}/recipients/${recipientUserId}/briefing`,
+    `/api/families/${familyId}/recipients/${recipientUserId}/briefing${qs}`,
   );
   return parseResponse<RecipientBriefing>(res);
+}
+
+export async function setScheduleCompletion(
+  familyId: string,
+  recipientUserId: string,
+  scheduleId: string,
+  payload: { status: "completed" | "missed"; dateKey?: string; note?: string },
+) {
+  const res = await timedFetch(
+    `/api/families/${familyId}/recipients/${recipientUserId}/care-schedule/${scheduleId}/completion`,
+    {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    },
+  );
+  return parseResponse<ScheduleDayStatusResponse>(res);
 }
 
 export async function getRecipientLabs(familyId: string, recipientUserId: string) {

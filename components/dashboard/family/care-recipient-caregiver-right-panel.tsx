@@ -18,10 +18,10 @@ import { useOptionalCareSchedule } from "./care-recipient-schedule-context";
 import { SaheliThreadPanel } from "./saheli-thread-panel";
 import { SaheliCompanionPanel } from "./saheli-companion-panel";
 import {
-  getActiveSchedulesForDate,
   getNextScheduleItem,
   getScheduleTypeMeta,
 } from "./care-schedule-data";
+import { CareScheduleDayList } from "./care-schedule-day-list";
 import { useOptionalRecipientDate } from "@/components/dashboard/recipient/recipient-date-context";
 import { formatDayLabel } from "@/lib/date-utils";
 
@@ -48,9 +48,6 @@ export function CareRecipientCaregiverRightPanel({
     member.relationship && member.relationship !== "—" ? member.relationship : "Care recipient";
   const location = member.location && member.location !== "—" ? member.location : null;
 
-  const todayItems = scheduleCtx
-    ? getActiveSchedulesForDate(scheduleCtx.schedules, selectedDate)
-    : [];
   const nextItem = scheduleCtx
     ? getNextScheduleItem(scheduleCtx.schedules, selectedDate)
     : null;
@@ -162,10 +159,10 @@ export function CareRecipientCaregiverRightPanel({
           <p className="text-[11px] leading-relaxed text-[var(--text-secondary)]">
             {scheduleCtx?.loading ? (
               "Loading schedule..."
-            ) : todayItems.length > 0 ? (
+            ) : scheduleCtx?.schedules.length ? (
               <>
-                <span className="font-semibold text-[var(--text-secondary)]">{todayItems.length} reminders today</span>
-                {" · "}view full schedule on the left
+                <span className="font-semibold text-[var(--text-secondary)]">Care schedule active</span>
+                {" · "}mark tasks done or missed below
               </>
             ) : (
               <>
@@ -195,30 +192,17 @@ export function CareRecipientCaregiverRightPanel({
         {firstName}&apos;s schedule · {dateLabel}
       </p>
       <div className="panel-card mb-5 p-3">
-        {scheduleCtx?.loading ? (
-          <div className="flex items-center justify-center py-6">
-            <Loader2 className="h-5 w-5 animate-spin text-primary" />
-          </div>
-        ) : todayItems.length === 0 ? (
+        {member.userId ? (
+          <CareScheduleDayList
+            recipientUserId={member.userId}
+            selectedDate={selectedDate}
+            canManage={canManage}
+            compact
+          />
+        ) : (
           <p className="px-1 py-4 text-center text-[12px] text-[var(--text-tertiary)]">
             Nothing scheduled for {dateLabel.toLowerCase()}
           </p>
-        ) : (
-          todayItems.map((item) => (
-            <div
-              key={item.scheduleId}
-              className="flex items-start gap-3 border-b border-[var(--border-strong)] py-3 first:pt-0 last:border-0 last:pb-0"
-            >
-              <div className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 border-[var(--border-strong)] bg-[var(--card)]" />
-              <div className="min-w-0 flex-1">
-                <p className="text-[12px] font-bold text-[var(--text-primary)]">{item.title}</p>
-                <p className="text-[11px] text-[var(--text-tertiary)]">
-                  {item.time}
-                  {item.dosage ? ` · ${item.dosage}` : ""}
-                </p>
-              </div>
-            </div>
-          ))
         )}
       </div>
 

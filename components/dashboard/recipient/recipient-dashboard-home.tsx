@@ -61,7 +61,7 @@ function PersonalWellnessCard({
         {[
           { label: "Tasks", value: String(daySchedules) },
           {
-            label: "Done",
+            label: "Adherence",
             value: completionPercent !== null ? `${completionPercent}%` : "—",
           },
           { label: "Records", value: String(dayLabs) },
@@ -183,9 +183,15 @@ function DayActivityLog({
               <span
                 className={cn(
                   "rounded-md px-2 py-0.5 text-[10px] font-semibold",
-                  row.status === "Pending"
-                    ? "bg-[var(--warning-bg)] text-[var(--warning-text)]"
-                    : "bg-primary-light text-primary",
+                  row.status === "Missed"
+                    ? "bg-[var(--danger-bg)] text-[var(--danger-text)]"
+                    : row.status === "Done"
+                      ? "bg-primary-light text-primary"
+                      : row.status === "Upcoming"
+                        ? "bg-[var(--surface)] text-[var(--text-secondary)]"
+                        : row.status === "Pending"
+                          ? "bg-[var(--warning-bg)] text-[var(--warning-text)]"
+                          : "bg-primary-light text-primary",
                 )}
               >
                 {row.status}

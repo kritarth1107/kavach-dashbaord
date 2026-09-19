@@ -21,6 +21,7 @@ import {
   isDocumentOnDate,
   isIsoOnDate,
   isSameDay,
+  toDateKey,
 } from "@/lib/date-utils";
 import { countDocumentsInMonth, parseAllMetrics } from "@/lib/health-metrics";
 
@@ -64,7 +65,7 @@ export function useRecipientDashboardData(
     try {
       const [labsRes, briefingRes] = await Promise.all([
         getRecipientLabs(activeFamilyId, recipientUserId),
-        isToday ? getRecipientBriefing(activeFamilyId, recipientUserId) : Promise.resolve({ data: null }),
+        getRecipientBriefing(activeFamilyId, recipientUserId, toDateKey(selectedDate)),
       ]);
       setLabs(labsRes.data?.documents ?? []);
       setBriefing(briefingRes.data ?? null);
@@ -74,7 +75,7 @@ export function useRecipientDashboardData(
     } finally {
       setLoading(false);
     }
-  }, [activeFamilyId, recipientUserId, isToday]);
+  }, [activeFamilyId, recipientUserId, selectedDate]);
 
   useEffect(() => {
     void load();
@@ -113,12 +114,10 @@ export function useRecipientDashboardData(
   }, [metrics, selectedDate]);
 
   const completionPercent = useMemo(() => {
-    if (!isToday || !briefing) return null;
-    const total = briefing.todayItems.length;
-    if (!total) return daySchedules.length ? 0 : null;
-    const pending = briefing.unconfirmedItems.length;
-    return Math.round(((total - pending) / total) * 100);
-  }, [isToday, briefing, daySchedules.length]);
+    if (briefing?.adherencePercent != null) return briefing.adherencePercent;
+    if (!daySchedules.length) return null;
+    return 0;
+  }, [briefing?.adherencePercent, daySchedules.length]);
 
   const adherenceValue = useMemo(() => {
     if (completionPercent !== null) return `${completionPercent}%`;
@@ -129,18 +128,26 @@ export function useRecipientDashboardData(
   const activityRows = useMemo((): DayActivityRow[] => {
     const rows: DayActivityRow[] = [];
 
+    const statusByScheduleId = new Map(
+      (briefing?.scheduleStatuses ?? []).map((s) => [s.scheduleId, s.status]),
+    );
+
     for (const item of daySchedules) {
-      const pending =
-        isToday &&
-        briefing?.unconfirmedItems.some(
-          (u) => u.title === item.title && u.time === item.time,
-        );
+      const dayStatus = statusByScheduleId.get(item.scheduleId);
+      const statusLabel =
+        dayStatus === "completed"
+          ? "Done"
+          : dayStatus === "missed" || dayStatus === "due"
+            ? "Missed"
+            : dayStatus === "upcoming"
+              ? "Upcoming"
+              : "Scheduled";
       rows.push({
         id: `sched-${item.scheduleId}`,
         name: item.title,
         date: formatShortDate(selectedDate),
         detail: [item.time, item.dosage].filter(Boolean).join(" · "),
-        status: isToday ? (pending ? "Pending" : "Scheduled") : "Scheduled",
+        status: statusLabel,
         kind: item.type === "CHECK_IN" ? "check_in" : "schedule",
       });
     }
@@ -172,14 +179,23 @@ export function useRecipientDashboardData(
 
   const wellnessStatus = useMemo(() => {
     if (!daySchedules.length && !dayLabs.length) return "Quiet day";
+    const missed = briefing?.missedCount ?? 0;
+    if (missed > 0) return `${missed} missed today`;
     if (completionPercent !== null) {
       if (completionPercent >= 80) return "On track";
-      if (completionPercent >= 50) return "In progress";
-      return "Needs attention";
+      if (completionPercent > 0) return "In progress";
+      if ((briefing?.elapsedCount ?? 0) > 0) return "Needs attention";
+      return "Upcoming tasks";
     }
     if (daySchedules.length) return `${daySchedules.length} care tasks`;
     return "Records only";
-  }, [daySchedules.length, dayLabs.length, completionPercent]);
+  }, [
+    daySchedules.length,
+    dayLabs.length,
+    completionPercent,
+    briefing?.missedCount,
+    briefing?.elapsedCount,
+  ]);
 
   const vitalsSnapshot = useMemo(() => {
     const keys = ["bp_systolic", "bp_diastolic", "heart_rate", "glucose", "spo2"] as const;
@@ -219,12 +235,16 @@ export function useRecipientDashboardData(
     weekLabels: weekLabelsEndingOn(selectedDate),
     weekScheduleCounts,
     weekMedCounts,
+    missedCount: briefing?.missedCount ?? 0,
+    completedCount: briefing?.completedCount ?? 0,
     stats: {
       adherence: adherenceValue,
       adherenceSub:
-        completionPercent !== null
-          ? `Care tasks · ${formatDayLabel(selectedDate)}`
-          : `${dayMeds.length} medicine reminder${dayMeds.length === 1 ? "" : "s"}`,
+        (briefing?.missedCount ?? 0) > 0
+          ? `${briefing?.missedCount} missed · ${formatDayLabel(selectedDate)}`
+          : completionPercent !== null
+            ? `Care tasks · ${formatDayLabel(selectedDate)}`
+            : `${dayMeds.length} medicine reminder${dayMeds.length === 1 ? "" : "s"}`,
       checkInStreak: isToday && briefing?.lastCheckInAt ? "Active" : daySchedules.some((s) => s.type === "CHECK_IN") ? "Scheduled" : "—",
       checkInSub: isToday ? "Last Saheli check-in" : `Check-ins · ${formatShortDate(selectedDate)}`,
       vitalsLogged: String(countDocumentsInMonth(labs, selectedDate)),

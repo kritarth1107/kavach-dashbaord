@@ -131,6 +131,23 @@ export async function proxyAuthPatch(req: NextRequest, backendPath: string) {
   return NextResponse.json(json, { status: ok ? status : status === 503 ? 503 : status });
 }
 
+export async function proxyAuthPut(req: NextRequest, backendPath: string) {
+  const token = req.cookies.get(SESSION_COOKIE)?.value;
+  const body = await req.json();
+
+  const { ok, status, json } = await fetchBackend(backendPath, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      "x-fingerprint": "N/A",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify(body),
+  });
+
+  return NextResponse.json(json, { status: ok ? status : status === 503 ? 503 : status });
+}
+
 export async function proxyAuthDelete(req: NextRequest, backendPath: string) {
   const token = req.cookies.get(SESSION_COOKIE)?.value;
 
