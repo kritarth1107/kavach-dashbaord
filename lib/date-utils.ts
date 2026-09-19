@@ -1,3 +1,50 @@
+export const KAVACH_TIMEZONE = "Asia/Kolkata";
+
+const WEEKDAY_TO_INDEX: Record<string, number> = {
+  Sun: 0,
+  Mon: 1,
+  Tue: 2,
+  Wed: 3,
+  Thu: 4,
+  Fri: 5,
+  Sat: 6,
+};
+
+function istPart(parts: Intl.DateTimeFormatPart[], type: Intl.DateTimeFormatPartTypes) {
+  return parts.find((p) => p.type === type)?.value ?? "";
+}
+
+export function getISTParts(at: Date = new Date()) {
+  const dtf = new Intl.DateTimeFormat("en-US", {
+    timeZone: KAVACH_TIMEZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    weekday: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+  const parts = dtf.formatToParts(at);
+  const year = Number(istPart(parts, "year"));
+  const month = Number(istPart(parts, "month"));
+  const day = Number(istPart(parts, "day"));
+  const hours = Number(istPart(parts, "hour"));
+  const minutes = Number(istPart(parts, "minute"));
+  const weekday = istPart(parts, "weekday").replace(/\./g, "");
+  const dayOfWeek = WEEKDAY_TO_INDEX[weekday] ?? 0;
+
+  return {
+    year,
+    month,
+    day,
+    dayOfWeek,
+    hours,
+    minutes,
+    minutesSinceMidnight: hours * 60 + minutes,
+  };
+}
+
 export function startOfDay(date: Date) {
   const d = new Date(date);
   d.setHours(0, 0, 0, 0);
@@ -49,11 +96,9 @@ export function isDateSelectable(date: Date, minDate: Date | null, maxDate: Date
   return true;
 }
 
-export function toDateKey(date: Date) {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, "0");
-  const d = String(date.getDate()).padStart(2, "0");
-  return `${y}-${m}-${d}`;
+export function toDateKey(date: Date = new Date()) {
+  const p = getISTParts(date);
+  return `${p.year}-${String(p.month).padStart(2, "0")}-${String(p.day).padStart(2, "0")}`;
 }
 
 export function formatShortDate(date: Date) {

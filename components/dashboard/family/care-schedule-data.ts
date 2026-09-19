@@ -7,6 +7,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import type { CareScheduleItem, CareScheduleType } from "@/lib/api";
+import { getISTParts, toDateKey } from "@/lib/date-utils";
 
 export type ScheduleFormData = {
   type: CareScheduleType;
@@ -118,14 +119,11 @@ export function getNextScheduleItem(items: CareScheduleItem[], referenceDate?: D
   const todayItems = getActiveSchedulesForDate(items, ref);
   if (!todayItems.length) return null;
 
-  const isToday =
-    ref.getFullYear() === new Date().getFullYear() &&
-    ref.getMonth() === new Date().getMonth() &&
-    ref.getDate() === new Date().getDate();
+  const isToday = toDateKey(ref) === toDateKey(new Date());
 
   if (!isToday) return todayItems[0];
 
-  const nowMinutes = ref.getHours() * 60 + ref.getMinutes();
+  const nowMinutes = getISTParts(ref).minutesSinceMidnight;
 
   function toMinutes(time: string) {
     const match = time.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
