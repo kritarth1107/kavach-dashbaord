@@ -1026,7 +1026,29 @@ export type FamilyMemoryItem = {
   content: string;
   share_with_family: boolean;
   importance: number;
+  source_role?: string | null;
   created_at: string | null;
+  entity_id?: string | null;
+  superseded_by?: string | null;
+};
+
+export type SaheliMemoryEntityHit = {
+  slug: string;
+  kind: string;
+  title: string;
+  snippet: string;
+  score: number;
+  match_type: string;
+};
+
+export type SaheliMemoryEntity = {
+  slug: string;
+  kind: string;
+  title: string;
+  status: string;
+  body_md: string;
+  review_by: string | null;
+  version: number;
 };
 
 export async function getSaheliCompanion(
@@ -1091,6 +1113,58 @@ export async function getFamilyMemories(
     `/api/families/${familyId}/recipients/${recipientUserId}/saheli/memories`,
   );
   return parseResponse<{ memories: FamilyMemoryItem[] }>(res);
+}
+
+export async function forgetFamilyMemory(
+  familyId: string,
+  recipientUserId: string,
+  factId: string,
+) {
+  const res = await timedFetch(
+    `/api/families/${familyId}/recipients/${recipientUserId}/saheli/memories/${factId}/forget`,
+    { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" },
+    WRITE_TIMEOUT_MS,
+  );
+  return parseResponse<Record<string, unknown>>(res);
+}
+
+export async function correctFamilyMemory(
+  familyId: string,
+  recipientUserId: string,
+  factId: string,
+  replacementContent: string,
+) {
+  const res = await timedFetch(
+    `/api/families/${familyId}/recipients/${recipientUserId}/saheli/memories/${factId}/correct`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ replacementContent }),
+    },
+    WRITE_TIMEOUT_MS,
+  );
+  return parseResponse<Record<string, unknown>>(res);
+}
+
+export async function getSaheliMemoryProfile(
+  familyId: string,
+  recipientUserId: string,
+) {
+  const res = await timedFetch(
+    `/api/families/${familyId}/recipients/${recipientUserId}/saheli/memory/profile`,
+  );
+  return parseResponse<{ profile_md: string; entities: SaheliMemoryEntityHit[] }>(res);
+}
+
+export async function getSaheliMemoryEntity(
+  familyId: string,
+  recipientUserId: string,
+  slug: string,
+) {
+  const res = await timedFetch(
+    `/api/families/${familyId}/recipients/${recipientUserId}/saheli/memory/entity/${encodeURIComponent(slug)}`,
+  );
+  return parseResponse<SaheliMemoryEntity | null>(res);
 }
 
 export async function listCaregiverSaheliChatSessions(

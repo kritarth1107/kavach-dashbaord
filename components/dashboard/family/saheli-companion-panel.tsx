@@ -3,6 +3,8 @@
 import { AlertTriangle, Bell, Heart, Loader2, Moon, Sparkles, Sun } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import {
+  correctFamilyMemory,
+  forgetFamilyMemory,
   getFamilyMemories,
   getSaheliCompanion,
   getSaheliCompanionActivity,
@@ -14,6 +16,7 @@ import {
   type SaheliCompanionProfile,
 } from "@/lib/api";
 import { useFamily } from "@/components/dashboard/family-context";
+import { SaheliMemoryPanel } from "@/components/dashboard/family/saheli-memory-panel";
 
 type SaheliCompanionPanelProps = {
   recipientUserId: string;
@@ -65,6 +68,9 @@ export function SaheliCompanionPanel({
   const [saving, setSaving] = useState(false);
   const [outreaching, setOutreaching] = useState(false);
   const [refreshingMemory, setRefreshingMemory] = useState(false);
+  const [memoryActionId, setMemoryActionId] = useState<string | null>(null);
+  const [correctingId, setCorrectingId] = useState<string | null>(null);
+  const [correctionText, setCorrectionText] = useState("");
   const [error, setError] = useState("");
 
   const load = useCallback(async () => {
@@ -405,7 +411,7 @@ export function SaheliCompanionPanel({
             }}
             className="text-[10px] font-semibold text-primary hover:underline disabled:opacity-50"
           >
-            {refreshingMemory ? "Syncing…" : "Refresh memory"}
+            {refreshingMemory ? "Syncing…" : "Sync chat history"}
           </button>
         </div>
         {memories.length > 0 ? (
@@ -415,12 +421,86 @@ export function SaheliCompanionPanel({
                 key={m.id}
                 className="rounded-lg border border-[var(--border-strong)] bg-[var(--input-bg)] px-2.5 py-2"
               >
-                <p className="text-[10px] font-bold uppercase tracking-wide text-[var(--text-tertiary)]">
-                  {TOPIC_LABELS[m.topic] ?? m.category}
-                </p>
+                <div className="flex items-start justify-between gap-2">
+                  <p className="text-[10px] font-bold uppercase tracking-wide text-[var(--text-tertiary)]">
+                    {TOPIC_LABELS[m.topic] ?? m.category}
+                    {m.superseded_by ? " · superseded" : ""}
+                  </p>
+                  <div className="flex shrink-0 gap-2">
+                    <button
+                      type="button"
+                      disabled={memoryActionId === m.id}
+                      className="text-[10px] font-semibold text-primary hover:underline disabled:opacity-50"
+                      onClick={() => {
+                        setCorrectingId(m.id);
+                        setCorrectionText(m.content);
+                      }}
+                    >
+                      Fix
+                    </button>
+                    <button
+                      type="button"
+                      disabled={memoryActionId === m.id}
+                      className="text-[10px] font-semibold text-red-600 hover:underline disabled:opacity-50"
+                      onClick={() => {
+                        if (!activeFamilyId) return;
+                        if (!window.confirm("Forget this memory? Saheli will stop using it.")) return;
+                        setMemoryActionId(m.id);
+                        void forgetFamilyMemory(activeFamilyId, recipientUserId, m.id)
+                          .then(() => load())
+                          .finally(() => setMemoryActionId(null));
+                      }}
+                    >
+                      Forget
+                    </button>
+                  </div>
+                </div>
                 <p className="mt-0.5 text-[11px] leading-relaxed text-[var(--text-secondary)]">
                   {m.content}
                 </p>
+                <p className="mt-1 text-[10px] text-[var(--text-tertiary)]">
+                  {m.source_role ?? "elder"} · {formatRelativeTime(m.created_at)}
+                </p>
+                {correctingId === m.id ? (
+                  <div className="mt-2 space-y-1.5">
+                    <textarea
+                      value={correctionText}
+                      onChange={(e) => setCorrectionText(e.target.value)}
+                      rows={2}
+                      className="w-full rounded-md border border-[var(--border-strong)] bg-[var(--surface)] px-2 py-1 text-[11px]"
+                    />
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        className="rounded-md bg-primary px-2 py-1 text-[10px] font-bold text-white"
+                        onClick={() => {
+                          if (!activeFamilyId || correctionText.trim().length < 4) return;
+                          setMemoryActionId(m.id);
+                          void correctFamilyMemory(
+                            activeFamilyId,
+                            recipientUserId,
+                            m.id,
+                            correctionText.trim(),
+                          )
+                            .then(() => {
+                              setCorrectingId(null);
+                              return load();
+                            })
+                            .finally(() => setMemoryActionId(null));
+                        }}
+                      >
+                        Save fix
+                      </button>
+                      <button
+                        type="button"
+                        className="text-[10px] text-[var(--text-tertiary)]"
+                        onClick={() => setCorrectingId(null)}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                ) : null}
               </li>
             ))}
           </ul>
@@ -430,6 +510,8 @@ export function SaheliCompanionPanel({
           </p>
         )}
       </div>
+
+      <SaheliMemoryPanel recipientUserId={recipientUserId} />
     </section>
   );
 }
