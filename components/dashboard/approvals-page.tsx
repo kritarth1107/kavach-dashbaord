@@ -12,6 +12,16 @@ import {
 import { useFamily } from "@/components/dashboard/family-context";
 import { canApproveOrders } from "@/components/dashboard/family/family-data";
 
+function partnerDisplay(order: PendingOrder): { label: string; openLabel: string } {
+  const raw = (order.partner_label || order.partner || "").toLowerCase();
+  if (raw.includes("instamart")) return { label: "Instamart", openLabel: "Open in Instamart →" };
+  if (raw.includes("swiggy")) return { label: "Swiggy", openLabel: "Open in Swiggy →" };
+  if (raw.includes("zepto")) return { label: "Zepto", openLabel: "Open in Zepto app →" };
+  if (order.partner_label) return { label: order.partner_label, openLabel: `Open in ${order.partner_label} →` };
+  return { label: "Partner", openLabel: "Open partner app →" };
+}
+
+
 export function ApprovalsPage() {
   const { activeFamilyId, activeFamily } = useFamily();
   const [orders, setOrders] = useState<PendingOrder[]>([]);
@@ -44,32 +54,56 @@ export function ApprovalsPage() {
     void load();
   }, [load]);
 
-  async function handleApprove(orderId: string) {
+  async function handleApproveAndPlace(order: PendingOrder) {
     if (!activeFamilyId || !canApprove) return;
-    setBusyId(orderId);
+    setBusyId(order.order_id);
     setError("");
+    setBanner("");
+    const { label } = partnerDisplay(order);
     try {
-      await approveOrder(activeFamilyId, orderId);
+      if (order.status === "awaiting_approval") {
+        await approveOrder(activeFamilyId, order.order_id);
+      }
+      const { data } = await payOrder(activeFamilyId, order.order_id, {
+        partnerAddressId: order.partner_address_id ?? undefined,
+      });
+      if (data?.payment_link) {
+        setBanner(`Complete payment in ${label}: ${data.payment_link}`);
+      } else {
+        setBanner(`Order placed on ${label}.`);
+      }
       await load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Approve failed");
+      setError(err instanceof Error ? err.message : "Approve / place failed");
+      // Refresh so approved-but-unpaid orders still show Pay.
+      try {
+        await load();
+      } catch {
+        /* ignore */
+      }
     } finally {
       setBusyId(null);
     }
   }
 
-  async function handlePay(orderId: string) {
+  async function handlePay(order: PendingOrder) {
     if (!activeFamilyId || !canApprove) return;
-    setBusyId(orderId);
+    setBusyId(order.order_id);
     setError("");
+    setBanner("");
+    const { label } = partnerDisplay(order);
     try {
-      const { data } = await payOrder(activeFamilyId, orderId);
+      const { data } = await payOrder(activeFamilyId, order.order_id, {
+        partnerAddressId: order.partner_address_id ?? undefined,
+      });
       if (data?.payment_link) {
-        setBanner(`Complete payment in Zepto: ${data.payment_link}`);
+        setBanner(`Complete payment in ${label}: ${data.payment_link}`);
+      } else {
+        setBanner(`Order placed on ${label}.`);
       }
       await load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Payment failed");
+      setError(err instanceof Error ? err.message : "Payment / checkout failed");
     } finally {
       setBusyId(null);
     }
@@ -94,7 +128,7 @@ export function ApprovalsPage() {
       <div className="panel-card p-5">
         <h1 className="text-[18px] font-extrabold text-[var(--text-primary)]">Approvals</h1>
         <p className="mt-1 text-[13px] text-[var(--text-tertiary)]">
-          Zepto baskets — approve, pay (mock in pilot), or open in Zepto app. No push alerts.
+          Partner baskets — approve & place (COD), or open in the partner app. Checkout errors show here.
         </p>
       </div>
 
@@ -121,12 +155,14 @@ export function ApprovalsPage() {
           </p>
         ) : (
           <ul className="divide-y divide-[var(--border-strong)]">
-            {orders.map((order) => (
+            {orders.map((order) => {
+              const partner = partnerDisplay(order);
+              return (
               <li key={order.order_id} className="px-5 py-4">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
                     <p className="text-[14px] font-bold text-[var(--text-primary)]">
-                      Zepto · ₹{(order.total_paise / 100).toFixed(0)}
+                      {partner.label} · ₹{(order.total_paise / 100).toFixed(0)}
                     </p>
                     <p className="mt-1 text-[12px] text-[var(--text-secondary)]">
                       {order.items.map((i) => `${i.name} x${i.quantity}`).join(" · ")}
@@ -141,7 +177,7 @@ export function ApprovalsPage() {
                         rel="noopener noreferrer"
                         className="mt-2 inline-block text-[11px] font-semibold text-primary hover:underline"
                       >
-                        Open in Zepto app →
+                        {partner.openLabel}
                       </a>
                     )}
                   </div>
@@ -152,10 +188,10 @@ export function ApprovalsPage() {
                           <button
                             type="button"
                             disabled={busyId === order.order_id}
-                            onClick={() => void handleApprove(order.order_id)}
+                            onClick={() => void handleApproveAndPlace(order)}
                             className="rounded-full bg-primary px-4 py-1.5 text-[11px] font-bold text-white disabled:opacity-50"
                           >
-                            Approve
+                            Approve & place
                           </button>
                           <button
                             type="button"
@@ -171,17 +207,18 @@ export function ApprovalsPage() {
                         <button
                           type="button"
                           disabled={busyId === order.order_id}
-                          onClick={() => void handlePay(order.order_id)}
+                          onClick={() => void handlePay(order)}
                           className="rounded-full bg-primary px-4 py-1.5 text-[11px] font-bold text-white disabled:opacity-50"
                         >
-                          Pay order
+                          Place order
                         </button>
                       )}
                     </div>
                   )}
                 </div>
               </li>
-            ))}
+              );
+            })}
           </ul>
         )}
       </div>

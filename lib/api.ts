@@ -1737,6 +1737,9 @@ export type CareRecordMetrics = {
 export type PendingOrder = {
   order_id: string;
   status: string;
+  partner?: string;
+  partner_label?: string;
+  partner_address_id?: string | null;
   total_paise: number;
   items: Array<{ name: string; quantity: number; unitPricePaise: number }>;
   deep_link?: string | null;
