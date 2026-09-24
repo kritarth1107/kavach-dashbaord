@@ -1167,6 +1167,25 @@ export async function getSaheliMemoryEntity(
   return parseResponse<SaheliMemoryEntity | null>(res);
 }
 
+export type SaheliMemoryEntityFact = {
+  id: string;
+  content: string;
+  source_role: string | null;
+  created_at: string | null;
+  superseded_by: string | null;
+};
+
+export async function getSaheliMemoryEntityHistory(
+  familyId: string,
+  recipientUserId: string,
+  slug: string,
+) {
+  const res = await timedFetch(
+    `/api/families/${familyId}/recipients/${recipientUserId}/saheli/memory/entity/${encodeURIComponent(slug)}/history`,
+  );
+  return parseResponse<{ facts: SaheliMemoryEntityFact[] }>(res);
+}
+
 export async function listCaregiverSaheliChatSessions(
   familyId: string,
   recipientUserId: string,
@@ -1759,6 +1778,8 @@ export type CareBrief = {
   eventCount: number;
 };
 
+export type DoctorBrief = CareBrief & { audience: "doctor" };
+
 export async function getCareRecordTimeline(
   familyId: string,
   subjectUserId: string,
@@ -1784,6 +1805,15 @@ export async function getCareBrief(familyId: string, subjectUserId: string) {
     WRITE_TIMEOUT_MS,
   );
   return parseResponse<CareBrief>(res);
+}
+
+export async function getDoctorBrief(familyId: string, subjectUserId: string) {
+  const res = await timedFetch(
+    `/api/families/${familyId}/subjects/${subjectUserId}/doctor-brief`,
+    {},
+    WRITE_TIMEOUT_MS,
+  );
+  return parseResponse<DoctorBrief>(res);
 }
 
 export async function getPendingApprovals(familyId: string) {

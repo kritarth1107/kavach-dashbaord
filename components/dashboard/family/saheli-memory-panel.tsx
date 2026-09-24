@@ -3,8 +3,12 @@
 import { Loader2 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
+  correctFamilyMemory,
+  forgetFamilyMemory,
   getSaheliMemoryEntity,
+  getSaheliMemoryEntityHistory,
   getSaheliMemoryProfile,
+  type SaheliMemoryEntityFact,
   type SaheliMemoryEntityHit,
 } from "@/lib/api";
 import { useFamily } from "@/components/dashboard/family-context";
@@ -31,9 +35,13 @@ export function SaheliMemoryPanel({ recipientUserId }: SaheliMemoryPanelProps) {
   const [profileMd, setProfileMd] = useState("");
   const [selectedSlug, setSelectedSlug] = useState<string | null>(null);
   const [entityBody, setEntityBody] = useState("");
+  const [facts, setFacts] = useState<SaheliMemoryEntityFact[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingEntity, setLoadingEntity] = useState(false);
   const [error, setError] = useState("");
+  const [memoryActionId, setMemoryActionId] = useState<string | null>(null);
+  const [correctingId, setCorrectingId] = useState<string | null>(null);
+  const [correctionText, setCorrectionText] = useState("");
 
   const grouped = useMemo(() => {
     const map = new Map<string, SaheliMemoryEntityHit[]>();
@@ -70,15 +78,28 @@ export function SaheliMemoryPanel({ recipientUserId }: SaheliMemoryPanelProps) {
     setSelectedSlug(slug);
     setLoadingEntity(true);
     setError("");
+    setCorrectingId(null);
     try {
-      const { data } = await getSaheliMemoryEntity(activeFamilyId, recipientUserId, slug);
-      setEntityBody(data?.body_md ?? "(No body yet — nightly dream job may not have run.)");
+      const [entityRes, historyRes] = await Promise.all([
+        getSaheliMemoryEntity(activeFamilyId, recipientUserId, slug),
+        getSaheliMemoryEntityHistory(activeFamilyId, recipientUserId, slug).catch(() => ({
+          data: { facts: [] as SaheliMemoryEntityFact[] },
+        })),
+      ]);
+      setEntityBody(entityRes.data?.body_md ?? "(No body yet — nightly dream job may not have run.)");
+      setFacts((historyRes.data?.facts ?? []).filter((f) => !f.superseded_by));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load entity");
       setEntityBody("");
+      setFacts([]);
     } finally {
       setLoadingEntity(false);
     }
+  }
+
+  async function reloadSelected() {
+    if (selectedSlug) await openEntity(selectedSlug);
+    await load();
   }
 
   if (loading) {
@@ -93,6 +114,9 @@ export function SaheliMemoryPanel({ recipientUserId }: SaheliMemoryPanelProps) {
   return (
     <div className="border-t border-[var(--border-strong)] px-4 py-3">
       <p className="mb-2 text-[11px] font-bold text-[var(--text-primary)]">What Saheli knows</p>
+      <p className="mb-2 text-[10px] text-[var(--text-tertiary)]">
+        Verify or correct facts below — Saheli will stop using forgotten ones.
+      </p>
       {error ? <p className="mb-2 text-[11px] text-red-600">{error}</p> : null}
 
       {profileMd ? (
@@ -143,9 +167,102 @@ export function SaheliMemoryPanel({ recipientUserId }: SaheliMemoryPanelProps) {
           {loadingEntity ? (
             <Loader2 className="h-3.5 w-3.5 animate-spin text-[var(--text-tertiary)]" />
           ) : (
-            <pre className="max-h-48 overflow-y-auto whitespace-pre-wrap text-[10px] leading-relaxed text-[var(--text-secondary)]">
-              {entityBody}
-            </pre>
+            <>
+              <pre className="max-h-36 overflow-y-auto whitespace-pre-wrap text-[10px] leading-relaxed text-[var(--text-secondary)]">
+                {entityBody}
+              </pre>
+              {facts.length > 0 ? (
+                <div className="mt-3 space-y-2 border-t border-[var(--border-strong)] pt-2">
+                  <p className="text-[10px] font-bold uppercase tracking-wide text-[var(--text-tertiary)]">
+                    Verify source facts
+                  </p>
+                  {facts.slice(0, 8).map((f) => (
+                    <div
+                      key={f.id}
+                      className="rounded-md border border-[var(--border-strong)] bg-[var(--surface)] px-2 py-1.5"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <p className="text-[11px] text-[var(--text-secondary)]">{f.content}</p>
+                        <div className="flex shrink-0 gap-2">
+                          <button
+                            type="button"
+                            disabled={memoryActionId === f.id}
+                            className="text-[10px] font-semibold text-primary hover:underline disabled:opacity-50"
+                            onClick={() => {
+                              setCorrectingId(f.id);
+                              setCorrectionText(f.content);
+                            }}
+                          >
+                            Fix
+                          </button>
+                          <button
+                            type="button"
+                            disabled={memoryActionId === f.id}
+                            className="text-[10px] font-semibold text-red-600 hover:underline disabled:opacity-50"
+                            onClick={() => {
+                              if (!activeFamilyId) return;
+                              if (!window.confirm("Forget this memory? Saheli will stop using it.")) {
+                                return;
+                              }
+                              setMemoryActionId(f.id);
+                              void forgetFamilyMemory(activeFamilyId, recipientUserId, f.id)
+                                .then(() => reloadSelected())
+                                .finally(() => setMemoryActionId(null));
+                            }}
+                          >
+                            Forget
+                          </button>
+                        </div>
+                      </div>
+                      {correctingId === f.id ? (
+                        <div className="mt-2 space-y-1.5">
+                          <textarea
+                            value={correctionText}
+                            onChange={(e) => setCorrectionText(e.target.value)}
+                            rows={2}
+                            className="w-full rounded-md border border-[var(--border-strong)] bg-[var(--input-bg)] px-2 py-1 text-[11px]"
+                          />
+                          <div className="flex gap-2">
+                            <button
+                              type="button"
+                              className="rounded-md bg-primary px-2 py-1 text-[10px] font-bold text-white"
+                              onClick={() => {
+                                if (!activeFamilyId || correctionText.trim().length < 4) return;
+                                setMemoryActionId(f.id);
+                                void correctFamilyMemory(
+                                  activeFamilyId,
+                                  recipientUserId,
+                                  f.id,
+                                  correctionText.trim(),
+                                )
+                                  .then(() => {
+                                    setCorrectingId(null);
+                                    return reloadSelected();
+                                  })
+                                  .finally(() => setMemoryActionId(null));
+                              }}
+                            >
+                              Save fix
+                            </button>
+                            <button
+                              type="button"
+                              className="text-[10px] text-[var(--text-tertiary)]"
+                              onClick={() => setCorrectingId(null)}
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      ) : null}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="mt-2 text-[10px] text-[var(--text-tertiary)]">
+                  No editable source facts linked yet — use Fix/Forget on recent memories above.
+                </p>
+              )}
+            </>
           )}
         </div>
       ) : null}

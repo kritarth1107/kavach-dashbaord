@@ -7,12 +7,21 @@ import {
   apiMemberToFamilyMember,
   isCareRecipientRole,
 } from "@/components/dashboard/family/family-data";
-import { getCareBrief, getFamilyMembers, getLabTrends, type CareBrief } from "@/lib/api";
+import {
+  getCareBrief,
+  getDoctorBrief,
+  getFamilyMembers,
+  getLabTrends,
+  type CareBrief,
+  type DoctorBrief,
+} from "@/lib/api";
 import { CareRecordTimeline } from "@/components/dashboard/care-record/care-record-timeline";
 
 export function ReportsPage() {
   const { activeFamilyId, activeFamily, userId } = useFamily();
   const [brief, setBrief] = useState<CareBrief | null>(null);
+  const [doctorBrief, setDoctorBrief] = useState<DoctorBrief | null>(null);
+  const [loadingDoctor, setLoadingDoctor] = useState(false);
   const [recipients, setRecipients] = useState<Array<{ userId: string; name: string }>>([]);
   const [subjectUserId, setSubjectUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -71,6 +80,7 @@ export function ReportsPage() {
   }, [load]);
 
   useEffect(() => {
+    setDoctorBrief(null);
     if (subjectUserId) void loadBrief(subjectUserId);
   }, [subjectUserId, loadBrief]);
 
@@ -133,6 +143,55 @@ export function ReportsPage() {
                 ))}
               </div>
             )}
+          </div>
+        )}
+      </div>
+
+
+      <div className="panel-card overflow-hidden">
+        <div className="flex items-center justify-between gap-2 border-b border-[var(--border-strong)] px-5 py-4">
+          <div className="flex items-center gap-2">
+            <Sparkles className="h-4 w-4 text-primary" strokeWidth={2.25} />
+            <div>
+              <h2 className="text-[16px] font-extrabold text-[var(--text-primary)]">Doctor Brief</h2>
+              <p className="text-[12px] text-[var(--text-tertiary)]">
+                Stakeholder summary from the care record — not a diagnosis
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            disabled={!subjectUserId || loadingDoctor}
+            onClick={() => {
+              if (!activeFamilyId || !subjectUserId) return;
+              setLoadingDoctor(true);
+              void getDoctorBrief(activeFamilyId, subjectUserId)
+                .then(({ data }) => setDoctorBrief(data ?? null))
+                .catch(() => setDoctorBrief(null))
+                .finally(() => setLoadingDoctor(false));
+            }}
+            className="rounded-full bg-primary px-3 py-1.5 text-[11px] font-bold text-white disabled:opacity-50"
+          >
+            {loadingDoctor ? "Generating…" : doctorBrief ? "Refresh" : "Generate"}
+          </button>
+        </div>
+        {loadingDoctor ? (
+          <div className="flex justify-center py-12">
+            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+          </div>
+        ) : !doctorBrief ? (
+          <p className="px-5 py-10 text-center text-[13px] text-[var(--text-tertiary)]">
+            Generate a concise clinician-facing brief from vitals, meds, and check-ins. Distinct from the caregiver Care Brief.
+          </p>
+        ) : (
+          <div className="space-y-3 px-5 py-5">
+            <p className="text-[11px] text-[var(--text-tertiary)]">
+              {doctorBrief.subjectName} · {new Date(doctorBrief.generatedAt).toLocaleString("en-IN")} ·{" "}
+              {doctorBrief.eventCount} events · audience: doctor
+            </p>
+            <div className="whitespace-pre-wrap text-[13px] leading-relaxed text-[var(--text-primary)]">
+              {doctorBrief.sections.narrative}
+            </div>
           </div>
         )}
       </div>
