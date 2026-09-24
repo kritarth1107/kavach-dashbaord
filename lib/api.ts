@@ -997,7 +997,7 @@ export type SaheliCompanionProfile = {
   quietHoursStart?: string;
   quietHoursEnd?: string;
   nudgeIntensity?: "gentle" | "standard" | "persistent";
-  preferredLanguage?: "english" | "hinglish" | "hindi" | "tamil";
+  preferredLanguage?: "english" | "hinglish" | "hindi" | "tamil" | "kannada";
   birthday?: string;
   importantDates?: Array<{ label: string; date: string }>;
   lastOutreachAt?: string | null;
