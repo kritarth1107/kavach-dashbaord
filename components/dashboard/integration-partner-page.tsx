@@ -115,9 +115,9 @@ function OrderApprovalSettings({
         <div className="flex items-center gap-2">
           <ShieldCheck className="h-4 w-4 text-primary" strokeWidth={2.25} />
           <div>
-            <h2 className="text-[15px] font-extrabold text-[var(--text-primary)]">Order approval</h2>
+            <h2 className="text-[15px] font-extrabold text-[var(--text-primary)]">Elder ordering</h2>
             <p className="mt-0.5 text-[12px] text-[var(--text-secondary)]">
-              Control when care recipients need your sign-off before checkout.
+              Elders order from their own WhatsApp — caregivers are notified, not asked to approve.
             </p>
           </div>
         </div>
@@ -137,9 +137,9 @@ function OrderApprovalSettings({
             }}
           />
           <div>
-            <p className="text-[13px] font-bold text-[var(--text-primary)]">Approval required</p>
+            <p className="text-[13px] font-bold text-[var(--text-primary)]">Legacy: approval required</p>
             <p className="mt-0.5 text-[12px] text-[var(--text-secondary)]">
-              Default — care recipient orders always wait for a caregiver to approve.
+              Not recommended — Saheli WhatsApp still lets elders place; this only affects older dashboard flows.
             </p>
           </div>
         </label>
@@ -158,10 +158,10 @@ function OrderApprovalSettings({
           />
           <div>
             <p className="text-[13px] font-bold text-[var(--text-primary)]">
-              Care recipient can order directly
+              Elder can order · caregivers notified
             </p>
             <p className="mt-0.5 text-[12px] text-[var(--text-secondary)]">
-              Smaller baskets can go straight to checkout without waiting on you.
+              Default — Amma places from her WhatsApp; you get a summary notification (no approve step).
             </p>
           </div>
         </label>
@@ -207,8 +207,8 @@ function OrderApprovalSettings({
         )}
 
         <p className="rounded-lg bg-primary-light px-3 py-2 text-[11px] leading-relaxed text-primary">
-          When you order through Saheli as a caregiver, checkout always goes straight through — no
-          approval step.
+          Instinct parity: elders never wait on caregiver approval for groceries. Caregiver-initiated
+          orders also checkout directly. You always get a notify when Amma places.
         </p>
 
         {canManage && dirty && (
@@ -218,7 +218,7 @@ function OrderApprovalSettings({
             onClick={() => void handleSave()}
             className="rounded-full bg-primary px-4 py-2 text-[11px] font-bold text-white disabled:opacity-50"
           >
-            Save approval settings
+            Save elder-order settings
           </button>
         )}
       </div>
@@ -339,7 +339,7 @@ export function IntegrationPartnerPage({ partner }: { partner: McpIntegrationPar
       if (updated) {
         setData((prev) => (prev ? { ...prev, orderSettings: updated } : prev));
       }
-      setBanner({ type: "success", text: "Approval settings saved." });
+      setBanner({ type: "success", text: "Elder-order settings saved." });
     } catch (err) {
       setBanner({ type: "error", text: err instanceof Error ? err.message : "Save failed" });
     } finally {

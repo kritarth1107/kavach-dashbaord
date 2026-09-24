@@ -4,6 +4,7 @@ import { Loader2 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import {
   approveOrder,
+  getOrderHistory,
   getPendingApprovals,
   payOrder,
   rejectOrder,
@@ -17,14 +18,24 @@ function partnerDisplay(order: PendingOrder): { label: string; openLabel: string
   if (raw.includes("instamart")) return { label: "Instamart", openLabel: "Open in Instamart →" };
   if (raw.includes("swiggy")) return { label: "Swiggy", openLabel: "Open in Swiggy →" };
   if (raw.includes("zepto")) return { label: "Zepto", openLabel: "Open in Zepto app →" };
+  if (raw.includes("apollo")) return { label: "Apollo", openLabel: "Open in Apollo →" };
+  if (raw.includes("pharmeasy")) return { label: "PharmEasy", openLabel: "Open in PharmEasy →" };
+  if (raw.includes("1mg") || raw.includes("tata")) return { label: "Tata 1mg", openLabel: "Open in 1mg →" };
   if (order.partner_label) return { label: order.partner_label, openLabel: `Open in ${order.partner_label} →` };
   return { label: "Partner", openLabel: "Open partner app →" };
 }
 
+function statusLabel(status: string): string {
+  if (status === "paid" || status === "delivered") return "placed · caregivers notified";
+  if (status === "awaiting_approval") return "awaiting approval";
+  if (status === "approved") return "approved — ready to place";
+  return status.replace(/_/g, " ");
+}
 
 export function ApprovalsPage() {
   const { activeFamilyId, activeFamily } = useFamily();
   const [orders, setOrders] = useState<PendingOrder[]>([]);
+  const [recentPlaced, setRecentPlaced] = useState<PendingOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState("");
@@ -34,17 +45,26 @@ export function ApprovalsPage() {
   const load = useCallback(async () => {
     if (!activeFamilyId) {
       setOrders([]);
+      setRecentPlaced([]);
       setLoading(false);
       return;
     }
     setLoading(true);
     setError("");
     try {
-      const { data } = await getPendingApprovals(activeFamilyId);
+      const [{ data }, history] = await Promise.all([
+        getPendingApprovals(activeFamilyId),
+        getOrderHistory(activeFamilyId).catch(() => ({ data: { orders: [] as PendingOrder[] } })),
+      ]);
       setOrders(data?.orders ?? []);
+      const placed = (history.data?.orders ?? [])
+        .filter((o) => o.status === "paid" || o.status === "delivered")
+        .slice(0, 8);
+      setRecentPlaced(placed);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load approvals");
       setOrders([]);
+      setRecentPlaced([]);
     } finally {
       setLoading(false);
     }
@@ -75,7 +95,6 @@ export function ApprovalsPage() {
       await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Approve / place failed");
-      // Refresh so approved-but-unpaid orders still show Pay.
       try {
         await load();
       } catch {
@@ -128,7 +147,8 @@ export function ApprovalsPage() {
       <div className="panel-card p-5">
         <h1 className="text-[18px] font-extrabold text-[var(--text-primary)]">Approvals</h1>
         <p className="mt-1 text-[13px] text-[var(--text-tertiary)]">
-          Partner baskets — approve & place (COD), or open in the partner app. Checkout errors show here.
+          Caregiver-initiated baskets needing action. Elder WhatsApp orders place directly — they
+          show below as placed / notified, not pending approve.
         </p>
       </div>
 
@@ -168,7 +188,7 @@ export function ApprovalsPage() {
                       {order.items.map((i) => `${i.name} x${i.quantity}`).join(" · ")}
                     </p>
                     <p className="mt-1 text-[11px] capitalize text-[var(--text-tertiary)]">
-                      {order.status.replace(/_/g, " ")}
+                      {statusLabel(order.status)}
                     </p>
                     {order.deep_link && (
                       <a
@@ -222,6 +242,37 @@ export function ApprovalsPage() {
           </ul>
         )}
       </div>
+
+      {!loading && recentPlaced.length > 0 && (
+        <div className="panel-card overflow-hidden">
+          <div className="border-b border-[var(--border-strong)] px-5 py-3">
+            <h2 className="text-[14px] font-extrabold text-[var(--text-primary)]">
+              Recently placed · notified
+            </h2>
+            <p className="mt-0.5 text-[11px] text-[var(--text-tertiary)]">
+              Elder WhatsApp orders — no approve action needed.
+            </p>
+          </div>
+          <ul className="divide-y divide-[var(--border-strong)]">
+            {recentPlaced.map((order) => {
+              const partner = partnerDisplay(order);
+              return (
+                <li key={`placed-${order.order_id}`} className="px-5 py-3">
+                  <p className="text-[13px] font-bold text-[var(--text-primary)]">
+                    {partner.label} · ₹{(order.total_paise / 100).toFixed(0)}
+                  </p>
+                  <p className="mt-0.5 text-[12px] text-[var(--text-secondary)]">
+                    {order.items.map((i) => `${i.name} x${i.quantity}`).join(" · ")}
+                  </p>
+                  <p className="mt-1 text-[11px] text-emerald-700 dark:text-emerald-400">
+                    {statusLabel(order.status)}
+                  </p>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      )}
     </div>
   );
 }
