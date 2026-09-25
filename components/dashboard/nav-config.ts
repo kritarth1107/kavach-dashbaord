@@ -1,5 +1,7 @@
 import {
+  Activity,
   BarChart3,
+  CalendarDays,
   Bell,
   CreditCard,
   FileText,
@@ -32,6 +34,8 @@ export const navGroups: NavGroup[] = [
     items: [
       { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
       { label: "Health Record", href: "/dashboard/record", icon: Stethoscope },
+      { label: "Saheli Activity", href: "/dashboard/activity", icon: Activity },
+      { label: "Daily Snapshot", href: "/dashboard/activity/snapshot", icon: CalendarDays },
       { label: "Activity Log", href: "/dashboard/alerts", icon: TrendingUp },
     ],
   },

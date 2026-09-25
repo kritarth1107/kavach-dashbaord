@@ -67,10 +67,16 @@ export function DashboardSidebar() {
   const { activeFamily } = useFamily();
   const navGroupsForRole = getNavGroupsForRole(activeFamily?.role);
 
-  const isActive = (href: string) => {
-    if (href === "/dashboard") return pathname === "/dashboard";
-    return pathname.startsWith(href);
-  };
+  // Most specific nav entry wins (e.g. /dashboard/activity/snapshot over /dashboard/activity).
+  const activeHref = navGroupsForRole
+    .flatMap((group) => group.items.map((item) => item.href))
+    .filter((href) =>
+      href === "/dashboard"
+        ? pathname === "/dashboard"
+        : pathname === href || pathname.startsWith(`${href}/`),
+    )
+    .sort((a, b) => b.length - a.length)[0];
+  const isActive = (href: string) => href === activeHref;
 
   return (
     <aside

@@ -21,7 +21,9 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const stored = localStorage.getItem("kavach-sidebar-collapsed");
-    if (stored === "true") setCollapsed(true);
+    // Start collapsed on phones so page content gets the width.
+    const narrow = window.matchMedia("(max-width: 767px)").matches;
+    if (stored === "true" || narrow) setCollapsed(true);
   }, []);
 
   const persistCollapsed = useCallback((next: boolean) => {

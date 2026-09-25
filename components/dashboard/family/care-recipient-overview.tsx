@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Calendar, ChevronRight, Loader2, MessageSquare } from "lucide-react";
+import { Activity, Calendar, CalendarDays, ChevronRight, Loader2, MessageSquare } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { getRecipientBriefing, getRecipientLabs, type RecipientBriefing } from "@/lib/api";
 import { useFamily } from "@/components/dashboard/family-context";
@@ -144,6 +144,18 @@ export function CareRecipientOverview({
           title="All health records"
           sub="Family-wide view with filters"
           onNavigate={onOpenHealth}
+        />
+        <QuickLink
+          href={`/dashboard/activity?recipient=${encodeURIComponent(recipientUserId)}`}
+          icon={Activity}
+          title="Saheli activity"
+          sub="Chats, orders step-by-step, alerts"
+        />
+        <QuickLink
+          href={`/dashboard/activity/snapshot?recipient=${encodeURIComponent(recipientUserId)}`}
+          icon={CalendarDays}
+          title="Daily snapshot"
+          sub={`A summary of ${recipientName}'s day`}
         />
       </div>
     </div>
