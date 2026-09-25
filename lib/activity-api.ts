@@ -1,6 +1,6 @@
 /**
  * Typed client for the caregiver activity feed + daily snapshot.
- * Contract: kavach-backend/docs/activity-api-contract.md (v1, 2026-09-26).
+ * Contract: kavach-backend/docs/activity-api-contract.md (v1.1, 2026-09-26).
  *
  * All calls go through the dashboard's Next.js proxy routes under
  * /api/families/:familyId/subjects/:subjectUserId/{activity,daily-snapshot,daily-snapshots},
@@ -22,7 +22,8 @@ export type ActivityKind =
   | "mood"
   | "health"
   | "caregiver_alert"
-  | "diag";
+  | "diag"
+  | "nudge";
 
 export const KNOWN_ACTIVITY_KINDS: ActivityKind[] = [
   "message_in",
@@ -40,6 +41,7 @@ export const KNOWN_ACTIVITY_KINDS: ActivityKind[] = [
   "health",
   "caregiver_alert",
   "diag",
+  "nudge",
 ];
 
 export type ActivitySeverity = "info" | "warn" | "error";
@@ -82,6 +84,8 @@ export type DailySnapshotCounts = {
   rides?: number;
   reminders?: number;
   healthFlags?: number;
+  /** v1.1 — may be missing on older snapshots (treat as 0). */
+  nudges?: number;
   [key: string]: number | undefined;
 };
 

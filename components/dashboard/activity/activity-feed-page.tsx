@@ -40,6 +40,7 @@ import {
   TERMINAL_ORDER_KINDS,
   TONE_CHIP,
   isFilterKey,
+  jobIdOf,
   kindMeta,
   screenshotOf,
   severityCardClass,
@@ -87,9 +88,31 @@ function partnerLabel(items: ActivityItem[]): string | null {
   return null;
 }
 
-/** Presentation-only grouping of consecutive order events into one expandable run. */
+/**
+ * Group order events into one expandable card per order run.
+ * v1.1: rows carrying data.jobId are grouped by it (even if other events are interleaved).
+ * Fallback for older rows without jobId: consecutive order events, same partner, ≤45 min apart.
+ */
 function buildEntries(items: ActivityItem[]): Entry[] {
+  const within = (a: ActivityItem, b: ActivityItem) =>
+    a.dayKey === b.dayKey &&
+    Math.abs(new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()) <= ORDER_GROUP_GAP_MS;
+
+  // diag rows may lack jobId — adopt the job of an adjacent order event in the same run.
+  const jobs = items.map(jobIdOf);
+  items.forEach((item, i) => {
+    if (jobs[i] || item.kind !== "diag") return;
+    for (const j of [i - 1, i + 1]) {
+      const n = items[j];
+      if (n && jobs[j] && n.kind !== "diag" && within(item, n)) {
+        jobs[i] = jobs[j];
+        return;
+      }
+    }
+  });
+
   const entries: Entry[] = [];
+  const byJob = new Map<string, ActivityItem[]>();
   let group: ActivityItem[] | null = null;
 
   const flush = () => {
@@ -97,28 +120,38 @@ function buildEntries(items: ActivityItem[]): Entry[] {
     group = null;
   };
 
-  for (const item of items) {
+  items.forEach((item, i) => {
+    const job = jobs[i];
+    if (job) {
+      flush();
+      const existing = byJob.get(job);
+      if (existing) existing.push(item);
+      else {
+        const list = [item];
+        byJob.set(job, list);
+        entries.push({ type: "order", key: `job-${job}`, items: list });
+      }
+      return;
+    }
     if (!ORDER_KINDS.has(item.kind)) {
       flush();
       entries.push({ type: "event", key: item.id, item });
-      continue;
+      return;
     }
     if (group) {
       const current: ActivityItem[] = group;
       const oldest = current[current.length - 1];
-      const gap = new Date(oldest.createdAt).getTime() - new Date(item.createdAt).getTime();
       const p = partnerOf(item);
       const gp = current.map(partnerOf).find(Boolean) ?? null;
       const sameRun =
-        gap <= ORDER_GROUP_GAP_MS &&
-        oldest.dayKey === item.dayKey &&
+        within(oldest, item) &&
         !(TERMINAL_ORDER_KINDS.has(item.kind) && current.some((g) => TERMINAL_ORDER_KINDS.has(g.kind))) &&
         !(p && gp && p !== gp);
       if (!sameRun) flush();
     }
     if (!group) group = [];
     (group as ActivityItem[]).push(item);
-  }
+  });
   flush();
   return entries;
 }
@@ -513,24 +546,36 @@ function EventRow({ item, now, highlighted }: { item: ActivityItem; now: number;
     const status = str(item.data?.status);
     if (status) badges.push(humanize(status));
   }
+  if (item.kind === "nudge") {
+    const source = str(item.data?.source);
+    if (source === "care_nudge") badges.push("Care-schedule nudge");
+    else if (source === "outreach") badges.push("Companion check-in");
+    const sub = str(item.data?.nudgeKind) ?? str(item.data?.outreachKind);
+    if (sub) badges.push(humanize(sub));
+    const at = str(item.data?.scheduledTime);
+    if (at) badges.push(`For ${at} IST`);
+  }
   const from = item.kind === "ride" ? str(item.data?.from) : null;
   const to = item.kind === "ride" ? str(item.data?.to) : null;
   const isAlert = item.severity !== "info";
+  // Proactive Saheli messages are context, not events — keep them visually quiet.
+  const subtle = item.kind === "nudge" && !isAlert;
 
   return (
     <li id={`act-${item.id}`} className="relative scroll-mt-28">
       <span
         className={cn(
-          "absolute -left-11 top-2.5 flex h-[34px] w-[34px] items-center justify-center rounded-xl ring-4 ring-[var(--main-surface)]",
+          "absolute top-2.5 flex items-center justify-center rounded-xl ring-4 ring-[var(--main-surface)]",
+          subtle ? "-left-[38px] h-7 w-7" : "-left-11 h-[34px] w-[34px]",
           TONE_CHIP[meta.tone],
         )}
       >
-        <Icon className="h-4 w-4" strokeWidth={2.25} />
+        <Icon className={subtle ? "h-3.5 w-3.5" : "h-4 w-4"} strokeWidth={2.25} />
       </span>
       <div
         className={cn(
           "rounded-2xl border px-4 py-3 transition-shadow",
-          severityCardClass(item.severity),
+          subtle ? "border-dashed border-[var(--border-strong)] bg-transparent py-2.5" : severityCardClass(item.severity),
           item.severity === "error" && "border-l-4 border-l-[var(--danger-text)]",
           highlighted && "ring-2 ring-primary",
         )}
@@ -551,7 +596,8 @@ function EventRow({ item, now, highlighted }: { item: ActivityItem; now: number;
             </p>
             <p
               className={cn(
-                "mt-0.5 text-[13.5px] font-bold leading-snug",
+                "mt-0.5 leading-snug",
+                subtle ? "text-[12.5px] font-semibold" : "text-[13.5px] font-bold",
                 item.severity === "error" ? "text-[var(--danger-text)]" : "text-[var(--text-primary)]",
               )}
             >

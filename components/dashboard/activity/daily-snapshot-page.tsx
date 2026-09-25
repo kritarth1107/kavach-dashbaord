@@ -5,6 +5,7 @@ import {
   AlertTriangle,
   ArrowRight,
   CalendarDays,
+  BellRing,
   Car,
   CheckCircle2,
   HeartPulse,
@@ -61,6 +62,7 @@ const COUNT_TILES: Array<{ key: string; label: string; icon: typeof MessageCircl
   { key: "rides", label: "Rides", icon: Car },
   { key: "reminders", label: "Reminders", icon: AlarmClock },
   { key: "healthFlags", label: "Health flags", icon: HeartPulse },
+  { key: "nudges", label: "Nudges", icon: BellRing },
 ];
 
 export function DailySnapshotPage() {
@@ -422,7 +424,9 @@ function SnapshotBody({ snapshot }: { snapshot: DailySnapshot }) {
   const highlights = snapshot.highlights ?? [];
   const concerns = snapshot.concerns ?? [];
   const counts = snapshot.counts ?? {};
-  const tiles = COUNT_TILES.filter((t) => typeof counts[t.key] === "number");
+  // counts.nudges (v1.1) may be missing on older snapshots — treat as 0.
+  const hasCounts = Object.values(counts).some((v) => typeof v === "number");
+  const tiles = COUNT_TILES.filter((t) => typeof counts[t.key] === "number" || (t.key === "nudges" && hasCounts));
 
   return (
     <div className="space-y-5 px-5 py-5">
@@ -462,7 +466,7 @@ function SnapshotBody({ snapshot }: { snapshot: DailySnapshot }) {
       )}
 
       {tiles.length > 0 && (
-        <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
+        <div className="grid grid-cols-4 gap-2 sm:grid-cols-7">
           {tiles.map((t) => {
             const Icon = t.icon;
             const value = counts[t.key] ?? 0;
@@ -576,8 +580,8 @@ function SnapshotSkeleton() {
       <div className="h-3.5 w-full rounded bg-[var(--surface)]" />
       <div className="h-3.5 w-11/12 rounded bg-[var(--surface)]" />
       <div className="h-3.5 w-4/5 rounded bg-[var(--surface)]" />
-      <div className="mt-5 grid grid-cols-3 gap-2 sm:grid-cols-6">
-        {Array.from({ length: 6 }).map((_, i) => (
+      <div className="mt-5 grid grid-cols-4 gap-2 sm:grid-cols-7">
+        {Array.from({ length: 7 }).map((_, i) => (
           <div key={i} className="h-16 rounded-xl bg-[var(--surface)]" />
         ))}
       </div>

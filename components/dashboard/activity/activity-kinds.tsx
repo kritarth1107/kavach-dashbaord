@@ -1,6 +1,7 @@
 import {
   AlarmClock,
   AlertTriangle,
+  BellRing,
   Bot,
   Camera,
   Car,
@@ -37,6 +38,7 @@ export const KIND_META: Record<string, KindMeta> = {
   health: { label: "Health", icon: HeartPulse, tone: "amber" },
   caregiver_alert: { label: "Caregiver alert", icon: Siren, tone: "amber" },
   diag: { label: "Diagnostics", icon: Camera, tone: "gray" },
+  nudge: { label: "Saheli nudge", icon: BellRing, tone: "gray" },
 };
 
 const FALLBACK: KindMeta = { label: "Activity", icon: CircleDot, tone: "gray" };
@@ -75,7 +77,7 @@ export const ORDER_KINDS = new Set([
 
 export const TERMINAL_ORDER_KINDS = new Set(["order_placed", "order_failed", "order_cancelled"]);
 
-export type FilterKey = "all" | "alerts" | "conversations" | "orders" | "rides" | "reminders";
+export type FilterKey = "all" | "alerts" | "conversations" | "orders" | "rides" | "reminders" | "nudges";
 
 export const FILTERS: Array<{ key: FilterKey; label: string; kinds: string[] | null }> = [
   { key: "all", label: "All", kinds: null },
@@ -84,6 +86,7 @@ export const FILTERS: Array<{ key: FilterKey; label: string; kinds: string[] | n
   { key: "orders", label: "Orders", kinds: [...ORDER_KINDS] },
   { key: "rides", label: "Rides", kinds: ["ride"] },
   { key: "reminders", label: "Reminders", kinds: ["reminder"] },
+  { key: "nudges", label: "Nudges", kinds: ["nudge"] },
 ];
 
 export function isFilterKey(value: string | null): value is FilterKey {
@@ -96,6 +99,12 @@ export function str(value: unknown): string | null {
 
 export function strList(value: unknown): string[] {
   return Array.isArray(value) ? value.filter((v): v is string => typeof v === "string" && !!v.trim()) : [];
+}
+
+/** Internal order-run id (v1.1): data.jobId, alias data.orderId. Not the merchant order number. */
+export function jobIdOf(item: ActivityItem): string | null {
+  if (!ORDER_KINDS.has(item.kind)) return null;
+  return str(item.data?.jobId) ?? str(item.data?.orderId);
 }
 
 /** Only accept inline image data URLs for screenshots (never remote URLs). */
