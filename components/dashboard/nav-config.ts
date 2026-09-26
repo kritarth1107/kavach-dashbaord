@@ -3,6 +3,7 @@ import {
   BarChart3,
   CalendarDays,
   Bell,
+  BookUser,
   CreditCard,
   FileText,
   HelpCircle,
@@ -43,6 +44,7 @@ export const navGroups: NavGroup[] = [
     title: "Family",
     items: [
       { label: "Family Members", href: "/dashboard/family", icon: Users },
+      { label: "Address Book", href: "/dashboard/addresses", icon: BookUser },
       {
         label: "Ask Saheli",
         href: "/dashboard/chat",
