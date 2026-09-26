@@ -71,7 +71,7 @@ export function SaheliUsualsCard({ recipientUserId, recipientName }: { recipient
         <div>
           <h2 className="text-[15px] font-extrabold text-[var(--text-primary)]">{recipientName}&apos;s usuals</h2>
           <p className="text-[12px] text-[var(--text-secondary)]">
-            What Saheli has learned from orders and rides. Every order still needs her *confirm*, a health check and the live price.
+            What Saheli has learned from orders and rides. Every order still needs her “confirm”, a health check and the live price.
           </p>
         </div>
       </div>
