@@ -2079,3 +2079,41 @@ export async function linkChannelIdentity(
   });
   return parseResponse<ChannelIdentity>(res);
 }
+
+// ── Saheli usuals (what Saheli has learned about the elder's regular orders) ──
+export type UsualsItem = {
+  key: string;
+  name: string;
+  partner: string;
+  category: "food" | "grocery" | "pharmacy";
+  pricePaise: number | null;
+  count: number;
+  lastAt: string;
+  intervalDays: number | null;
+  placeNickname: string | null;
+};
+export type UsualsDecline = { item: string; partner?: string; reason: string; replacedWith?: string | null; at: string };
+export type RecipientUsuals = {
+  items: UsualsItem[];
+  preferredApp: Partial<Record<"food" | "grocery" | "pharmacy", string>>;
+  rides: Array<{ destination: string; count: number; lastAt: string }>;
+  rejections: UsualsDecline[];
+  typicalHours: number[];
+};
+
+export async function getRecipientUsuals(familyId: string, recipientUserId: string) {
+  const res = await timedFetch(`/api/families/${familyId}/recipients/${recipientUserId}/saheli/usuals`);
+  return parseResponse<RecipientUsuals>(res);
+}
+
+export async function removeRecipientUsualItem(familyId: string, recipientUserId: string, name: string, partner: string) {
+  const qs = new URLSearchParams({ name, partner }).toString();
+  const res = await timedFetch(`/api/families/${familyId}/recipients/${recipientUserId}/saheli/usuals/items?${qs}`, { method: "DELETE" });
+  return parseResponse<{ removed: boolean; usuals: RecipientUsuals }>(res);
+}
+
+export async function removeRecipientUsualDecline(familyId: string, recipientUserId: string, item: string, at: string) {
+  const qs = new URLSearchParams({ item, at }).toString();
+  const res = await timedFetch(`/api/families/${familyId}/recipients/${recipientUserId}/saheli/usuals/declines?${qs}`, { method: "DELETE" });
+  return parseResponse<{ removed: boolean; usuals: RecipientUsuals }>(res);
+}
