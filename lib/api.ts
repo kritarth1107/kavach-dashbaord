@@ -1888,6 +1888,9 @@ export type McpIntegrationInfo = {
   description: string;
   connected: boolean;
   connectedAt: string | null;
+  /** Family-level link: linked by me, or by another family admin (their name). */
+  connectedByMe?: boolean;
+  connectedByName?: string | null;
   addressCount?: number;
   redirectUri: string;
   mcpUrl?: string;
@@ -2005,6 +2008,8 @@ export type PartnerIntegrationDetail = {
   label: string;
   connected: boolean;
   connectedAt: string | null;
+  connectedByMe?: boolean;
+  connectedByName?: string | null;
   addressCount: number;
   addresses: PartnerAddress[];
   capabilities: string[];

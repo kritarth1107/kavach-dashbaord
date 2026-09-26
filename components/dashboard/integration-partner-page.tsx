@@ -299,6 +299,12 @@ export function IntegrationPartnerPage({ partner }: { partner: McpIntegrationPar
 
   async function handleDisconnect() {
     if (!activeFamilyId || !canManage) return;
+    if (
+      !window.confirm(
+        `Disconnect ${meta.title} for the whole family? Saheli will fall back to the ${meta.title} website, which asks for an OTP.`,
+      )
+    )
+      return;
     setBusy(true);
     try {
       await disconnectMcp(activeFamilyId, partner);
@@ -403,7 +409,8 @@ export function IntegrationPartnerPage({ partner }: { partner: McpIntegrationPar
           {data.connected && (
             <div className="flex items-center gap-2 rounded-xl border border-primary/20 bg-primary-light px-4 py-3 text-[12px] text-primary">
               <Sparkles className="h-4 w-4 shrink-0" />
-              Ask Saheli in chat to search and order from {meta.title}.
+              Your family member can now ask Saheli on WhatsApp — pick an option, reply
+              &quot;confirm&quot;, no OTP. Cash on Delivery, family address book only.
             </div>
           )}
 
@@ -417,6 +424,11 @@ export function IntegrationPartnerPage({ partner }: { partner: McpIntegrationPar
                 <p className="mt-1 text-[12px] text-[var(--text-secondary)]">{data.description}</p>
                 {data.connected && data.connectedAt && (
                   <p className="mt-1.5 text-[11px] text-[var(--text-tertiary)]">
+                    {data.connectedByMe === false && data.connectedByName
+                      ? `Linked by ${data.connectedByName} · `
+                      : data.connectedByMe
+                        ? "Linked by you · "
+                        : ""}
                     Connected {formatConnectedAt(data.connectedAt)}
                     {data.addressCount > 0
                       ? ` · ${data.addressCount} saved address${data.addressCount === 1 ? "" : "es"}`

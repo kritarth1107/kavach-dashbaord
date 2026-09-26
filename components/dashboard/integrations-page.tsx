@@ -5,9 +5,12 @@ import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { useFamily } from "@/components/dashboard/family-context";
+import { canApproveOrders } from "@/components/dashboard/family/family-data";
 import { INTEGRATION_PARTNERS } from "@/components/dashboard/integrations-data";
 import {
+  disconnectMcp,
   getFamilyIntegrations,
+  startMcpConnect,
   type FamilyIntegrations,
   type McpIntegrationPartner,
 } from "@/lib/api";
@@ -37,6 +40,11 @@ function PartnerOverviewCard({
   connected,
   addressCount,
   connectedAt,
+  linkedBy,
+  canManage,
+  busy,
+  onConnect,
+  onDisconnect,
 }: {
   title: string;
   subtitle: string;
@@ -45,38 +53,63 @@ function PartnerOverviewCard({
   connected: boolean;
   addressCount?: number;
   connectedAt: string | null;
+  linkedBy?: string | null;
+  canManage: boolean;
+  busy: boolean;
+  onConnect: () => void;
+  onDisconnect: () => void;
 }) {
   return (
-    <Link
-      href={href}
-      className="panel-card group flex items-center gap-4 p-5 transition-colors hover:border-primary/30"
-    >
-      <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-black/5">
-        <Image src={logoSrc} alt={title} width={44} height={44} className="h-11 w-11 object-cover" />
-      </div>
-      <div className="min-w-0 flex-1">
-        <div className="flex flex-wrap items-center gap-2">
-          <h2 className="text-[14px] font-extrabold text-[var(--text-primary)]">{title}</h2>
-          <ConnectionDot connected={connected} />
+    <div className="panel-card flex items-center gap-3 p-5 transition-colors hover:border-primary/30">
+      <Link href={href} className="group flex min-w-0 flex-1 items-center gap-4">
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-black/5">
+          <Image src={logoSrc} alt={title} width={44} height={44} className="h-11 w-11 object-cover" />
         </div>
-        <p className="mt-0.5 text-[12px] text-[var(--text-secondary)]">{subtitle}</p>
-        {connected && (
-          <p className="mt-1 text-[11px] text-[var(--text-tertiary)]">
-            {typeof addressCount === "number"
-              ? `${addressCount} saved address${addressCount === 1 ? "" : "es"}`
-              : null}
-            {connectedAt
-              ? `${typeof addressCount === "number" ? " · " : ""}Linked ${new Date(connectedAt).toLocaleDateString("en-IN", {
-                  day: "numeric",
-                  month: "short",
-                  year: "numeric",
-                })}`
-              : null}
-          </p>
-        )}
-      </div>
-      <ChevronRight className="h-5 w-5 shrink-0 text-[var(--text-tertiary)] transition-transform group-hover:translate-x-0.5 group-hover:text-primary" />
-    </Link>
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <h2 className="text-[14px] font-extrabold text-[var(--text-primary)]">{title}</h2>
+            <ConnectionDot connected={connected} />
+          </div>
+          <p className="mt-0.5 text-[12px] text-[var(--text-secondary)]">{subtitle}</p>
+          {connected ? (
+            <p className="mt-1 text-[11px] text-[var(--text-tertiary)]">
+              {linkedBy ? `Linked by ${linkedBy}` : "Linked"}
+              {connectedAt
+                ? ` · ${new Date(connectedAt).toLocaleDateString("en-IN", {
+                    day: "numeric",
+                    month: "short",
+                    year: "numeric",
+                  })}`
+                : null}
+              {typeof addressCount === "number" && addressCount > 0
+                ? ` · ${addressCount} store address${addressCount === 1 ? "" : "es"}`
+                : null}
+              {" · WhatsApp orders without OTP"}
+            </p>
+          ) : (
+            <p className="mt-1 text-[11px] text-[var(--text-tertiary)]">
+              Not linked — Saheli uses the website instead (asks for an OTP).
+            </p>
+          )}
+        </div>
+        <ChevronRight className="h-5 w-5 shrink-0 text-[var(--text-tertiary)] transition-transform group-hover:translate-x-0.5 group-hover:text-primary" />
+      </Link>
+      {canManage && (
+        <button
+          type="button"
+          disabled={busy}
+          onClick={connected ? onDisconnect : onConnect}
+          className={cn(
+            "shrink-0 rounded-full px-3.5 py-1.5 text-[11px] font-bold disabled:opacity-50",
+            connected
+              ? "border border-[var(--border-strong)] text-[var(--text-secondary)] hover:border-red-300 hover:text-red-600"
+              : "bg-primary text-white",
+          )}
+        >
+          {connected ? "Disconnect" : "Connect"}
+        </button>
+      )}
+    </div>
   );
 }
 
@@ -113,9 +146,12 @@ function partnerInfo(data: FamilyIntegrations, key: McpIntegrationPartner) {
 }
 
 export function IntegrationsPage() {
-  const { activeFamilyId } = useFamily();
+  const { activeFamilyId, activeFamily } = useFamily();
   const [data, setData] = useState<FamilyIntegrations | null>(null);
   const [loading, setLoading] = useState(true);
+  const [busyKey, setBusyKey] = useState<McpIntegrationPartner | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const canManage = canApproveOrders(activeFamily?.role);
 
   const load = useCallback(async () => {
     if (!activeFamilyId) {
@@ -138,6 +174,39 @@ export function IntegrationsPage() {
     void load();
   }, [load]);
 
+  async function connect(key: McpIntegrationPartner) {
+    if (!activeFamilyId) return;
+    setBusyKey(key);
+    setError(null);
+    try {
+      const { data: result } = await startMcpConnect(activeFamilyId, key);
+      if (result?.authorizationUrl) {
+        window.location.assign(result.authorizationUrl);
+        return;
+      }
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Connect failed");
+    } finally {
+      setBusyKey(null);
+    }
+  }
+
+  async function disconnect(key: McpIntegrationPartner, title: string) {
+    if (!activeFamilyId) return;
+    if (!window.confirm(`Disconnect ${title} for the whole family? Saheli will fall back to the website, which asks for an OTP.`)) return;
+    setBusyKey(key);
+    setError(null);
+    try {
+      await disconnectMcp(activeFamilyId, key);
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Disconnect failed");
+    } finally {
+      setBusyKey(null);
+    }
+  }
+
   const connectedCount =
     data && [data.zepto, data.swiggy, data.instamart].filter((p) => p.connected).length;
 
@@ -146,8 +215,9 @@ export function IntegrationsPage() {
       <div>
         <h1 className="text-[22px] font-extrabold tracking-tight text-[var(--text-primary)]">Integrations</h1>
         <p className="mt-1.5 text-[14px] leading-relaxed text-[var(--text-secondary)]">
-          Connect delivery partners so Saheli can search items, build carts, and place orders from chat.
-          Open each partner to connect accounts, sync addresses, and set order approval rules.
+          Link your family&apos;s Swiggy (Food + Instamart) and Zepto accounts once. After that your family
+          member just asks Saheli on WhatsApp, picks an option and replies &quot;confirm&quot; — no OTP. Always
+          Cash on Delivery, always to a place in your family address book.
         </p>
       </div>
 
@@ -171,6 +241,9 @@ export function IntegrationsPage() {
             </div>
           )}
 
+          {error && (
+            <p className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-[12px] text-red-700">{error}</p>
+          )}
           <section className="space-y-3">
             <h2 className="text-[11px] font-bold uppercase tracking-wider text-[var(--text-tertiary)]">
               Order delivery
@@ -187,6 +260,11 @@ export function IntegrationsPage() {
                   connected={info.connected}
                   addressCount={info.addressCount}
                   connectedAt={info.connectedAt}
+                  linkedBy={info.connectedByMe ? "you" : info.connectedByName}
+                  canManage={canManage}
+                  busy={busyKey === partner.key}
+                  onConnect={() => void connect(partner.key)}
+                  onDisconnect={() => void disconnect(partner.key, partner.title)}
                 />
               );
             })}
