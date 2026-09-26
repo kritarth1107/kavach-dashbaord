@@ -8,6 +8,7 @@ import { RecipientDashboardHome } from "@/components/dashboard/recipient/recipie
 import { CareScheduleSection } from "@/components/dashboard/family/care-schedule-section";
 import { MorningBriefingCard } from "@/components/dashboard/family/morning-briefing-card";
 import { SaheliUsualsCard } from "@/components/dashboard/family/saheli-usuals-card";
+import { WhatSaheliLearnedCard } from "@/components/dashboard/family/what-saheli-learned-card";
 import { isCareRecipientRole } from "./family-data";
 import { useCareRecipientProfile } from "./care-recipient-profile-context";
 
@@ -90,6 +91,8 @@ export function CareRecipientViewPage() {
       )}
 
       <CareScheduleSection subjectName={subjectName} />
+
+      {member.userId && <WhatSaheliLearnedCard recipientUserId={member.userId} recipientName={subjectName} />}
 
       {member.userId && <SaheliUsualsCard recipientUserId={member.userId} recipientName={subjectName} />}
     </>

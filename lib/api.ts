@@ -2117,3 +2117,83 @@ export async function removeRecipientUsualDecline(familyId: string, recipientUse
   const res = await timedFetch(`/api/families/${familyId}/recipients/${recipientUserId}/saheli/usuals/declines?${qs}`, { method: "DELETE" });
   return parseResponse<{ removed: boolean; usuals: RecipientUsuals }>(res);
 }
+
+// ── Saheli's evolving profile (what she has learned; care actions; unusual activity) ──
+export type LearnedFact = {
+  id: string;
+  text: string;
+  confidence: number;
+  status: "learned" | "caregiver_confirmed" | "caregiver_edited";
+  firstSeen: string;
+  lastConfirmed: string;
+  sources: number;
+};
+export type CareActionItem = {
+  id: string;
+  dayKey: string;
+  kind: "follow_up" | "reminder" | "company" | "caregiver_suggestion" | "offer";
+  text: string;
+  say?: string;
+  why: string;
+  audience: "elder" | "caregiver";
+  status: "planned" | "used" | "dismissed";
+};
+export type UnusualAlertItem = {
+  id: string;
+  at: string;
+  category: string;
+  confidence: number;
+  tier: "whatsapp" | "dashboard";
+  text: string;
+  source: "code" | "gemini" | "baseline";
+  status: "sent" | "queued" | "logged" | "suppressed";
+};
+export type DeviationItem = { id: string; at: string; dayKey: string; metric: string; text: string; days: number; severity: "watch" | "notable" };
+export type WeeklyMetric = {
+  week: string;
+  nudgeReplyRate: number | null;
+  firstCardSuccess: number | null;
+  correctionRate: number | null;
+  caregiverEditRate: number | null;
+  adherence: number | null;
+  avgMood: number | null;
+};
+export type RecipientProfile = {
+  groups: Array<{ category: string; facts: LearnedFact[] }>;
+  careActions: CareActionItem[];
+  unusual: UnusualAlertItem[];
+  deviations: DeviationItem[];
+  metrics: WeeklyMetric[];
+  recentDays: Array<{ dayKey: string; mood: number | null; moodWord: string | null; messagesIn: number; medsDone: number; medsMissed: number; lonely: boolean }>;
+  tuning: { maxOptions?: number; preferredNudgeHour?: number; addressAs?: string; language?: string };
+  retentionDays: number;
+  lastReflection: { at: string; model: string; added: number; reinforced: number; faded: number; actions: number } | null;
+  rejectedCount: number;
+  baselineDays: number;
+  baselineWhatsAppReady: boolean;
+};
+
+const profilePath = (familyId: string, recipientUserId: string) => `/api/families/${familyId}/recipients/${recipientUserId}/saheli/profile`;
+const jsonInit = (method: string, body: unknown = {}): RequestInit => ({ method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+
+export async function getRecipientProfile(familyId: string, recipientUserId: string) {
+  return parseResponse<RecipientProfile>(await timedFetch(profilePath(familyId, recipientUserId)));
+}
+export async function confirmProfileFact(familyId: string, recipientUserId: string, factId: string) {
+  return parseResponse<RecipientProfile>(await timedFetch(`${profilePath(familyId, recipientUserId)}/facts/${encodeURIComponent(factId)}/confirm`, jsonInit("POST")));
+}
+export async function editProfileFact(familyId: string, recipientUserId: string, factId: string, text: string) {
+  return parseResponse<RecipientProfile>(await timedFetch(`${profilePath(familyId, recipientUserId)}/facts/${encodeURIComponent(factId)}`, jsonInit("PATCH", { text })));
+}
+export async function rejectProfileFact(familyId: string, recipientUserId: string, factId: string) {
+  return parseResponse<RecipientProfile>(await timedFetch(`${profilePath(familyId, recipientUserId)}/facts/${encodeURIComponent(factId)}`, { method: "DELETE" }));
+}
+export async function setCareActionStatus(familyId: string, recipientUserId: string, actionId: string, status: "used" | "dismissed") {
+  return parseResponse<RecipientProfile>(await timedFetch(`${profilePath(familyId, recipientUserId)}/care-actions/${encodeURIComponent(actionId)}`, jsonInit("PATCH", { status })));
+}
+export async function dismissProfileItem(familyId: string, recipientUserId: string, kind: "deviations" | "alerts", id: string) {
+  return parseResponse<RecipientProfile>(await timedFetch(`${profilePath(familyId, recipientUserId)}/${kind}/${encodeURIComponent(id)}`, { method: "DELETE" }));
+}
+export async function setProfileRetention(familyId: string, recipientUserId: string, days: number) {
+  return parseResponse<RecipientProfile>(await timedFetch(`${profilePath(familyId, recipientUserId)}/retention`, jsonInit("PATCH", { days })));
+}
