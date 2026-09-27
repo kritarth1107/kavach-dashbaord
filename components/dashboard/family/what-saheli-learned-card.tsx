@@ -262,7 +262,7 @@ export function WhatSaheliLearnedCard({ recipientUserId, recipientName }: { reci
               <ul className="space-y-1">
                 {data.deviations.slice(0, 4).map((d) => (
                   <li key={d.id} className="flex items-start gap-2 text-[13px] text-[var(--text-primary)]">
-                    <span className="flex-1">{d.text} <span className="text-[11px] text-[var(--text-secondary)]">{d.dayKey}</span></span>
+                    <span className="flex-1">{d.text} <span className="text-[11px] text-[var(--text-secondary)]">· {day(`${d.dayKey}T12:00:00+05:30`)}</span></span>
                     <button title="Dismiss" className="text-[var(--text-secondary)]" onClick={() => act(d.id, () => dismissProfileItem(fid, recipientUserId, "deviations", d.id))}><X className="h-3.5 w-3.5" /></button>
                   </li>
                 ))}
