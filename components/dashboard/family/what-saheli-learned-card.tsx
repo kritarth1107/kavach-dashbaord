@@ -273,6 +273,9 @@ export function WhatSaheliLearnedCard({ recipientUserId, recipientName }: { reci
             </div>
           )}
 
+          {![m?.nudgeReplyRate, m?.adherence, m?.firstCardSuccess, m?.correctionRate, m?.caregiverEditRate, m?.factDeleteRate, m?.readdAfterFadeRate].some((v) => v != null) ? (
+            <p className="px-5 py-3 text-[12px] text-[var(--text-secondary)]" data-testid="progress-metrics">Weekly progress (reminder replies, medicines taken, orders) shows up here after a few days of chats.</p>
+          ) : (
           <div className="grid grid-cols-2 gap-3 px-5 py-4 text-center sm:grid-cols-4 lg:grid-cols-7" data-testid="progress-metrics">
             {[
               ["Reminder replies", pct(m?.nudgeReplyRate)],
@@ -289,6 +292,7 @@ export function WhatSaheliLearnedCard({ recipientUserId, recipientName }: { reci
               </div>
             ))}
           </div>
+          )}
 
           <div className="flex flex-wrap items-center gap-2 px-5 py-3 text-[12px] text-[var(--text-secondary)]">
             <span>Keep what Saheli learns for</span>
