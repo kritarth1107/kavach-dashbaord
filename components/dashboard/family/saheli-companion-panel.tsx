@@ -88,7 +88,9 @@ export function SaheliCompanionPanel({
         })),
       ]);
       setProfile(companionRes.data ?? null);
-      setMemories(memoryRes.data?.memories ?? []);
+      // Questions / requests she typed ("Kaun aa raha tha kal?", "doodh mangwa do") aren't memories.
+      const NOT_MEMORY = /\?\s*$|^(kaun|kya|kab|kahan|kaise|what|who|when|where|how)\b|\b(mangwa|order|remind|cab|uber|cancel|confirm)\b/i;
+      setMemories((memoryRes.data?.memories ?? []).filter((m) => !(m.category === "casual" && NOT_MEMORY.test(String(m.content || "").trim()))));
       setActivity(activityRes.data ?? { nudges: [], escalations: [] });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load Saheli settings");
@@ -356,7 +358,9 @@ export function SaheliCompanionPanel({
                     </p>
                     <p className="text-[10px] text-red-700 dark:text-red-400">{e.message}</p>
                     <p className="mt-0.5 text-[10px] text-[var(--text-tertiary)]">
-                      {e.caregiversNotified} caregiver(s) notified ·{" "}
+                      {e.caregiversNotified > 0
+                        ? `${e.caregiversNotified} caregiver${e.caregiversNotified === 1 ? "" : "s"} alerted on WhatsApp`
+                        : "No caregiver WhatsApp number on file to alert"}{" "}·{" "}
                       {formatRelativeTime(e.createdAt)}
                     </p>
                   </div>

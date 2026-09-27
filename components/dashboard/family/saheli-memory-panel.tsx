@@ -32,7 +32,7 @@ type SaheliMemoryPanelProps = {
 export function SaheliMemoryPanel({ recipientUserId }: SaheliMemoryPanelProps) {
   const { activeFamilyId } = useFamily();
   const [entities, setEntities] = useState<SaheliMemoryEntityHit[]>([]);
-  const [profileMd, setProfileMd] = useState("");
+  const [, setProfileMd] = useState("");
   const [selectedSlug, setSelectedSlug] = useState<string | null>(null);
   const [entityBody, setEntityBody] = useState("");
   const [facts, setFacts] = useState<SaheliMemoryEntityFact[]>([]);
@@ -119,15 +119,9 @@ export function SaheliMemoryPanel({ recipientUserId }: SaheliMemoryPanelProps) {
       </p>
       {error ? <p className="mb-2 text-[11px] text-red-600">{error}</p> : null}
 
-      {profileMd ? (
-        <pre className="mb-3 max-h-28 overflow-y-auto whitespace-pre-wrap rounded-lg border border-[var(--border-strong)] bg-[var(--input-bg)] p-2 text-[10px] text-[var(--text-secondary)]">
-          {profileMd.slice(0, 1200)}
-        </pre>
-      ) : null}
-
       {entities.length === 0 ? (
         <p className="text-[11px] text-[var(--text-tertiary)]">
-          No curated entities yet — facts appear here after the nightly memory dream job.
+          Saheli sorts what she hears into people, places and routines overnight — they&apos;ll appear here.
         </p>
       ) : (
         <div className="space-y-3">
