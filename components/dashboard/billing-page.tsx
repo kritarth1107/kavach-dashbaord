@@ -51,7 +51,7 @@ export function BillingPage() {
           </div>
         ) : orders.length === 0 ? (
           <p className="px-5 py-16 text-center text-[13px] text-[var(--text-tertiary)]">
-            No orders yet. Saheli will suggest Zepto baskets when refills are due.
+            No orders yet. Orders placed through Saheli will show here.
           </p>
         ) : (
           <ul className="divide-y divide-[var(--border-strong)]">

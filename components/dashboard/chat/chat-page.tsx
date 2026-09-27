@@ -750,7 +750,7 @@ export function ChatPage() {
                     </button>
                   </form>
                   <p className="mt-2 text-center text-[10px] text-[var(--text-tertiary)]">
-                    Swiggy orders: pick address → browse dishes → confirm basket · family approves before checkout
+                    Orders: real items and prices from the store → reply “confirm” → Cash on Delivery to a saved place
                   </p>
                 </div>
               </div>

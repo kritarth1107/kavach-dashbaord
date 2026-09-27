@@ -48,11 +48,17 @@ function RecipientCard({
           </div>
           <div>
             <p className="text-[14px] font-bold text-[var(--text-primary)]">{recipient.name}</p>
-            <p className="text-[11px] text-[var(--text-secondary)]">
-              {recipient.insightCount > 0
-                ? `${recipient.insightCount} insight${recipient.insightCount === 1 ? "" : "s"}`
-                : "All clear today"}
-            </p>
+            {(recipient.alertsToday ?? 0) > 0 ? (
+              <p className="text-[11px] font-semibold text-amber-700">
+                {recipient.alertsToday} alert{recipient.alertsToday === 1 ? "" : "s"} today — see Notifications
+              </p>
+            ) : (
+              <p className="text-[11px] text-[var(--text-secondary)]">
+                {recipient.insightCount > 0
+                  ? `${recipient.insightCount} insight${recipient.insightCount === 1 ? "" : "s"}`
+                  : "All clear today"}
+              </p>
+            )}
           </div>
         </div>
         {recipient.pendingApprovals > 0 && (

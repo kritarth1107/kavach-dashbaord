@@ -3,7 +3,6 @@
 import { Bell, CheckCheck, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
-import { PageHeader } from "@/components/dashboard/page-header";
 import { useFamily } from "@/components/dashboard/family-context";
 import { formatWhen } from "@/components/dashboard/family/morning-briefing-card";
 import {
@@ -56,7 +55,6 @@ export function NotificationsPage() {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <PageHeader />
       <div className="flex-1 overflow-y-auto p-6">
         <div className="mx-auto max-w-2xl">
           <div className="mb-6 flex items-center justify-between">

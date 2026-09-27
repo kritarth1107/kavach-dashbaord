@@ -724,6 +724,7 @@ export type CommandCenterRecipient = {
   userId: string;
   name: string;
   insightCount: number;
+  alertsToday?: number;
   activeOrderPhase: string | null;
   lastElderSnippet: string | null;
   lastElderAt: string | null;

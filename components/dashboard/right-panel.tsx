@@ -152,7 +152,7 @@ export function DashboardRightPanel() {
         <div className="relative z-10 max-w-[65%]">
           <p className="text-[11px] font-medium text-white/50">Saheli</p>
           <p className="mt-1 text-[15px] font-extrabold leading-snug text-white">
-            Voice-first on WhatsApp · context only, no alerts
+            Saheli on WhatsApp — text or voice notes, in Hindi or English
           </p>
         </div>
         <div className="absolute -right-1 bottom-0 flex h-[110px] w-[90px] items-end justify-center pb-3">
