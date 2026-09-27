@@ -1,8 +1,9 @@
 "use client";
 
-import { AlertTriangle, Check, Eye, HeartPulse, Loader2, Pencil, Sparkles, Trash2, X } from "lucide-react";
+import { AlertTriangle, Check, Eye, HeartPulse, HelpCircle, Loader2, Pencil, Sparkles, Trash2, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import {
+  answerProfileQuestion,
   confirmProfileFact,
   dismissProfileItem,
   editProfileFact,
@@ -47,6 +48,18 @@ const UNUSUAL: Record<string, string> = {
   scam: "Possible scam",
   other: "Pattern change",
 };
+/** How long a learned fact holds (backend factPolicy.ts). */
+const HOLD: Record<string, { label: string; tone: string; title: string }> = {
+  health_condition: { label: "stays", tone: "bg-emerald-50 text-emerald-700", title: "Health condition: never fades on its own. Only you or clear new evidence change it." },
+  allergy: { label: "stays", tone: "bg-emerald-50 text-emerald-700", title: "Allergy / intolerance: never fades on its own." },
+  safety: { label: "stays", tone: "bg-emerald-50 text-emerald-700", title: "Safety note: never fades on its own." },
+  medication: { label: "slow fade", tone: "bg-sky-50 text-sky-700", title: "Medicine: fades slowly (about a month of chances without it); Saheli asks you before it fades." },
+  routine: { label: "slow fade", tone: "bg-sky-50 text-sky-700", title: "Routine: fades slowly; Saheli asks you before it fades." },
+  preference: { label: "", tone: "", title: "" },
+  other: { label: "", tone: "", title: "" },
+  transient_state: { label: "this week", tone: "bg-amber-50 text-amber-700", title: "Passing state: fades within a few days unless she mentions it again." },
+};
+const BY: Record<string, string> = { elder: "she said", caregiver: "family said", orders: "from orders", inferred: "Saheli's guess" };
 const day = (iso: string) => new Date(iso).toLocaleDateString("en-IN", { day: "numeric", month: "short", timeZone: "Asia/Kolkata" });
 const pct = (v: number | null | undefined) => (v == null ? "—" : `${v}%`);
 
@@ -88,6 +101,7 @@ export function WhatSaheliLearnedCard({ recipientUserId, recipientName }: { reci
   const factCount = data?.groups.reduce((n, g) => n + g.facts.length, 0) ?? 0;
   const forHer = (data?.careActions || []).filter((a) => a.audience === "elder");
   const forYou = (data?.careActions || []).filter((a) => a.audience === "caregiver");
+  const questions = data?.questions || [];
 
   return (
     <section className="panel-card mb-6 overflow-hidden" data-testid="what-saheli-learned">
@@ -133,6 +147,33 @@ export function WhatSaheliLearnedCard({ recipientUserId, recipientName }: { reci
                   </li>
                 ))}
               </ul>
+            </div>
+          )}
+
+          {questions.length > 0 && (
+            <div className="bg-amber-50/60 px-5 py-4" data-testid="profile-questions">
+              <h3 className="mb-2 flex items-center gap-1.5 text-[12px] font-bold uppercase tracking-wide text-amber-800">
+                <HelpCircle className="h-3.5 w-3.5" /> Saheli wants to check
+              </h3>
+              <ul className="space-y-2.5">
+                {questions.map((q) => (
+                  <li key={q.id} className="flex flex-wrap items-start gap-2 text-[13px]">
+                    <span className="flex-1 text-[var(--text-primary)]">
+                      <b>{q.text}</b>
+                      <span className="block text-[11px] text-[var(--text-secondary)]">
+                        {q.trigger === "contradiction" ? `Something she said didn't match${q.evidence ? `: “${q.evidence}”` : ""}. Saheli hasn't changed anything.` : "Saheli hasn't heard about this in a while, so she's checking before it fades."}
+                      </span>
+                    </span>
+                    <button className="rounded border border-emerald-600 px-2 py-0.5 text-[12px] font-semibold text-emerald-700 hover:bg-emerald-50" disabled={busy === q.id} onClick={() => act(q.id, () => answerProfileQuestion(fid, recipientUserId, q.id, "yes"))}>
+                      Yes, still true
+                    </button>
+                    <button className="rounded border border-rose-500 px-2 py-0.5 text-[12px] font-semibold text-rose-600 hover:bg-rose-50" disabled={busy === q.id} onClick={() => act(q.id, () => answerProfileQuestion(fid, recipientUserId, q.id, "no"))}>
+                      No, remove it
+                    </button>
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-2 text-[11px] text-[var(--text-secondary)]">Yes keeps it for good. No removes it and Saheli won&apos;t learn it again.</p>
             </div>
           )}
 
@@ -187,7 +228,12 @@ export function WhatSaheliLearnedCard({ recipientUserId, recipientName }: { reci
                           {f.text}
                           <span className="ml-1.5 text-[11px] text-[var(--text-secondary)]">
                             {f.status === "learned" ? `${Math.round(f.confidence * 100)}% sure` : f.status === "caregiver_confirmed" ? "✓ confirmed" : "✎ edited by family"} · {day(f.lastConfirmed)}
+                            {f.status === "learned" && f.lastEvidence?.by ? ` · ${BY[f.lastEvidence.by] || f.lastEvidence.by}` : ""}
                           </span>
+                          {f.status === "learned" && f.decayClass && HOLD[f.decayClass]?.label && (
+                            <span title={HOLD[f.decayClass].title} className={`ml-1.5 rounded px-1 py-0.5 text-[10px] font-semibold ${HOLD[f.decayClass].tone}`}>{HOLD[f.decayClass].label}</span>
+                          )}
+                          {f.question && <span className="ml-1.5 rounded bg-amber-100 px-1 py-0.5 text-[10px] font-semibold text-amber-800">asked you</span>}
                         </span>
                         {f.status === "learned" && (
                           <button title="Confirm" className="text-emerald-600" disabled={busy === f.id} onClick={() => act(f.id, () => confirmProfileFact(fid, recipientUserId, f.id))}>
@@ -227,15 +273,17 @@ export function WhatSaheliLearnedCard({ recipientUserId, recipientName }: { reci
             </div>
           )}
 
-          <div className="grid grid-cols-2 gap-3 px-5 py-4 text-center sm:grid-cols-5" data-testid="progress-metrics">
+          <div className="grid grid-cols-2 gap-3 px-5 py-4 text-center sm:grid-cols-4 lg:grid-cols-7" data-testid="progress-metrics">
             {[
               ["Reminder replies", pct(m?.nudgeReplyRate)],
               ["Medicines taken", pct(m?.adherence)],
               ["First-card orders", pct(m?.firstCardSuccess)],
               ["Corrections", pct(m?.correctionRate)],
               ["Family edits", pct(m?.caregiverEditRate)],
-            ].map(([k, v]) => (
-              <div key={k}>
+              ["Learned facts deleted", pct(m?.factDeleteRate), "Share of learned facts your family deleted this week (lower = Saheli learns better)."],
+              ["Re-learned after fading", pct(m?.readdAfterFadeRate), "Faded facts that came back this week (high = Saheli forgets too fast)."],
+            ].map(([k, v, tip]) => (
+              <div key={k} title={tip}>
                 <div className="text-[16px] font-extrabold text-[var(--text-primary)]">{v}</div>
                 <div className="text-[11px] text-[var(--text-secondary)]">{k} · this week</div>
               </div>

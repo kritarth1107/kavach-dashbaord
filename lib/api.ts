@@ -2127,6 +2127,18 @@ export type LearnedFact = {
   firstSeen: string;
   lastConfirmed: string;
   sources: number;
+  decayClass?: "health_condition" | "allergy" | "safety" | "medication" | "routine" | "preference" | "transient_state" | "other" | null;
+  lastEvidence?: { by?: "elder" | "caregiver" | "orders" | "inferred"; effect?: string; at: string } | null;
+  question?: boolean;
+};
+export type ProfileQuestion = {
+  id: string;
+  factId: string;
+  text: string;
+  trigger: "contradiction" | "checkin";
+  evidence: string | null;
+  createdAt: string;
+  decayClass: string | null;
 };
 export type CareActionItem = {
   id: string;
@@ -2156,11 +2168,16 @@ export type WeeklyMetric = {
   correctionRate: number | null;
   caregiverEditRate: number | null;
   adherence: number | null;
+  factDeleteRate?: number | null;
+  readdAfterFadeRate?: number | null;
+  factsDeleted?: number;
+  factsReadded?: number;
   avgMood: number | null;
 };
 export type RecipientProfile = {
   groups: Array<{ category: string; facts: LearnedFact[] }>;
   careActions: CareActionItem[];
+  questions?: ProfileQuestion[];
   unusual: UnusualAlertItem[];
   deviations: DeviationItem[];
   metrics: WeeklyMetric[];
@@ -2193,6 +2210,9 @@ export async function setCareActionStatus(familyId: string, recipientUserId: str
 }
 export async function dismissProfileItem(familyId: string, recipientUserId: string, kind: "deviations" | "alerts", id: string) {
   return parseResponse<RecipientProfile>(await timedFetch(`${profilePath(familyId, recipientUserId)}/${kind}/${encodeURIComponent(id)}`, { method: "DELETE" }));
+}
+export async function answerProfileQuestion(familyId: string, recipientUserId: string, questionId: string, answer: "yes" | "no") {
+  return parseResponse<RecipientProfile>(await timedFetch(`${profilePath(familyId, recipientUserId)}/questions/${encodeURIComponent(questionId)}/answer`, jsonInit("POST", { answer })));
 }
 export async function setProfileRetention(familyId: string, recipientUserId: string, days: number) {
   return parseResponse<RecipientProfile>(await timedFetch(`${profilePath(familyId, recipientUserId)}/retention`, jsonInit("PATCH", { days })));
