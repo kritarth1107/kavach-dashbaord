@@ -11,6 +11,7 @@ import {
 } from "@/lib/api";
 import { useFamily } from "@/components/dashboard/family-context";
 import { canApproveOrders } from "@/components/dashboard/family/family-data";
+import { sidePanelClass } from "@/components/dashboard/side-panel";
 
 const quickActions = [
   { label: "Zepto", logo: "/assets/zepto.png", href: "/dashboard/approvals" },
@@ -59,7 +60,7 @@ export function DashboardRightPanel() {
   const pendingCount = orders.filter((o) => o.status === "awaiting_approval").length;
 
   return (
-    <aside className="no-scrollbar flex h-screen min-w-0 flex-1 shrink-0 flex-col overflow-y-auto border-l border-[var(--border-strong)] px-5 py-6">
+    <aside className={sidePanelClass}>
       <div className="mb-5 flex items-center gap-2">
         <Link
           href="/dashboard/approvals"

@@ -50,13 +50,13 @@ export function FamilyInvitationModal({
   }
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[100] flex items-end justify-center p-0 sm:items-center sm:p-4">
       <div className="absolute inset-0 bg-[#0f172a]/50 backdrop-blur-sm" />
       <div
         role="dialog"
         aria-modal="true"
         aria-labelledby="family-invite-title"
-        className="relative w-full max-w-[420px] rounded-2xl border border-[var(--border-strong)] bg-[var(--card)] px-8 py-9 shadow-[0_20px_60px_rgba(0,0,0,0.18)]"
+        className="relative w-full max-w-[420px] rounded-t-2xl border border-[var(--border-strong)] bg-[var(--card)] px-5 py-8 shadow-[0_20px_60px_rgba(0,0,0,0.18)] sm:rounded-2xl sm:px-8 sm:py-9"
       >
         <div className="mb-5 flex justify-center">
           <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary-light">

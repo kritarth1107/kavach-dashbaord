@@ -74,6 +74,7 @@ export function ChatPage() {
   const [messages, setMessages] = useState<SaheliMessage[]>([]);
   const [sessions, setSessions] = useState<SaheliChatSession[]>([]);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
+  const [historyOpen, setHistoryOpen] = useState(false);
   const [labs, setLabs] = useState<LabDocument[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(true);
@@ -460,7 +461,7 @@ export function ChatPage() {
 
   if (!activeFamilyId) {
     return (
-      <p className="flex flex-1 items-center justify-center text-[13px] text-[var(--text-secondary)]">
+      <p className="flex flex-1 items-center justify-center px-6 text-center text-[13px] text-[var(--text-secondary)]">
         Select a family to open Saheli.
       </p>
     );
@@ -469,6 +470,7 @@ export function ChatPage() {
   return (
     <div className="flex min-h-0 flex-1 bg-[var(--background)]">
       <ChatHistorySidebar
+        className="hidden lg:flex"
         sessions={sessions}
         activeSessionId={activeSessionId}
         loading={loadingSessions}
@@ -478,9 +480,44 @@ export function ChatPage() {
         onSelectSession={(sessionId) => void handleSelectSession(sessionId)}
       />
 
+      {historyOpen && (
+        <div className="fixed inset-0 z-40 lg:hidden">
+          <button
+            type="button"
+            aria-label="Close chat history"
+            className="absolute inset-0 bg-[#0f172a]/45"
+            onClick={() => setHistoryOpen(false)}
+          />
+          <ChatHistorySidebar
+            className="relative z-10 h-dvh w-[min(86vw,300px)] border-r shadow-xl"
+            sessions={sessions}
+            activeSessionId={activeSessionId}
+            loading={loadingSessions}
+            isRecipient={isRecipient}
+            selectedName={selectedName}
+            onNewChat={() => {
+              setHistoryOpen(false);
+              void handleNewChat();
+            }}
+            onSelectSession={(sessionId) => {
+              setHistoryOpen(false);
+              void handleSelectSession(sessionId);
+            }}
+          />
+        </div>
+      )}
+
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex shrink-0 items-center justify-between gap-3 border-b border-[var(--border-strong)] px-4 py-3">
-          <div className="min-w-0">
+        <header className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-[var(--border-strong)] px-3 py-3 sm:gap-3 sm:px-4">
+          <div className="flex min-w-0 items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setHistoryOpen(true)}
+              className="inline-flex h-10 shrink-0 items-center rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 text-[12px] font-bold text-[var(--text-primary)] lg:hidden"
+            >
+              Chats
+            </button>
+            <div className="min-w-0">
             <h1 className="truncate text-[15px] font-bold text-[var(--text-primary)]">
               {isRecipient ? "Ask Saheli" : `Ask Saheli · ${selectedName}`}
             </h1>
@@ -489,6 +526,7 @@ export function ChatPage() {
                 ? "This session keeps full context"
                 : "New chat — ask about care, labs, orders, or Kavach"}
             </p>
+            </div>
           </div>
           <div className="flex shrink-0 items-center gap-2">
             {!isRecipient && recipients.length > 1 && (

@@ -107,7 +107,34 @@ export function RecentActivityTable() {
         </div>
       </div>
 
-      <div className="overflow-x-auto rounded-xl border border-[var(--border)]">
+      <div className="space-y-2 md:hidden">
+        {activities.map((row) => (
+          <div
+            key={row.id}
+            className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-3"
+          >
+            <div className="flex items-center gap-3">
+              <div
+                className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] ${row.iconBg} ${row.iconShadow}`}
+              >
+                <row.icon className="h-[17px] w-[17px]" strokeWidth={2.25} />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-[13.5px] font-bold text-[var(--text-primary)]">{row.title}</p>
+                <p className="truncate text-[12px] text-[var(--text-secondary)]">{row.detail}</p>
+              </div>
+              <span className={`inline-flex shrink-0 rounded-full px-2.5 py-1 text-[10px] font-extrabold ${row.statusStyle}`}>
+                {row.status}
+              </span>
+            </div>
+            <p className="mt-2 text-[11px] font-medium text-[var(--text-tertiary)]">
+              {row.date} · {row.time} · {row.id}
+            </p>
+          </div>
+        ))}
+      </div>
+
+      <div className="hidden overflow-x-auto rounded-xl border border-[var(--border)] md:block">
         <table className="w-full min-w-[760px]">
           <thead>
             <tr className="bg-[var(--elevated-muted)] text-left">

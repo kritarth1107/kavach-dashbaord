@@ -466,7 +466,7 @@ function SnapshotBody({ snapshot }: { snapshot: DailySnapshot }) {
       )}
 
       {tiles.length > 0 && (
-        <div className="grid grid-cols-4 gap-2 sm:grid-cols-7">
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-7">
           {tiles.map((t) => {
             const Icon = t.icon;
             const value = counts[t.key] ?? 0;
@@ -580,7 +580,7 @@ function SnapshotSkeleton() {
       <div className="h-3.5 w-full rounded bg-[var(--surface)]" />
       <div className="h-3.5 w-11/12 rounded bg-[var(--surface)]" />
       <div className="h-3.5 w-4/5 rounded bg-[var(--surface)]" />
-      <div className="mt-5 grid grid-cols-4 gap-2 sm:grid-cols-7">
+      <div className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-7">
         {Array.from({ length: 7 }).map((_, i) => (
           <div key={i} className="h-16 rounded-xl bg-[var(--surface)]" />
         ))}

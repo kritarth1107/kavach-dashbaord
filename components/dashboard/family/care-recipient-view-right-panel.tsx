@@ -8,6 +8,7 @@ import { CareRecipientCaregiverRightPanel } from "./care-recipient-caregiver-rig
 import { useCareRecipientProfile } from "./care-recipient-profile-context";
 import { MemberFormModal } from "./member-form-modal";
 import { useSaveFamilyMember } from "./use-save-family-member";
+import { sidePanelLoadingClass } from "@/components/dashboard/side-panel";
 
 export function CareRecipientViewRightPanel() {
   const { activeFamilyId, activeFamily } = useFamily();
@@ -27,7 +28,7 @@ export function CareRecipientViewRightPanel() {
 
   if (loading) {
     return (
-      <aside className="flex h-screen min-w-0 flex-1 shrink-0 items-center justify-center border-l border-[var(--border-strong)]">
+      <aside className={sidePanelLoadingClass}>
         <Loader2 className="h-6 w-6 animate-spin text-primary" />
       </aside>
     );

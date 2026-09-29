@@ -24,6 +24,7 @@ import {
 import { CareScheduleDayList } from "./care-schedule-day-list";
 import { useOptionalRecipientDate } from "@/components/dashboard/recipient/recipient-date-context";
 import { formatDayLabel } from "@/lib/date-utils";
+import { sidePanelClass } from "@/components/dashboard/side-panel";
 
 export function CareRecipientCaregiverRightPanel({
   member,
@@ -55,7 +56,7 @@ export function CareRecipientCaregiverRightPanel({
   const NextIcon = nextMeta?.icon;
 
   return (
-    <aside className="no-scrollbar flex h-screen min-w-0 flex-1 shrink-0 flex-col overflow-y-auto border-l border-[var(--border-strong)] px-5 py-6">
+    <aside className={sidePanelClass}>
       {/* Member profile */}
       <div className="panel-card mb-5 p-0">
         <div className="border-b border-[var(--border-strong)] px-4 py-4">

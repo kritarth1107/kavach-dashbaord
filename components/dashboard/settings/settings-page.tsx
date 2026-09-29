@@ -872,7 +872,7 @@ export function SettingsPage() {
                   ].map((item) => (
                     <div
                       key={item.title}
-                      className="flex items-center justify-between gap-4 rounded-lg border border-[var(--border-strong)] bg-[var(--input-bg)] p-4"
+                      className="flex flex-col items-start justify-between gap-3 rounded-lg border border-[var(--border-strong)] bg-[var(--input-bg)] p-4 sm:flex-row sm:items-center sm:gap-4"
                     >
                       <div>
                         <p className="text-[13px] font-bold text-[var(--text-primary)]">{item.title}</p>

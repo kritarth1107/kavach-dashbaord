@@ -119,7 +119,7 @@ export function CareRecipientOverview({
       </section>
 
       {nextItem && nextMeta && (
-        <section className="panel-card flex items-center justify-between gap-4 p-5">
+        <section className="panel-card flex flex-col items-start justify-between gap-3 p-5 sm:flex-row sm:items-center sm:gap-4">
           <div>
             <p className="text-[10px] font-bold uppercase tracking-wide text-[var(--text-tertiary)]">Up next</p>
             <p className="mt-1 text-[14px] font-extrabold text-[var(--text-primary)]">

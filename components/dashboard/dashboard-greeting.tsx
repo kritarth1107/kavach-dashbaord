@@ -57,11 +57,11 @@ export function DashboardGreeting({
   const heading = name ? `${greeting}, ${name}` : greeting;
 
   return (
-    <div className="mb-6">
+    <div className="mb-6 min-w-0">
       <p className="text-[12px] font-semibold text-[var(--text-tertiary)]">
         {formatHeaderDate(now)}
       </p>
-      <h1 className="mt-1 text-[1.75rem] font-extrabold leading-tight tracking-[-0.03em] text-[var(--text-primary)]">
+      <h1 className="mt-1 text-[1.45rem] font-extrabold leading-tight tracking-[-0.03em] text-[var(--text-primary)] sm:text-[1.75rem]">
         {heading}
       </h1>
       <p className="mt-1.5 max-w-2xl text-[13px] leading-relaxed text-[var(--text-tertiary)]">

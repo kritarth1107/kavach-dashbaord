@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { Bell, LayoutDashboard, Moon, Search, Settings, Sun } from "lucide-react";
+import { MobileMenuButton } from "./mobile-menu-button";
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { allNavItems, navGroups } from "./nav-config";
@@ -56,11 +57,12 @@ export function PageHeader() {
   }, [loadUnread]);
 
   return (
-    <header className="theme-header sticky top-0 z-20 flex h-[64px] shrink-0 items-center justify-between border-b px-6 pt-2">
+    <header className="theme-header sticky top-0 z-20 flex h-14 shrink-0 items-center justify-between gap-2 border-b px-3 sm:h-16 sm:px-6">
       <nav
         aria-label="Breadcrumb"
-        className="flex min-w-0 items-center gap-2 text-[13px]"
+        className="flex min-w-0 items-center gap-1.5 text-[13px] sm:gap-2"
       >
+        <MobileMenuButton />
         <Link
           href="/dashboard"
           className="theme-muted flex shrink-0 items-center gap-1.5 rounded-lg px-2.5 py-1.5 font-medium transition-colors hover:bg-[var(--surface)] hover:text-primary"
@@ -84,35 +86,43 @@ export function PageHeader() {
         </span>
       </nav>
 
-      <div className="flex shrink-0 items-center gap-2">
-        <div className="flex rounded-full bg-[var(--surface)] p-1">
+      <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
+        <button
+          type="button"
+          aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+          onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+          className="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--surface)] text-[var(--muted-fg)] sm:hidden"
+        >
+          {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+        </button>
+        <div className="hidden rounded-full bg-[var(--surface)] p-1 sm:flex">
           <button
             type="button"
             onClick={() => setTheme("light")}
             aria-label="Light mode"
             className={cn(
-              "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-bold transition-all",
+              "inline-flex h-9 items-center gap-1.5 rounded-full px-2.5 py-1.5 text-[11px] font-bold transition-all sm:px-3",
               theme === "light"
                 ? "bg-[var(--card)] text-[var(--text-primary)] shadow-sm"
                 : "text-[var(--text-tertiary)]",
             )}
           >
             <Sun className="h-3.5 w-3.5" />
-            Light
+            <span className="hidden sm:inline">Light</span>
           </button>
           <button
             type="button"
             onClick={() => setTheme("dark")}
             aria-label="Dark mode"
             className={cn(
-              "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-bold transition-all",
+              "inline-flex h-9 items-center gap-1.5 rounded-full px-2.5 py-1.5 text-[11px] font-bold transition-all sm:px-3",
               theme === "dark"
                 ? "bg-[var(--card)] text-[var(--text-primary)] shadow-sm"
                 : "text-[var(--text-tertiary)]",
             )}
           >
             <Moon className="h-3.5 w-3.5" />
-            Dark
+            <span className="hidden sm:inline">Dark</span>
           </button>
         </div>
 

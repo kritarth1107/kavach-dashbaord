@@ -172,7 +172,7 @@ export function CommandCenterHome() {
       ) : null}
 
       <section className="overflow-hidden rounded-2xl border border-primary/15 bg-gradient-to-br from-primary/8 via-[var(--card)] to-emerald-500/5 p-5">
-        <div className="mb-4 flex items-center justify-between gap-3">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="text-[14px] font-bold">Command Center</p>
             <p className="text-[11px] text-[var(--text-secondary)]">

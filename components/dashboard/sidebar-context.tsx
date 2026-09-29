@@ -12,12 +12,15 @@ type SidebarContextValue = {
   collapsed: boolean;
   toggle: () => void;
   setCollapsed: (value: boolean) => void;
+  mobileOpen: boolean;
+  setMobileOpen: (open: boolean) => void;
 };
 
 const SidebarContext = createContext<SidebarContextValue | null>(null);
 
 export function SidebarProvider({ children }: { children: React.ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
+  const [mobileOpen, setMobileOpenState] = useState(false);
 
   useEffect(() => {
     const stored = localStorage.getItem("kavach-sidebar-collapsed");
@@ -39,8 +42,14 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
     });
   }, []);
 
+  const setMobileOpen = useCallback((open: boolean) => {
+    setMobileOpenState(open);
+  }, []);
+
   return (
-    <SidebarContext.Provider value={{ collapsed, toggle, setCollapsed: persistCollapsed }}>
+    <SidebarContext.Provider
+      value={{ collapsed, toggle, setCollapsed: persistCollapsed, mobileOpen, setMobileOpen }}
+    >
       {children}
     </SidebarContext.Provider>
   );

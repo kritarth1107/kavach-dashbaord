@@ -10,7 +10,7 @@ export default function DashboardLayout({
   return (
     <SidebarProvider>
       <FamilyProvider>
-        <div className="flex h-screen w-full overflow-hidden bg-[var(--background)]">
+        <div className="flex h-dvh w-full overflow-hidden bg-[var(--background)]">
           <DashboardSidebar />
           <DashboardShell>{children}</DashboardShell>
           <CommandPalette />

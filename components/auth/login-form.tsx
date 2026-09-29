@@ -266,7 +266,7 @@ export function LoginForm() {
 
       <div className="pointer-events-none absolute h-[420px] w-[420px] rounded-full bg-primary/15 blur-[80px]" />
 
-      <div className="relative w-full max-w-[400px] rounded-2xl border border-[var(--border-strong)] bg-[var(--card)] px-8 py-9 shadow-[var(--shadow-soft)]">
+      <div className="relative w-full max-w-[400px] rounded-2xl border border-[var(--border-strong)] bg-[var(--card)] px-5 py-8 shadow-[var(--shadow-soft)] sm:px-8 sm:py-9">
         <div className="mb-6 flex justify-center">
           <Link href="/" className="inline-flex items-center gap-2">
             <Shield className="h-6 w-6 text-primary" strokeWidth={2.25} />

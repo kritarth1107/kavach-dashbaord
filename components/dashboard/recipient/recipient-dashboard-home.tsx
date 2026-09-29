@@ -48,7 +48,7 @@ function PersonalWellnessCard({
   completionPercent: number | null;
 }) {
   return (
-    <div className="lime-card relative flex h-full w-full flex-col justify-between overflow-hidden p-6 shadow-[0_8px_24px_rgba(22,163,74,0.25)] lg:col-span-2">
+    <div className="lime-card relative flex h-full w-full flex-col justify-between overflow-hidden p-4 shadow-[0_8px_24px_rgba(22,163,74,0.25)] sm:p-6 lg:col-span-2">
       <div className="pointer-events-none absolute -right-8 -top-8 h-32 w-32 rounded-full bg-white/20 blur-2xl" />
       <div className="relative">
         <p className="text-[11px] font-bold uppercase tracking-wider text-white/60">{title}</p>
@@ -57,7 +57,7 @@ function PersonalWellnessCard({
         </p>
         <p className="mt-2 text-[12px] font-semibold text-white/75">{subtitle}</p>
       </div>
-      <div className="relative grid grid-cols-4 gap-2">
+      <div className="relative grid grid-cols-2 gap-2 sm:grid-cols-4">
         {[
           { label: "Tasks", value: String(daySchedules) },
           {

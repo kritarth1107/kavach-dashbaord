@@ -223,7 +223,12 @@ export async function proxyAuthFormPost(
   timeoutMs = 60_000,
 ) {
   const token = req.cookies.get(SESSION_COOKIE)?.value;
-  const formData = await req.formData();
+  const incoming = await req.formData();
+  const formData = new FormData();
+  for (const [key, value] of incoming.entries()) {
+    if (typeof value === "string") formData.append(key, value);
+    else formData.append(key, value, value.name);
+  }
 
   const { ok, status, json } = await fetchBackend(
     backendPath,

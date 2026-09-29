@@ -13,6 +13,7 @@ type ChatHistorySidebarProps = {
   selectedName: string;
   onNewChat: () => void;
   onSelectSession: (sessionId: string) => void;
+  className?: string;
 };
 
 export function ChatHistorySidebar({
@@ -23,9 +24,15 @@ export function ChatHistorySidebar({
   selectedName,
   onNewChat,
   onSelectSession,
+  className,
 }: ChatHistorySidebarProps) {
   return (
-    <aside className="flex h-full w-[260px] shrink-0 flex-col border-r border-[var(--border-strong)] bg-[var(--surface)]">
+    <aside
+      className={cn(
+        "flex h-full w-[260px] shrink-0 flex-col border-r border-[var(--border-strong)] bg-[var(--surface)]",
+        className,
+      )}
+    >
       <div className="border-b border-[var(--border-strong)] px-3 py-3">
         <div className="mb-3 flex items-center gap-2 px-1">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-white">

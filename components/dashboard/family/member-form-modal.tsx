@@ -115,14 +115,14 @@ export function MemberFormModal({
   const contactHint = isCareRecipient && !isEdit;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 flex items-end justify-center p-0 sm:items-center sm:p-4">
       <button
         type="button"
         aria-label="Close modal backdrop"
         className="absolute inset-0 bg-[#0f172a]/40 backdrop-blur-sm"
         onClick={onClose}
       />
-      <div className="relative w-full max-w-[560px] overflow-hidden rounded-2xl bg-[var(--card)] shadow-[0_20px_60px_rgba(0,0,0,0.15)]">
+      <div className="relative max-h-[100dvh] w-full max-w-[560px] overflow-y-auto rounded-t-2xl bg-[var(--card)] shadow-[0_20px_60px_rgba(0,0,0,0.15)] sm:max-h-[90vh] sm:rounded-2xl">
         <div className="flex items-center justify-between border-b border-[var(--border-strong)] px-5 py-3.5">
           <div>
             <h2 className="text-[15px] font-extrabold text-[var(--text-primary)]">

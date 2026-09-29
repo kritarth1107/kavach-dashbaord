@@ -149,8 +149,8 @@ export function ReportsPage() {
 
 
       <div className="panel-card overflow-hidden">
-        <div className="flex items-center justify-between gap-2 border-b border-[var(--border-strong)] px-5 py-4">
-          <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--border-strong)] px-4 py-4 sm:px-5">
+          <div className="flex min-w-0 items-center gap-2">
             <Sparkles className="h-4 w-4 text-primary" strokeWidth={2.25} />
             <div>
               <h2 className="text-[16px] font-extrabold text-[var(--text-primary)]">Doctor Brief</h2>

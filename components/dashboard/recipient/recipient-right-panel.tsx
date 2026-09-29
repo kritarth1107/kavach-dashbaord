@@ -20,6 +20,7 @@ import {
   type RecipientBriefing,
 } from "@/lib/api";
 import { apiMemberToFamilyMember } from "@/components/dashboard/family/family-data";
+import { sidePanelClass } from "@/components/dashboard/side-panel";
 
 export function RecipientRightPanel() {
   const { activeFamilyId, activeFamily, userId } = useFamily();
@@ -70,7 +71,7 @@ export function RecipientRightPanel() {
   const schedule = briefing?.todayItems ?? [];
 
   return (
-    <aside className="no-scrollbar flex h-screen min-w-0 flex-1 shrink-0 flex-col overflow-y-auto border-l border-[var(--border-strong)] px-5 py-6">
+    <aside className={sidePanelClass}>
       <div className="mb-5 flex items-center gap-2">
         <Link
           href="/dashboard/settings"

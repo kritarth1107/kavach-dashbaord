@@ -103,7 +103,33 @@ export function HealthLogTable({ items = [], loading = false }: HealthLogTablePr
           No activity yet — chat with Saheli or add care schedules.
         </p>
       ) : (
-        <div className="no-scrollbar overflow-x-auto">
+        <>
+        <div className="space-y-2 md:hidden">
+          {rows.map((row) => (
+            <div
+              key={row.key}
+              className="rounded-xl border border-[var(--border-strong)] bg-[var(--card)] p-3"
+            >
+              <div className="flex items-center gap-3">
+                <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${row.iconBg}`}>
+                  <row.icon className="h-4 w-4 text-[var(--text-primary)]" strokeWidth={2} />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-[13px] font-bold text-[var(--text-primary)]">{row.name}</p>
+                  <p className="truncate text-[12px] text-[var(--text-secondary)]">{row.detail}</p>
+                </div>
+                <span className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-bold ${row.statusClass}`}>
+                  <span className={`h-1.5 w-1.5 rounded-full ${row.dot}`} />
+                  {row.status}
+                </span>
+              </div>
+              <p className="mt-2 text-[11px] font-medium text-[var(--text-tertiary)]">
+                {row.type} · {row.date}
+              </p>
+            </div>
+          ))}
+        </div>
+        <div className="no-scrollbar hidden overflow-x-auto md:block">
           <table className="w-full min-w-[680px]">
             <thead>
               <tr className="border-b border-[var(--border-strong)] text-left">
@@ -180,6 +206,7 @@ export function HealthLogTable({ items = [], loading = false }: HealthLogTablePr
             </tbody>
           </table>
         </div>
+        </>
       )}
     </div>
   );
