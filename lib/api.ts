@@ -873,6 +873,13 @@ export type LabDocument = {
   tags?: string[];
   highlights?: string[];
   analysis_status?: "pending" | "ready" | "failed" | null;
+  patient_name?: string | null;
+  provider?: string | null;
+  medicines?: Array<{ name: string; dose?: string | null }>;
+  lab_values?: Array<{ name: string; value: string; unit?: string | null }>;
+  unread?: string[];
+  extraction_status?: "ready" | "partial" | "failed" | null;
+  already_on_file?: boolean;
 };
 
 export type LabDocumentDetail = LabDocument & {
@@ -1646,18 +1653,9 @@ export async function uploadRecipientLabFile(
       method: "POST",
       body: formData,
     },
-    60_000,
+    90_000,
   );
-  return parseResponse<{
-    document_id: string;
-    title: string;
-    kind: string;
-    file_url?: string;
-    storage_key?: string;
-    ai_summary?: string | null;
-    tags?: string[];
-    analysis_status?: string;
-  }>(res);
+  return parseResponse<LabDocument & { already_on_file?: boolean }>(res);
 }
 
 export function getRecipientLabDownloadPath(

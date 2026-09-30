@@ -29,6 +29,8 @@ import {
   isCareRecipientRole,
 } from "@/components/dashboard/family/family-data";
 import { cn } from "@/lib/utils";
+import { medicalUploadError } from "@/lib/medical-record-file";
+import { medicalRecordLines } from "@/lib/medical-record-view";
 
 export const HEALTH_RECORD_KINDS = [
   { value: "all", label: "All types" },
@@ -211,9 +213,17 @@ export function HealthRecordsPanel({
   function addPickedFiles(list: FileList | File[]) {
     const incoming = Array.from(list);
     if (!incoming.length) return;
+    const rejected = incoming.map((file) => medicalUploadError(file)).find(Boolean);
+    if (rejected) {
+      setError(rejected);
+      setSaveOk("");
+    } else {
+      setError("");
+    }
     setSelectedFiles((prev) => {
       const merged = [...prev];
       for (const file of incoming) {
+        if (medicalUploadError(file)) continue;
         if (merged.length >= 25) break;
         const exists = merged.some(
           (current) =>
@@ -261,13 +271,24 @@ export function HealthRecordsPanel({
   async function handleFileUpload(e: FormEvent) {
     e.preventDefault();
     if (!activeFamilyId || !addRecipientId || !selectedFiles.length || saving) return;
+    const blocked = selectedFiles.map((file) => medicalUploadError(file)).find(Boolean);
+    if (blocked) {
+      setError(blocked);
+      return;
+    }
     setSaving(true);
     setError("");
     setSaveOk("");
     try {
       if (selectedFiles.length === 1) {
-        await uploadRecipientLabFile(activeFamilyId, addRecipientId, selectedFiles[0], {});
-        setSaveOk("Uploaded. Saheli detected title, type, and date automatically.");
+        const { data } = await uploadRecipientLabFile(activeFamilyId, addRecipientId, selectedFiles[0], {});
+        setSaveOk(
+          data?.already_on_file
+            ? "This file is already saved for this elder. No second copy was added."
+            : data?.extraction_status === "failed"
+              ? "File saved. Extraction failed — the original is kept."
+              : "Uploaded. The original file and the fields we could read are on this record.",
+        );
       } else {
         const { data } = await uploadRecipientLabFiles(
           activeFamilyId,
@@ -509,7 +530,7 @@ export function HealthRecordsPanel({
                         : "Choose files or drag here"}
                   </p>
                   <p className="mt-1 text-[11px] text-[var(--text-tertiary)]">
-                    PDF, Word, Excel, Markdown, text, CSV, images · up to 25 at once
+                    PDF or a photo (JPG, PNG, HEIC), including a tilted or dim phone photo · up to 15 MB
                   </p>
                   <p className="mt-2 text-[11px] text-primary">
                     Title, type, and date are detected automatically
@@ -517,7 +538,7 @@ export function HealthRecordsPanel({
                   <input
                     type="file"
                     multiple
-                    accept=".pdf,.txt,.md,.markdown,.csv,.xlsx,.xls,.docx,.doc,.json,.png,.jpg,.jpeg,.webp,application/pdf,text/plain,text/markdown,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/*"
+                    accept=".pdf,.png,.jpg,.jpeg,.heic,.heif,.webp,.txt,.md,.csv,.docx,.xlsx,application/pdf,image/*,.heic"
                     className="absolute inset-0 cursor-pointer opacity-0"
                     onChange={(e) => {
                       addPickedFiles(e.target.files ?? []);
@@ -651,9 +672,9 @@ export function HealthRecordsPanel({
                     ))}
                   </div>
                 )}
-                {(doc.ai_summary || doc.snippet) && (
-                  <p className="mt-1 line-clamp-2 text-[12px] leading-relaxed text-[var(--text-secondary)]">
-                    {doc.ai_summary || doc.snippet}
+                {(doc.ai_summary || doc.snippet || doc.extraction_status) && (
+                  <p className="mt-1 line-clamp-3 text-[12px] leading-relaxed text-[var(--text-secondary)]">
+                    {medicalRecordLines(doc).slice(0, 4).join(" · ") || doc.ai_summary || doc.snippet}
                   </p>
                 )}
                 {hasOriginalFile(doc) && (
@@ -789,6 +810,13 @@ export function HealthRecordsPanel({
                         </a>
                       )}
                     </div>
+                  )}
+                  {detail && (
+                    <ul className="mb-4 space-y-1 text-[13px] leading-relaxed text-[var(--text-secondary)]">
+                      {medicalRecordLines(detail).map((line) => (
+                        <li key={line}>{line}</li>
+                      ))}
+                    </ul>
                   )}
                   <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-[var(--text-tertiary)]">
                     Extracted text
