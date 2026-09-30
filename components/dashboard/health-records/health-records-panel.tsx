@@ -6,7 +6,6 @@ import {
   Plus,
   Search,
   Trash2,
-  Upload,
   Download,
   X,
 } from "lucide-react";
@@ -30,7 +29,9 @@ import {
 } from "@/components/dashboard/family/family-data";
 import { cn } from "@/lib/utils";
 import { medicalUploadError } from "@/lib/medical-record-file";
+import { resolveRecordElderId } from "@/lib/medical-record-form";
 import { medicalRecordLines } from "@/lib/medical-record-view";
+import { RecordAddForms } from "@/components/dashboard/health-records/record-add-forms";
 
 export const HEALTH_RECORD_KINDS = [
   { value: "all", label: "All types" },
@@ -188,14 +189,21 @@ export function HealthRecordsPanel({
     });
   }, [records, search, kindFilter, recipientFilter]);
 
+  const elderId = resolveRecordElderId({
+    fixedRecipientUserId,
+    chosenRecipientId: addRecipientId,
+    recipientFilter,
+    recipientIds: recipients.map((r) => r.userId),
+  });
+
   async function handleAdd(e: FormEvent) {
     e.preventDefault();
-    if (!activeFamilyId || !addRecipientId || !rawText.trim() || saving) return;
+    if (!activeFamilyId || !elderId || !rawText.trim() || saving) return;
     setSaving(true);
     setError("");
     setSaveOk("");
     try {
-      await uploadRecipientLab(activeFamilyId, addRecipientId, {
+      await uploadRecipientLab(activeFamilyId, elderId, {
         rawText: rawText.trim(),
       });
       setRawText("");
@@ -270,7 +278,7 @@ export function HealthRecordsPanel({
 
   async function handleFileUpload(e: FormEvent) {
     e.preventDefault();
-    if (!activeFamilyId || !addRecipientId || !selectedFiles.length || saving) return;
+    if (!activeFamilyId || !elderId || !selectedFiles.length || saving) return;
     const blocked = selectedFiles.map((file) => medicalUploadError(file)).find(Boolean);
     if (blocked) {
       setError(blocked);
@@ -281,7 +289,7 @@ export function HealthRecordsPanel({
     setSaveOk("");
     try {
       if (selectedFiles.length === 1) {
-        const { data } = await uploadRecipientLabFile(activeFamilyId, addRecipientId, selectedFiles[0], {});
+        const { data } = await uploadRecipientLabFile(activeFamilyId, elderId, selectedFiles[0], {});
         setSaveOk(
           data?.already_on_file
             ? "This file is already saved for this elder. No second copy was added."
@@ -292,7 +300,7 @@ export function HealthRecordsPanel({
       } else {
         const { data } = await uploadRecipientLabFiles(
           activeFamilyId,
-          addRecipientId,
+          elderId,
           selectedFiles,
           {},
         );
@@ -381,7 +389,7 @@ export function HealthRecordsPanel({
 
   const addTargetName =
     fixedRecipientName ??
-    recipients.find((r) => r.userId === addRecipientId)?.name ??
+    recipients.find((r) => r.userId === elderId)?.name ??
     "care recipient";
 
   const pad = compact ? "px-4" : "px-5";
@@ -492,10 +500,10 @@ export function HealthRecordsPanel({
 
             {!fixedRecipientUserId && recipients.length > 1 && (
               <select
-                value={addRecipientId}
+                value={addRecipientId || (recipientFilter !== "all" ? recipientFilter : "")}
                 onChange={(e) => setAddRecipientId(e.target.value)}
+                aria-label="Care recipient"
                 className="w-full rounded-xl border border-[var(--border-strong)] bg-[var(--card)] px-3 py-2 text-[13px] outline-none"
-                required
               >
                 <option value="">Select care recipient</option>
                 {recipients.map((r) => (
@@ -506,114 +514,26 @@ export function HealthRecordsPanel({
               </select>
             )}
 
-            {addMode === "file" ? (
-              <form onSubmit={(e) => void handleFileUpload(e)} className="space-y-3">
-                <div
-                  onDragEnter={onFileDragEnter}
-                  onDragOver={onFileDragOver}
-                  onDragLeave={onFileDragLeave}
-                  onDrop={onFileDrop}
-                  className={cn(
-                    "relative flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed px-4 text-center transition-colors",
-                    dragOver
-                      ? "border-primary bg-primary-light"
-                      : "border-[var(--border-strong)] bg-[var(--card)] hover:border-primary",
-                    compact ? "py-5" : "py-8",
-                  )}
-                >
-                  <Upload className={cn("text-primary", compact ? "mb-1.5 h-6 w-6" : "mb-2 h-8 w-8")} />
-                  <p className="text-[13px] font-semibold text-[var(--text-primary)]">
-                    {dragOver
-                      ? "Drop to add files"
-                      : selectedFiles.length
-                        ? `${selectedFiles.length} file${selectedFiles.length === 1 ? "" : "s"} selected`
-                        : "Choose files or drag here"}
-                  </p>
-                  <p className="mt-1 text-[11px] text-[var(--text-tertiary)]">
-                    PDF or a photo (JPG, PNG, HEIC), including a tilted or dim phone photo · up to 15 MB
-                  </p>
-                  <p className="mt-2 text-[11px] text-primary">
-                    Title, type, and date are detected automatically
-                  </p>
-                  <input
-                    type="file"
-                    multiple
-                    accept=".pdf,.png,.jpg,.jpeg,.heic,.heif,.webp,.txt,.md,.csv,.docx,.xlsx,application/pdf,image/*,.heic"
-                    className="absolute inset-0 cursor-pointer opacity-0"
-                    onChange={(e) => {
-                      addPickedFiles(e.target.files ?? []);
-                      e.target.value = "";
-                    }}
-                  />
-                </div>
-                {selectedFiles.length > 0 && (
-                  <ul className="max-h-32 space-y-1 overflow-y-auto rounded-lg border border-[var(--border-strong)] bg-[var(--input-bg)] p-2">
-                    {selectedFiles.map((file) => (
-                      <li
-                        key={`${file.name}-${file.size}`}
-                        className="flex items-center justify-between gap-2 text-[12px] text-[var(--text-secondary)]"
-                      >
-                        <span className="truncate">{file.name}</span>
-                        <button
-                          type="button"
-                          className="shrink-0 text-[var(--text-tertiary)] hover:text-[var(--danger-text)]"
-                          onClick={() =>
-                            setSelectedFiles((prev) =>
-                              prev.filter((f) => f !== file),
-                            )
-                          }
-                        >
-                          Remove
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-                <button
-                  type="submit"
-                  disabled={saving || !selectedFiles.length || !addRecipientId}
-                  className="w-full rounded-lg bg-primary px-4 py-2.5 text-[12px] font-bold text-white disabled:opacity-50 sm:w-auto"
-                >
-                  {saving
-                    ? "Uploading & analyzing…"
-                    : selectedFiles.length > 1
-                      ? `Upload ${selectedFiles.length} files`
-                      : "Upload"}
-                </button>
-              </form>
-            ) : (
-          <form onSubmit={(e) => void handleAdd(e)} className="space-y-3">
-            <textarea
-              value={rawText}
-              onChange={(e) => setRawText(e.target.value)}
-              placeholder={"Paste report text — Saheli will detect title, type, and date:\nTSH 4.2 mIU/L (8 Aug 2026)\nFree T4 1.1 ng/dL"}
-              rows={6}
-              className="w-full rounded-xl border border-[var(--border-strong)] bg-[var(--input-bg)] px-3 py-2 text-[13px] outline-none focus:border-primary"
-              required
+            <RecordAddForms
+              mode={addMode}
+              saving={saving}
+              files={selectedFiles}
+              text={rawText}
+              elderId={elderId}
+              compact={compact}
+              dragOver={dragOver}
+              showCancel={!fixedRecipientUserId}
+              onDragEnter={onFileDragEnter}
+              onDragOver={onFileDragOver}
+              onDragLeave={onFileDragLeave}
+              onDrop={onFileDrop}
+              onPickFiles={addPickedFiles}
+              onRemoveFile={(file) => setSelectedFiles((prev) => prev.filter((f) => f !== file))}
+              onText={setRawText}
+              onUpload={(e) => void handleFileUpload(e)}
+              onSaveText={(e) => void handleAdd(e)}
+              onCancel={() => setAddOpen(false)}
             />
-            <p className="text-[11px] text-[var(--text-tertiary)]">
-              No need to enter title or date — AI fills those in from the text.
-            </p>
-            <div className="flex flex-wrap gap-2">
-              <button
-                type="submit"
-                disabled={saving || !rawText.trim() || !addRecipientId}
-                className="w-full rounded-lg bg-primary px-4 py-2.5 text-[12px] font-bold text-white disabled:opacity-50 sm:w-auto"
-              >
-                {saving ? "Analyzing…" : "Save record"}
-              </button>
-              {!fixedRecipientUserId && (
-                <button
-                  type="button"
-                  onClick={() => setAddOpen(false)}
-                  className="rounded-lg border border-[var(--border-strong)] px-4 py-2 text-[12px] font-semibold text-[var(--text-secondary)]"
-                >
-                  Cancel
-                </button>
-              )}
-            </div>
-          </form>
-            )}
           </div>
         )}
       </div>
