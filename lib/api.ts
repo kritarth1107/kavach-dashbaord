@@ -1018,6 +1018,8 @@ export type SaheliCompanionActivity = {
     messagePreview?: string;
     delivered: boolean;
     channel?: string;
+    reason?: string | null;
+    doseStatus?: "sent" | "skipped" | "failed";
     createdAt: string | null;
   }>;
   escalations: Array<{

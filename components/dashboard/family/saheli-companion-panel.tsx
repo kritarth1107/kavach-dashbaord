@@ -38,6 +38,9 @@ const NUDGE_LABELS: Record<string, string> = {
   missed_task: "Missed task follow-up",
   praise: "Praise",
   loneliness: "Check-in",
+  dose_due: "Medicine reminder",
+  pre_reminder: "Medicine reminder",
+  missed_followup: "Missed dose",
 };
 
 function formatRelativeTime(iso: string | null | undefined): string {
@@ -378,7 +381,8 @@ export function SaheliCompanionPanel({
                 >
                   <p className="text-[10px] font-bold uppercase tracking-wide text-[var(--text-tertiary)]">
                     {NUDGE_LABELS[n.nudgeKind] ?? n.nudgeKind}
-                    {n.delivered ? "" : " · pending"}
+                    {" · "}
+                    {n.doseStatus ?? (n.delivered ? "sent" : "failed")}
                   </p>
                   {n.messagePreview ? (
                     <p className="mt-0.5 text-[11px] text-[var(--text-secondary)]">
