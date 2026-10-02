@@ -342,3 +342,120 @@ input[type="checkbox"] {
   background: var(--danger-bg);
   color: var(--danger-text);
 }
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   Care OS ("Aangan"): warm, calm, family. Scoped to .care-os while pages migrate.
+   ───────────────────────────────────────────────────────────────────────────── */
+.care-os {
+  --c-bg: #f4f1ea;
+  --c-card: rgba(255, 255, 255, 0.74);
+  --c-card-solid: #ffffff;
+  --c-card-border: rgba(255, 255, 255, 0.85);
+  --c-line: rgba(31, 36, 33, 0.07);
+  /* Brand: forest green (Kavach) and saffron (कवच), from the Kavach CareOS logo. */
+  --c-ink: #143429;
+  --c-ink-2: #4f5f58;
+  --c-ink-3: #8f9a94;
+  --c-accent: #d3541e;
+  --c-accent-ink: #ffffff;
+  --c-accent-soft: #fbe2d3;
+  --c-forest: #143429;
+  --c-lavender: #ece6ff;
+  --c-lavender-ink: #4b3fa0;
+  --c-sky: #dcedf9;
+  --c-sky-ink: #1f5f8b;
+  --c-peach: #ffe5d3;
+  --c-peach-ink: #9a4a17;
+  --c-butter: #fff1bf;
+  --c-butter-ink: #806108;
+  --c-rose: #ffdcd5;
+  --c-rose-ink: #a3321f;
+  --c-mint: #dbf2e3;
+  --c-mint-ink: #22693f;
+  --c-shadow: 0 1px 0 rgba(255, 255, 255, 0.7) inset, 0 24px 48px -32px rgba(74, 58, 32, 0.28);
+  --c-radius: 28px;
+  color: var(--c-ink);
+  font-family: var(--font-plus-jakarta), ui-sans-serif, system-ui;
+  background-color: var(--c-bg);
+  background-image:
+    radial-gradient(60rem 36rem at -10% -15%, rgba(255, 214, 186, 0.7), transparent 60%),
+    radial-gradient(50rem 32rem at 110% -10%, rgba(196, 223, 246, 0.75), transparent 60%),
+    radial-gradient(48rem 30rem at 50% 120%, rgba(214, 236, 205, 0.7), transparent 60%);
+  background-attachment: fixed;
+}
+
+.dark .care-os {
+  --c-bg: #121412;
+  --c-card: rgba(30, 33, 31, 0.72);
+  --c-card-solid: #1c1f1d;
+  --c-card-border: rgba(255, 255, 255, 0.06);
+  --c-line: rgba(255, 255, 255, 0.08);
+  --c-ink: #eef1ec;
+  --c-ink-2: #b7c0ba;
+  --c-ink-3: #7f8a84;
+  --c-accent: #e2733f;
+  --c-accent-soft: rgba(226, 115, 63, 0.16);
+  --c-lavender: rgba(150, 130, 255, 0.16);
+  --c-lavender-ink: #c7bcff;
+  --c-sky: rgba(90, 170, 230, 0.16);
+  --c-sky-ink: #9fd0f3;
+  --c-peach: rgba(255, 150, 90, 0.15);
+  --c-peach-ink: #ffbf94;
+  --c-butter: rgba(255, 210, 80, 0.14);
+  --c-butter-ink: #f3d77a;
+  --c-rose: rgba(255, 110, 90, 0.16);
+  --c-rose-ink: #ffab9c;
+  --c-mint: rgba(80, 200, 130, 0.15);
+  --c-mint-ink: #95e0b2;
+  --c-shadow: 0 24px 48px -32px rgba(0, 0, 0, 0.7);
+  background-image:
+    radial-gradient(60rem 36rem at -10% -15%, rgba(120, 80, 50, 0.25), transparent 60%),
+    radial-gradient(50rem 32rem at 110% -10%, rgba(50, 90, 130, 0.25), transparent 60%);
+}
+
+.care-os .c-card {
+  background: var(--c-card);
+  border: 1px solid var(--c-card-border);
+  border-radius: var(--c-radius);
+  box-shadow: var(--c-shadow);
+  backdrop-filter: blur(18px) saturate(140%);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
+}
+
+.care-os .c-serif {
+  font-family: var(--font-fraunces), Georgia, serif;
+  font-optical-sizing: auto;
+  letter-spacing: -0.015em;
+}
+
+.care-os .c-num {
+  font-weight: 300;
+  letter-spacing: -0.04em;
+  font-variant-numeric: tabular-nums;
+}
+
+.care-os .c-scroll::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
+@keyframes c-rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.care-os .c-rise {
+  animation: c-rise 0.5s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .care-os .c-rise {
+    animation: none;
+  }
+}
