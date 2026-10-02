@@ -59,7 +59,7 @@ export function OtpInput({ value, onChange, disabled }: OtpInputProps) {
   }
 
   return (
-    <div className="flex justify-center gap-2" onPaste={handlePaste}>
+    <div className="grid grid-cols-6 gap-2" onPaste={handlePaste}>
       {digits.map((digit, index) => (
         <input
           key={index}
@@ -77,7 +77,7 @@ export function OtpInput({ value, onChange, disabled }: OtpInputProps) {
           onKeyDown={(e) => handleKeyDown(index, e)}
           onFocus={(e) => e.target.select()}
           className={cn(
-            "h-11 w-10 rounded-xl border bg-[var(--input-bg)] text-center text-[18px] font-bold text-[var(--text-primary)] outline-none transition-colors sm:h-12 sm:w-11",
+            "h-14 w-full min-w-0 rounded-[16px] border bg-[var(--input-bg)] text-center text-[20px] font-semibold text-[var(--text-primary)] outline-none transition-colors",
             digit.trim()
               ? "border-primary bg-[var(--card)] ring-1 ring-[var(--primary-ring)]"
               : "border-[var(--border-strong)]",

@@ -113,7 +113,7 @@ function Drawer({ open, onClose }: { open: boolean; onClose: () => void }) {
         </div>
         <div className="c-scroll flex-1 overflow-y-auto px-4 pb-4">
           {families.length > 0 && (
-            <section className="rounded-[22px] bg-[var(--c-card)] p-2">
+            <section className="rounded-[22px] border border-[var(--c-line)] p-2">
               <p className="flex items-center gap-2 px-3 pb-1 pt-2 text-[12px] font-medium">
                 <span className="h-3 w-3 rounded-[3px] bg-[var(--c-accent)]" /> Family
               </p>
@@ -125,7 +125,7 @@ function Drawer({ open, onClose }: { open: boolean; onClose: () => void }) {
                     void selectFamily(f.familyId);
                     onClose();
                   }}
-                  className={cn("flex w-full items-center gap-3 rounded-[16px] px-3 py-2.5 text-left", f.familyId === activeFamilyId ? "bg-[var(--c-frame)]" : "hover:bg-[var(--c-frame)]")}
+                  className={cn("flex w-full items-center gap-3 rounded-[16px] px-3 py-2.5 text-left", f.familyId === activeFamilyId ? "bg-[var(--c-card)]" : "hover:bg-[var(--c-card)]")}
                 >
                   <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--c-ink)] text-[12px] font-medium text-white">{f.initial || f.name[0]}</span>
                   <span className="min-w-0 flex-1">
@@ -160,7 +160,7 @@ function Drawer({ open, onClose }: { open: boolean; onClose: () => void }) {
             </section>
           ))}
         </div>
-        <div className="border-t border-[var(--c-line)] p-4">
+        <div className="border-t border-[var(--c-line)] px-4 py-3">
           <button
             type="button"
             onClick={async () => {
@@ -168,7 +168,7 @@ function Drawer({ open, onClose }: { open: boolean; onClose: () => void }) {
               await signOut({ redirect: false });
               router.replace("/auth/login");
             }}
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-[var(--c-accent-soft)] text-[14px] font-medium text-[var(--c-accent-soft-ink)] hover:brightness-95"
+            className="flex items-center gap-2 px-3 py-2 text-[14px] font-medium text-[#d92d20] hover:underline"
           >
             <SignOut size={17} /> Sign out
           </button>

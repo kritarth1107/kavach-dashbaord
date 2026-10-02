@@ -366,7 +366,7 @@ input[type="checkbox"] {
   --c-warn: #f5a524;
   color: var(--c-ink);
   font-family: var(--font-geist), ui-sans-serif, system-ui;
-  background: linear-gradient(180deg, #eef0f2 0%, #e3e6ea 100%);
+  background: var(--c-frame);
   letter-spacing: -0.01em;
 }
 
