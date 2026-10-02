@@ -8,7 +8,7 @@ import {
   Asterisk,
   CalendarBlank,
   CaretDown,
-  ChatCircle,
+  CalendarDots,
   Clock,
   DotsThree,
   Hourglass,
@@ -263,9 +263,9 @@ export function CareHome({
             </div>
             <p className="mt-3 text-[19px] font-medium leading-snug tracking-[-0.02em]">{data.saheliSays}</p>
             <div className="mt-5 flex items-center gap-3">
-              <Link href="/dashboard/chat">
-                <SmallButton dark icon={ChatCircle}>
-                  Ask Saheli
+              <Link href="/dashboard/saheli">
+                <SmallButton dark icon={CalendarDots}>
+                  See the day
                 </SmallButton>
               </Link>
               {data.lastHeard && <span className="text-[12px] text-[var(--c-ink-2)]">Last heard {data.lastHeard}</span>}

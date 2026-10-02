@@ -8,7 +8,6 @@ import {
   Bell,
   Brain,
   CalendarDots,
-  ChatCircle,
   CheckCircle,
   FirstAidKit,
   Heart,
@@ -33,7 +32,6 @@ const RAIL: Array<{ key: NavKey; label: string; href: string; icon?: PhosphorIco
   { key: "care", label: "Medicines & care", href: "/dashboard/saheli/care", text: "Rx" },
   { key: "health", label: "Health records", href: "/dashboard/record", icon: FirstAidKit },
   { key: "orders", label: "Orders & rides", href: "/dashboard/saheli/tasks", icon: ShoppingBag },
-  { key: "saheli", label: "Talk to Saheli", href: "/dashboard/chat", icon: ChatCircle },
   { key: "memory", label: "What Saheli knows", href: "/dashboard/saheli/memory", icon: Brain },
   { key: "family", label: "Family", href: "/dashboard/family", icon: UsersThree },
 ];

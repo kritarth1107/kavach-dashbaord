@@ -132,13 +132,6 @@ export function CareRecipientOverview({
 
       <div className="grid gap-3 sm:grid-cols-2">
         <QuickLink
-          href={`/dashboard/chat?recipient=${encodeURIComponent(recipientUserId)}`}
-          icon={MessageSquare}
-          title={`Ask Saheli about ${recipientName}`}
-          sub="Chat as caregiver"
-          onNavigate={onOpenSaheli}
-        />
-        <QuickLink
           href="/dashboard/record"
           icon={Calendar}
           title="All health records"

@@ -12,7 +12,6 @@ import {
   FileText,
   HelpCircle,
   LayoutDashboard,
-  MessageSquare,
   Plug,
   Shield,
   Stethoscope,
@@ -58,11 +57,6 @@ export const navGroups: NavGroup[] = [
     items: [
       { label: "Family Members", href: "/dashboard/family", icon: Users },
       { label: "Address Book", href: "/dashboard/addresses", icon: BookUser },
-      {
-        label: "Ask Saheli",
-        href: "/dashboard/chat",
-        icon: MessageSquare,
-      },
     ],
   },
   {
@@ -101,16 +95,6 @@ export const recipientNavGroups: NavGroup[] = [
     items: [
       { label: "Reports", href: "/dashboard/reports", icon: BarChart3 },
       { label: "Documents", href: "/dashboard/record", icon: FileText },
-    ],
-  },
-  {
-    title: "Connect",
-    items: [
-      {
-        label: "Messages",
-        href: "/dashboard/chat",
-        icon: MessageSquare,
-      },
     ],
   },
   {

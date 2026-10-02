@@ -7,7 +7,6 @@ import {
   Loader2,
   Mail,
   MapPin,
-  MessageSquare,
   Pencil,
   Phone,
   Stethoscope,
@@ -15,7 +14,6 @@ import {
 import type { FamilyMember } from "./family-data";
 import { formatDisplayName, formatPhone, getInitials } from "./family-data";
 import { useOptionalCareSchedule } from "./care-recipient-schedule-context";
-import { SaheliThreadPanel } from "./saheli-thread-panel";
 import { SaheliCompanionPanel } from "./saheli-companion-panel";
 import {
   getNextScheduleItem,
@@ -181,11 +179,6 @@ export function CareRecipientCaregiverRightPanel({
             recipientUserId={member.userId}
             recipientName={firstName}
           />
-          <SaheliThreadPanel
-            recipientUserId={member.userId}
-            recipientName={firstName}
-            compact
-          />
         </>
       )}
 
@@ -218,19 +211,6 @@ export function CareRecipientCaregiverRightPanel({
           <div className="flex-1">
             <p className="text-[12px] font-bold text-[var(--text-primary)]">Health record</p>
             <p className="text-[11px] text-[var(--text-tertiary)]">Vitals, meds & history</p>
-          </div>
-          <ChevronRight className="h-4 w-4 text-[var(--text-tertiary)]" strokeWidth={2} />
-        </Link>
-        <Link
-          href={`/dashboard/chat?recipient=${encodeURIComponent(member.userId ?? "")}`}
-          className="flex items-center gap-3 rounded-xl p-2.5 transition-colors hover:bg-[var(--input-bg)]"
-        >
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[var(--warning-bg)]">
-            <MessageSquare className="h-4 w-4 text-[var(--warning-text)]" strokeWidth={2} />
-          </div>
-          <div className="flex-1">
-            <p className="text-[12px] font-bold text-[var(--text-primary)]">Ask Saheli about {firstName}</p>
-            <p className="text-[11px] text-[var(--text-tertiary)]">Chat as yourself</p>
           </div>
           <ChevronRight className="h-4 w-4 text-[var(--text-tertiary)]" strokeWidth={2} />
         </Link>

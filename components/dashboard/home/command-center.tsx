@@ -12,7 +12,6 @@ import {
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { formatWhen } from "@/components/dashboard/family/morning-briefing-card";
-import { SaheliAskBar } from "@/components/dashboard/saheli-ask-bar";
 import { SaheliInsightsBanner } from "@/components/dashboard/saheli-insights-banner";
 import { useFamily } from "@/components/dashboard/family-context";
 import { getCommandCenter, type CommandCenterRecipient } from "@/lib/api";
@@ -191,7 +190,6 @@ export function CommandCenterHome() {
             </Link>
           ) : null}
         </div>
-        <SaheliAskBar recipientUserId={selected?.userId ?? null} />
         <div className="mt-3 flex flex-wrap gap-2">
           {(data?.quickPrompts ?? []).map((prompt) => (
             <Link

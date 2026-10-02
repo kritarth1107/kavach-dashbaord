@@ -39,7 +39,6 @@ function navFor(pathname: string): NavKey {
   if (pathname.startsWith("/dashboard/saheli/memory")) return "memory";
   if (pathname.startsWith("/dashboard/saheli") || pathname.startsWith("/dashboard/activity") || pathname.startsWith("/dashboard/alerts")) return "today";
   if (pathname.startsWith("/dashboard/record") || pathname.startsWith("/dashboard/reports") || /health-record/.test(pathname)) return "health";
-  if (pathname.startsWith("/dashboard/chat")) return "saheli";
   if (pathname.startsWith("/dashboard/family") || pathname.startsWith("/dashboard/addresses")) return "family";
   return "settings";
 }
@@ -187,7 +186,7 @@ function Inner({ children }: { children: React.ReactNode }) {
   const closeMenu = useCallback(() => setMenu(false), []);
   const isRecipientView = /^\/dashboard\/family\/[^/]+$/.test(pathname);
   const isRecipientRoute = /^\/dashboard\/family\/[^/]+(\/health-record)?$/.test(pathname);
-  const fullBleed = pathname === "/dashboard/chat";
+  const fullBleed = false;
 
   let body = (
     <div className={cn(isRecipientView && "grid gap-5 xl:grid-cols-[1fr_340px]", fullBleed && "h-full")}>

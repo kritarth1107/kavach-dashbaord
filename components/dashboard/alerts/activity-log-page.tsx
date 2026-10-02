@@ -2,7 +2,6 @@
 
 import { Loader2 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
-import Link from "next/link";
 import { getFamilyActivity, type ActivityItem } from "@/lib/api";
 import { useFamily } from "@/components/dashboard/family-context";
 
@@ -62,11 +61,8 @@ export function ActivityLogPage() {
         <div className="px-5 py-16 text-center">
           <p className="text-[14px] font-bold text-[var(--text-primary)]">Nothing logged yet</p>
           <p className="mt-2 text-[13px] text-[var(--text-tertiary)]">
-            Start a{" "}
-            <Link href="/dashboard/chat" className="font-semibold text-primary hover:underline">
-              Saheli conversation
-            </Link>{" "}
-            or upload a record in the medical vault.
+            Saheli&apos;s WhatsApp conversations and orders show up here. You can also upload a
+            record in the medical vault.
           </p>
         </div>
       ) : (

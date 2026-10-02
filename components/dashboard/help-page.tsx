@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { BookOpen, Mail, MessageSquare } from "lucide-react";
+import { BookOpen, Mail } from "lucide-react";
 
 export function HelpPage() {
   return (
@@ -22,14 +22,6 @@ export function HelpPage() {
           <p className="text-[14px] font-bold text-[var(--text-primary)]">Email support</p>
           <p className="text-[12px] text-[var(--text-secondary)]">support@kavach.care</p>
         </a>
-        <Link
-          href="/dashboard/chat"
-          className="panel-card flex flex-col gap-3 p-5 transition-colors hover:border-primary"
-        >
-          <MessageSquare className="h-5 w-5 text-primary" />
-          <p className="text-[14px] font-bold text-[var(--text-primary)]">Ask Saheli</p>
-          <p className="text-[12px] text-[var(--text-secondary)]">In-app companion for care questions</p>
-        </Link>
         <Link
           href="/dashboard/reports"
           className="panel-card flex flex-col gap-3 p-5 transition-colors hover:border-primary"
