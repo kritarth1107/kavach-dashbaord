@@ -74,8 +74,10 @@ function toHomeData(s: CareHomeSummary, person: { id: string; name: string; call
       id: n.id,
       title: n.title,
       meta: n.meta,
-      approveLabel: n.kind === "task" ? (n.input === "confirm" ? "Confirm" : "Open") : "Approve",
-      declineLabel: n.kind === "task" && n.input === "confirm" ? "Decline" : n.kind === "task" ? "Later" : "Reject",
+      approveLabel:
+        n.kind === "refill" ? "Reorder" : n.kind === "appointment" ? "Open" : n.kind === "task" ? (n.input === "confirm" ? "Confirm" : "Open") : "Approve",
+      declineLabel:
+        n.kind === "refill" || n.kind === "appointment" ? "Later" : n.kind === "task" && n.input === "confirm" ? "Decline" : n.kind === "task" ? "Later" : "Reject",
     })),
     followUps: s.followUps.map((f) => ({ id: f.id, title: f.title, when: when(f.wakeAt) })),
     tasks: s.tasks.slice(0, 4).map((t) => ({ id: t.id, label: `${t.goal} · ${t.serviceLabel}`, status: STATUS_LABEL[t.status] ?? t.status, total: t.result?.total })),
@@ -88,6 +90,7 @@ export function CareHomePage() {
   const router = useRouter();
   const [state, setState] = useState<{ key: string; data: CareHomeSummary | null; snap: DailySnapshot | null; error: string }>({ key: "", data: null, snap: null, error: "" });
   const [busy, setBusy] = useState<string | null>(null);
+  const [dismissed, setDismissed] = useState<string[]>([]);
   const [tick, setTick] = useState(0);
   const req = useRef(0);
   const key = `${familyId}|${selectedId}`;
@@ -110,6 +113,11 @@ export function CareHomePage() {
       if (!familyId || !selectedId || !state.data) return;
       const item = state.data.needsYou.find((n) => n.id === id);
       if (!item) return;
+      if (item.kind === "refill" || item.kind === "appointment") {
+        if (approve) router.push(item.kind === "refill" ? `/dashboard/saheli/care?recipient=${selectedId}` : `/dashboard/care-team?recipient=${selectedId}`);
+        else setDismissed((d) => [...d, id]);
+        return;
+      }
       if (item.kind === "task" && item.input !== "confirm") {
         router.push(`/dashboard/saheli/tasks?recipient=${selectedId}`);
         return;
@@ -156,7 +164,11 @@ export function CareHomePage() {
   }
   return (
     <CareHome
-      data={toHomeData(state.data, { id: selected.id, name: selected.name, callAs: callName(selected) }, state.snap)}
+      data={toHomeData(
+        { ...state.data, needsYou: state.data.needsYou.filter((n) => !dismissed.includes(n.id)) },
+        { id: selected.id, name: selected.name, callAs: callName(selected) },
+        state.snap,
+      )}
       onDecide={decide}
       busy={busy}
     />

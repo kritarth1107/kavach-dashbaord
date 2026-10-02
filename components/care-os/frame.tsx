@@ -13,11 +13,16 @@ import {
   CreditCard,
   FirstAidKit,
   Gear,
+  Heart,
+  ListChecks,
   MapPin,
   Plugs,
   Question,
   SignOut,
+  Siren,
+  Stethoscope,
   UsersThree,
+  Wallet,
   X,
   type Icon as PhosphorIcon,
 } from "@phosphor-icons/react";
@@ -40,8 +45,22 @@ function navFor(pathname: string): NavKey {
   if (pathname.startsWith("/dashboard/saheli/tasks") || pathname.startsWith("/dashboard/approvals")) return "orders";
   if (pathname.startsWith("/dashboard/saheli/memory")) return "memory";
   if (pathname.startsWith("/dashboard/saheli") || pathname.startsWith("/dashboard/activity") || pathname.startsWith("/dashboard/alerts")) return "today";
-  if (pathname.startsWith("/dashboard/record") || pathname.startsWith("/dashboard/reports") || /health-record/.test(pathname)) return "health";
-  if (pathname.startsWith("/dashboard/family") || pathname.startsWith("/dashboard/addresses")) return "family";
+  if (
+    pathname.startsWith("/dashboard/record") ||
+    pathname.startsWith("/dashboard/reports") ||
+    pathname.startsWith("/dashboard/report") ||
+    pathname.startsWith("/dashboard/emergency") ||
+    pathname.startsWith("/dashboard/care-team") ||
+    pathname.startsWith("/dashboard/wellbeing") ||
+    /health-record/.test(pathname)
+  )
+    return "health";
+  if (
+    pathname.startsWith("/dashboard/family") ||
+    pathname.startsWith("/dashboard/addresses") ||
+    pathname.startsWith("/dashboard/spending")
+  )
+    return "family";
   return "settings";
 }
 
@@ -58,9 +77,19 @@ const MENU: Array<{ group: string; phoneOnly?: boolean; items: Array<{ href: str
   {
     group: "Care",
     items: [
+      { href: "/dashboard/emergency", label: "Emergency card", icon: Siren },
+      { href: "/dashboard/care-team", label: "Care team & appointments", icon: Stethoscope },
+      { href: "/dashboard/report", label: "Care report for the doctor", icon: ChartBar },
+      { href: "/dashboard/wellbeing", label: "Wellbeing", icon: Heart },
       { href: "/dashboard/notifications", label: "Notifications", icon: Bell },
       { href: "/dashboard/approvals", label: "Approvals", icon: CheckCircle },
-      { href: "/dashboard/reports", label: "Reports", icon: ChartBar },
+    ],
+  },
+  {
+    group: "Family",
+    items: [
+      { href: "/dashboard/family-tasks", label: "Family tasks", icon: ListChecks },
+      { href: "/dashboard/spending", label: "Spending", icon: Wallet },
       { href: "/dashboard/addresses", label: "Address book", icon: MapPin },
     ],
   },

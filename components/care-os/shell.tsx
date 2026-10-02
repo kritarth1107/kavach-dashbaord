@@ -15,6 +15,7 @@ import {
   List,
   Pill,
   ShoppingBag,
+  Siren,
   Sparkle,
   Stethoscope,
   UsersThree,
@@ -34,6 +35,13 @@ const RAIL: Array<{ key: NavKey; label: string; href: string; icon?: PhosphorIco
   { key: "orders", label: "Orders & rides", href: "/dashboard/saheli/tasks", icon: ShoppingBag },
   { key: "memory", label: "What Saheli knows", href: "/dashboard/saheli/memory", icon: Brain },
   { key: "family", label: "Family", href: "/dashboard/family", icon: UsersThree },
+];
+
+/** Shortcuts beside the person picker, about whoever is selected. */
+const QUICK: Array<{ label: string; href: string; icon: PhosphorIcon }> = [
+  { label: "Wellbeing", href: "/dashboard/wellbeing", icon: Heart },
+  { label: "Medicines and refills", href: "/dashboard/saheli/care", icon: Pill },
+  { label: "Emergency card", href: "/dashboard/emergency", icon: Siren },
 ];
 
 /** Bottom tab bar on phones: the five places a caregiver opens most. The rest live in the menu drawer. */
@@ -161,10 +169,18 @@ export function CareShell({
               </div>
               <div className="flex min-w-0 items-center gap-1 rounded-full sm:border sm:border-[var(--c-line)] sm:p-1 sm:pr-2">
                 <PersonPicker people={people} loading={loadingPeople} selectedId={selectedId} onSelect={onSelectPerson} />
-                <span className="hidden items-center gap-3 px-2 text-[var(--c-ink)] sm:flex" aria-hidden>
-                  <Heart size={18} weight="fill" />
-                  <Pill size={18} weight="fill" />
-                  <Sparkle size={18} weight="fill" />
+                <span className="hidden items-center gap-1 px-1 text-[var(--c-ink)] sm:flex">
+                  {QUICK.map((q) => (
+                    <Link
+                      key={q.href}
+                      href={q.href}
+                      title={q.label}
+                      aria-label={q.label}
+                      className="flex h-8 w-8 items-center justify-center rounded-full transition-colors hover:bg-[var(--c-card)] hover:text-[var(--c-accent)]"
+                    >
+                      <q.icon size={18} weight="fill" />
+                    </Link>
+                  ))}
                 </span>
               </div>
             </div>

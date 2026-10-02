@@ -199,7 +199,7 @@ export type CareHomeSummary = {
   doses: Array<{ id: string; time: string; name: string; dose?: string | null; status: "taken" | "reminded" | "missed" | "due" | "upcoming" | "skipped" | "unmarked" }>;
   week: { taken: number; scheduled: number; streakDays: number; adherence: number[]; days: string[] };
   vitals: Record<"bp" | "sugar" | "weight" | "temperature" | "spo2", VitalSummary>;
-  needsYou: Array<{ id: string; kind: "fact" | "task"; key?: string; taskId?: string; input?: string | null; title: string; meta: string }>;
+  needsYou: Array<{ id: string; kind: "fact" | "task" | "refill" | "appointment"; key?: string; taskId?: string; input?: string | null; title: string; meta: string }>;
   followUps: OpenLoop[];
   tasks: CareTask[];
   timeline: Array<{ id: number; at: string; kind: string; text: string }>;
