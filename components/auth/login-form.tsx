@@ -290,10 +290,12 @@ export function LoginForm() {
   return (
     <div className="flex min-h-screen w-full">
       <div className="flex w-full flex-col bg-[var(--c-frame)] px-6 py-8 sm:px-12 lg:w-[46%] lg:px-16">
-        <Link href="/" className="inline-flex" aria-label="Kavach CareOS">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/kavach-careos-logo.png" alt="Kavach CareOS" className="h-11 w-auto" />
-        </Link>
+        <div className="mx-auto w-full max-w-[400px]">
+          <Link href="/" className="inline-flex" aria-label="Kavach CareOS">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/kavach-careos-logo.png" alt="Kavach CareOS" className="h-11 w-auto" />
+          </Link>
+        </div>
         <div className="mx-auto flex w-full max-w-[400px] flex-1 flex-col justify-center py-10">
         <div className="mb-8">
           <h1 className="text-[44px] leading-[1.02] tracking-[-0.035em]">
