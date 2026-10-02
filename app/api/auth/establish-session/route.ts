@@ -25,6 +25,13 @@ export async function POST(req: NextRequest) {
     secureCookie: sessionCookieOptions.secure,
   });
 
+  if (token?.error === "CareRecipientLogin") {
+    return NextResponse.json(
+      { success: false, code: "care_recipient", message: "Only caregivers can sign in" },
+      { status: 403 },
+    );
+  }
+
   const backendToken =
     typeof token?.backendToken === "string" ? token.backendToken : null;
 

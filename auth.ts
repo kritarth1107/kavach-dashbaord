@@ -33,7 +33,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           });
 
           if (!res.ok) {
-            token.error = "GoogleSignInFailed";
+            token.error = res.status === 403 ? "CareRecipientLogin" : "GoogleSignInFailed";
             return token;
           }
 

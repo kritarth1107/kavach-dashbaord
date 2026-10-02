@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRight, Loader2, Mail, Smartphone, Sparkles } from "lucide-react";
+import { ArrowRight, Loader2, Mail, Smartphone } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
@@ -16,7 +16,6 @@ import {
 import {
   formatPhoneDisplay,
   maskPhoneNumber,
-  MOCK_PHONE_OTP,
   normalizePhoneDigits,
 } from "@/lib/phone";
 import { cn } from "@/lib/utils";
@@ -38,6 +37,47 @@ function GoogleIcon() {
 }
 
 type LoginMethod = OtpChannel;
+
+/** Mobile codes need an SMS provider; until then only email and Google sign in. */
+const PHONE_LOGIN_ENABLED = false;
+
+const LOGIN_ERRORS: Record<string, string> = {
+  care_recipient:
+    "This account belongs to someone Kavach cares for. Saheli talks to them on WhatsApp; only caregivers can sign in here.",
+};
+
+function SubmitButton({
+  loading,
+  disabled,
+  label,
+  loadingLabel,
+}: {
+  loading: boolean;
+  disabled?: boolean;
+  label: string;
+  loadingLabel: string;
+}) {
+  return (
+    <button
+      type="submit"
+      disabled={loading || disabled}
+      aria-busy={loading}
+      className={cn(
+        "flex h-12 w-full items-center justify-between gap-2 rounded-full bg-[var(--c-ink)] pl-6 pr-1.5 text-[14px] font-medium text-white transition-opacity hover:opacity-90",
+        loading ? "cursor-wait" : "disabled:opacity-50",
+      )}
+    >
+      <span>{loading ? loadingLabel : label}</span>
+      <span className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-[var(--c-ink)]">
+        {loading ? (
+          <Loader2 className="h-4 w-4 animate-spin" strokeWidth={2.5} />
+        ) : (
+          <ArrowRight className="h-4 w-4" strokeWidth={2.5} />
+        )}
+      </span>
+    </button>
+  );
+}
 type Step = "identifier" | "otp" | "register";
 
 function MethodToggle({
@@ -63,18 +103,27 @@ function MethodToggle({
         ] as const
       ).map(({ id, label, icon: Icon }) => {
         const selected = value === id;
+        const off = id === "phone" && !PHONE_LOGIN_ENABLED;
         return (
           <button
             key={id}
             type="button"
             onClick={() => onChange(id)}
+            disabled={off}
+            title={off ? "Mobile sign-in is coming soon" : undefined}
             className={cn(
               "relative z-[1] flex h-10 items-center justify-center gap-1.5 rounded-full text-[13px] font-medium transition-colors",
               selected ? "text-white" : "text-[var(--c-ink-2)] hover:text-[var(--c-ink)]",
+              off && "cursor-not-allowed text-[var(--c-ink-3)] hover:text-[var(--c-ink-3)]",
             )}
           >
             <Icon className="h-3.5 w-3.5" strokeWidth={2.25} />
             {label}
+            {off && (
+              <span className="rounded-full bg-[var(--c-frame)] px-2 py-0.5 text-[10px] font-medium text-[var(--c-ink-3)]">
+                Soon
+              </span>
+            )}
           </button>
         );
       })}
@@ -87,20 +136,21 @@ export function LoginForm() {
   const searchParams = useSearchParams();
   const declinedInvite = searchParams.get("declined") === "1";
   const emailFromQuery = searchParams.get("email") ?? "";
-  const phoneFromQuery = searchParams.get("phone") ?? "";
+  const phoneFromQuery = PHONE_LOGIN_ENABLED ? (searchParams.get("phone") ?? "") : "";
+  const queryError = LOGIN_ERRORS[searchParams.get("error") ?? ""] ?? "";
 
   const [step, setStep] = useState<Step>("identifier");
   const [loginMethod, setLoginMethod] = useState<LoginMethod>(
     phoneFromQuery ? "phone" : "email",
   );
   const [channel, setChannel] = useState<OtpChannel>("email");
-  const [email, setEmail] = useState("");
-  const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState(emailFromQuery);
+  const [phone, setPhone] = useState(phoneFromQuery.replace(/\D/g, ""));
   const [phoneCountryCode, setPhoneCountryCode] = useState("+91");
   const [otp, setOtp] = useState("");
   const [otpToken, setOtpToken] = useState("");
   const [name, setName] = useState("");
-  const [error, setError] = useState("");
+  const [error, setError] = useState(queryError);
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
@@ -128,20 +178,6 @@ export function LoginForm() {
     const timer = setTimeout(() => setResendCooldown((s) => s - 1), 1000);
     return () => clearTimeout(timer);
   }, [resendCooldown]);
-
-  useEffect(() => {
-    if (emailFromQuery && !email) {
-      setEmail(emailFromQuery);
-      setLoginMethod("email");
-    }
-  }, [emailFromQuery, email]);
-
-  useEffect(() => {
-    if (phoneFromQuery && !phone) {
-      setPhone(phoneFromQuery.replace(/\D/g, ""));
-      setLoginMethod("phone");
-    }
-  }, [phoneFromQuery, phone]);
 
   function switchLoginMethod(method: LoginMethod) {
     setLoginMethod(method);
@@ -270,7 +306,7 @@ export function LoginForm() {
           </h1>
           {step === "identifier" && (
             <p className="mt-3 text-[13px] text-[var(--c-ink-2)]">
-              Sign in with email or mobile. We&apos;ll send a one-time code.
+              Sign in with your email. We&apos;ll send a one-time code.
             </p>
           )}
           {step === "register" && (
@@ -360,53 +396,22 @@ export function LoginForm() {
                     />
                   </div>
                 </div>
-                <div className="flex items-center gap-2 rounded-full bg-[var(--c-accent-soft)] px-4 py-2">
-                  <Sparkles className="h-3.5 w-3.5 shrink-0 text-[var(--c-accent)]" strokeWidth={2.25} />
-                  <p className="text-[11px] font-medium leading-snug text-[var(--c-accent-soft-ink)]">
-                    Demo mode — use code{" "}
-                    <span className="font-extrabold tracking-widest">{MOCK_PHONE_OTP}</span>
-                  </p>
-                </div>
               </div>
             )}
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="flex h-12 w-full items-center justify-between gap-2 rounded-full bg-[var(--c-ink)] pl-6 pr-1.5 text-[14px] font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50 [&>svg:last-child]:h-9 [&>svg:last-child]:w-9 [&>svg:last-child]:rounded-full [&>svg:last-child]:bg-white [&>svg:last-child]:p-2.5 [&>svg:last-child]:text-[var(--c-ink)]"
-            >
-              {loading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : loginMethod === "phone" ? (
-                "Send code to mobile"
-              ) : (
-                "Continue with email"
-              )}
-              {!loading && <ArrowRight className="h-4 w-4" strokeWidth={2.5} />}
-            </button>
+            <SubmitButton
+              loading={loading}
+              label={loginMethod === "phone" ? "Send code to mobile" : "Continue with email"}
+              loadingLabel="Signing in"
+            />
           </form>
         )}
 
         {step === "otp" && (
           <form onSubmit={handleVerifyOtp} className="space-y-4">
-            {channel === "phone" && (
-              <div className="flex items-center justify-center gap-2 rounded-full bg-[var(--c-accent-soft)] px-4 py-2">
-                <Sparkles className="h-3.5 w-3.5 text-primary" strokeWidth={2.25} />
-                <p className="text-[11px] font-semibold text-primary">
-                  Demo code: <span className="tracking-widest">{MOCK_PHONE_OTP}</span>
-                </p>
-              </div>
-            )}
-
             <OtpInput value={otp} onChange={setOtp} disabled={loading} />
 
-            <button
-              type="submit"
-              disabled={loading || otp.length !== 6}
-              className="flex h-12 w-full items-center justify-between gap-2 rounded-full bg-[var(--c-ink)] pl-6 pr-1.5 text-[14px] font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50 [&>svg:last-child]:h-9 [&>svg:last-child]:w-9 [&>svg:last-child]:rounded-full [&>svg:last-child]:bg-white [&>svg:last-child]:p-2.5 [&>svg:last-child]:text-[var(--c-ink)]"
-            >
-              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Verify code"}
-            </button>
+            <SubmitButton loading={loading} disabled={otp.length !== 6} label="Verify code" loadingLabel="Verifying" />
 
             <p className="text-center text-[12px] text-[var(--text-secondary)]">
               <button
@@ -440,13 +445,12 @@ export function LoginForm() {
               minLength={2}
               className="w-full rounded-full border border-[var(--c-line)] bg-[var(--c-card)] h-12 px-5 text-[13px] font-medium text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] outline-none transition-colors focus:border-[var(--c-ink)] focus:bg-[var(--c-frame)]"
             />
-            <button
-              type="submit"
-              disabled={loading || name.trim().length < 2}
-              className="flex h-12 w-full items-center justify-between gap-2 rounded-full bg-[var(--c-ink)] pl-6 pr-1.5 text-[14px] font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50 [&>svg:last-child]:h-9 [&>svg:last-child]:w-9 [&>svg:last-child]:rounded-full [&>svg:last-child]:bg-white [&>svg:last-child]:p-2.5 [&>svg:last-child]:text-[var(--c-ink)]"
-            >
-              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Create account"}
-            </button>
+            <SubmitButton
+              loading={loading}
+              disabled={name.trim().length < 2}
+              label="Create account"
+              loadingLabel="Creating account"
+            />
           </form>
         )}
 

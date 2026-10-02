@@ -6,6 +6,8 @@ import { useEffect } from "react";
 import { getMe } from "@/lib/api";
 import { setStoredFamilyId } from "@/lib/family-storage";
 
+class CareRecipientLogin extends Error {}
+
 async function ensureSessionCookie() {
   const res = await fetch("/api/auth/establish-session", {
     method: "POST",
@@ -14,6 +16,10 @@ async function ensureSessionCookie() {
 
   if (res.status === 401) {
     return false;
+  }
+
+  if (res.status === 403) {
+    throw new CareRecipientLogin();
   }
 
   if (!res.ok) {
@@ -48,8 +54,8 @@ export function PostLoginRedirect() {
         }
 
         router.replace("/dashboard");
-      } catch {
-        router.replace("/auth/login");
+      } catch (err) {
+        router.replace(err instanceof CareRecipientLogin ? "/auth/login?error=care_recipient" : "/auth/login");
       }
     })();
   }, [router]);
