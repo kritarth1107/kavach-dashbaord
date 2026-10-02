@@ -5,11 +5,13 @@ import { usePathname, useRouter } from "next/navigation";
 import { signOut } from "next-auth/react";
 import {
   Bell,
+  Brain,
   CaretRight,
   ChartBar,
   Check,
   CheckCircle,
   CreditCard,
+  FirstAidKit,
   Gear,
   MapPin,
   Plugs,
@@ -43,7 +45,16 @@ function navFor(pathname: string): NavKey {
   return "settings";
 }
 
-const MENU: Array<{ group: string; items: Array<{ href: string; label: string; icon: PhosphorIcon }> }> = [
+const MENU: Array<{ group: string; phoneOnly?: boolean; items: Array<{ href: string; label: string; icon: PhosphorIcon }> }> = [
+  {
+    // On phones the icon rail becomes a five-tab bar; these rail pages move here.
+    group: "Care records",
+    phoneOnly: true,
+    items: [
+      { href: "/dashboard/record", label: "Health records", icon: FirstAidKit },
+      { href: "/dashboard/saheli/memory", label: "What Saheli knows", icon: Brain },
+    ],
+  },
   {
     group: "Care",
     items: [
@@ -138,7 +149,7 @@ function Drawer({ open, onClose }: { open: boolean; onClose: () => void }) {
             </section>
           )}
           {MENU.map((g) => (
-            <section key={g.group} className="mt-5">
+            <section key={g.group} className={cn("mt-5", g.phoneOnly && "md:hidden")}>
               <p className="px-3 pb-2 text-[11px] font-medium uppercase tracking-[0.06em] text-[var(--c-ink-3)]">{g.group}</p>
               {g.items.map((m) => {
                 const on = pathname === m.href;

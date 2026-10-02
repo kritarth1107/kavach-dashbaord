@@ -36,6 +36,15 @@ const RAIL: Array<{ key: NavKey; label: string; href: string; icon?: PhosphorIco
   { key: "family", label: "Family", href: "/dashboard/family", icon: UsersThree },
 ];
 
+/** Bottom tab bar on phones: the five places a caregiver opens most. The rest live in the menu drawer. */
+const TABS: Array<{ key: NavKey; short: string; href: string; icon: PhosphorIcon }> = [
+  { key: "home", short: "Home", href: "/dashboard", icon: House },
+  { key: "today", short: "Today", href: "/dashboard/saheli", icon: CalendarDots },
+  { key: "care", short: "Medicines", href: "/dashboard/saheli/care", icon: Pill },
+  { key: "orders", short: "Orders", href: "/dashboard/saheli/tasks", icon: ShoppingBag },
+  { key: "family", short: "Family", href: "/dashboard/family", icon: UsersThree },
+];
+
 export type Person = { id: string; name: string; relation?: string; photo?: string | null; self?: boolean };
 
 function useClock() {
@@ -131,8 +140,8 @@ export function CareShell({
         </aside>
 
         <div className="flex min-w-0 flex-1 flex-col">
-          <header className="flex flex-wrap items-center justify-between gap-3 px-5 pb-2 pt-5 sm:px-8 sm:pt-7">
-            <div className="flex min-w-0 items-center gap-3">
+          <header className="flex items-center justify-between gap-2 px-4 pb-2 pt-4 sm:flex-wrap sm:gap-3 sm:px-8 sm:pt-7">
+            <div className="flex min-w-0 items-center gap-3 max-sm:flex-1">
               <div className="hidden items-center rounded-full border border-[var(--c-line)] p-1 lg:flex">
                 {[
                   { icon: Stethoscope, href: "/dashboard/record", label: "Health records" },
@@ -150,7 +159,7 @@ export function CareShell({
                   </Link>
                 ))}
               </div>
-              <div className="flex min-w-0 items-center gap-1 rounded-full border border-[var(--c-line)] p-1 pr-2">
+              <div className="flex min-w-0 items-center gap-1 rounded-full sm:border sm:border-[var(--c-line)] sm:p-1 sm:pr-2">
                 <PersonPicker people={people} loading={loadingPeople} selectedId={selectedId} onSelect={onSelectPerson} />
                 <span className="hidden items-center gap-3 px-2 text-[var(--c-ink)] sm:flex" aria-hidden>
                   <Heart size={18} weight="fill" />
@@ -159,7 +168,7 @@ export function CareShell({
                 </span>
               </div>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex shrink-0 items-center gap-2 sm:gap-3">
               <div className="hidden items-center gap-2.5 xl:flex">
                 <Sparkle size={22} weight="fill" />
                 <div className="leading-tight">
@@ -167,10 +176,22 @@ export function CareShell({
                   <p className="text-[11px] text-[var(--c-ink-3)]">Welcome to Kavach</p>
                 </div>
               </div>
-              <Link href="/dashboard/notifications" className="flex h-12 items-center gap-2.5 rounded-full border border-[var(--c-line)] pl-3 pr-1.5 text-[13px]">
+              <Link
+                href="/dashboard/notifications"
+                aria-label={alerts ? `Notifications, ${alerts} unread` : "Notifications"}
+                className="relative flex h-11 w-11 items-center justify-center rounded-full border border-[var(--c-line)] text-[13px] sm:h-12 sm:w-auto sm:justify-start sm:gap-2.5 sm:pl-3 sm:pr-1.5"
+              >
                 <Bell size={18} />
                 <span className="hidden sm:inline">{date}</span>
-                <span className="flex h-6 min-w-6 items-center justify-center rounded-full bg-[var(--c-ink)] px-1.5 text-[11px] text-[var(--c-frame)]">{alerts}</span>
+                <span
+                  className={cn(
+                    "flex h-6 min-w-6 items-center justify-center rounded-full bg-[var(--c-ink)] px-1.5 text-[11px] text-[var(--c-frame)]",
+                    "max-sm:absolute max-sm:-right-1 max-sm:-top-1 max-sm:h-5 max-sm:min-w-5 max-sm:border-2 max-sm:border-[var(--c-frame)] max-sm:bg-[var(--c-accent)] max-sm:px-1 max-sm:text-[10px]",
+                    !alerts && "max-sm:hidden",
+                  )}
+                >
+                  {alerts}
+                </span>
               </Link>
               <div className="relative">
                 <button
@@ -178,31 +199,37 @@ export function CareShell({
                   onClick={onMenu}
                   aria-label="Menu"
                   aria-haspopup="menu"
-                  className="flex h-12 w-12 items-center justify-center rounded-[14px] border border-[var(--c-line)] hover:bg-[var(--c-card)]"
+                  className="flex h-11 w-11 items-center justify-center rounded-[14px] border border-[var(--c-line)] hover:bg-[var(--c-card)] sm:h-12 sm:w-12"
                 >
                   <List size={20} />
                 </button>
               </div>
             </div>
           </header>
-          <main className="c-scroll min-h-0 flex-1 overflow-y-auto px-5 pb-24 pt-3 sm:px-8 md:pb-8">{children}</main>
+          <main className="c-scroll min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-4 pb-[calc(112px+env(safe-area-inset-bottom))] pt-3 sm:px-8 md:pb-8">{children}</main>
         </div>
       </div>
 
-      <nav aria-label="Main" className="fixed inset-x-3 bottom-3 z-30 flex items-center justify-around rounded-full bg-[var(--c-ink)] px-2 py-2 md:hidden">
-        {RAIL.filter((n) => ["home", "today", "care", "orders", "family"].includes(n.key)).map((n) => (
-          <Link
-            key={n.key}
-            href={n.href}
-            aria-label={n.label}
-            className={cn(
-              "flex h-11 w-11 items-center justify-center rounded-full text-[12px] font-medium",
-              n.key === active ? "bg-[var(--c-accent)] text-[var(--c-accent-ink)]" : "text-white/70",
-            )}
-          >
-            {n.icon ? <n.icon size={20} weight={n.key === active ? "fill" : "regular"} /> : n.text}
-          </Link>
-        ))}
+      <nav
+        aria-label="Main"
+        className="fixed inset-x-3 bottom-[max(12px,env(safe-area-inset-bottom))] z-30 grid grid-cols-5 gap-1 rounded-[26px] bg-[var(--c-ink)] p-1.5 shadow-[0_18px_40px_-18px_rgba(20,42,34,0.6)] md:hidden"
+      >
+        {TABS.map((n) => {
+          const on = n.key === active;
+          return (
+            <Link
+              key={n.key}
+              href={n.href}
+              aria-current={on ? "page" : undefined}
+              className={cn("flex min-w-0 flex-col items-center gap-0.5 rounded-[20px] py-1.5 text-[10.5px] font-medium", on ? "text-white" : "text-white/60")}
+            >
+              <span className={cn("flex h-8 w-8 items-center justify-center rounded-full", on && "bg-[var(--c-accent)]")}>
+                <n.icon size={18} weight={on ? "fill" : "regular"} />
+              </span>
+              <span className="max-w-full truncate">{n.short}</span>
+            </Link>
+          );
+        })}
       </nav>
     </div>
   );

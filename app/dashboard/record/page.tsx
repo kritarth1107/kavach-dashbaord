@@ -5,8 +5,9 @@ export default function RecordPage() {
   return (
     <Suspense
       fallback={
-        <div className="flex justify-center py-20">
-          <span className="text-[13px] text-[var(--text-tertiary)]">Loading health records…</span>
+        <div className="space-y-4" aria-busy="true" aria-label="Loading health records">
+          <div className="h-[110px] w-full max-w-[320px] animate-pulse rounded-[24px] bg-[var(--c-card)]" />
+          <div className="h-[320px] animate-pulse rounded-[24px] bg-[var(--c-card)]" />
         </div>
       }
     >

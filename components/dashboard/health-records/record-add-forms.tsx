@@ -1,9 +1,12 @@
 "use client";
 
 import { type DragEvent, type FormEvent } from "react";
-import { Upload } from "lucide-react";
+import { FileArrowUp, Paperclip, X } from "@phosphor-icons/react";
 import { cn } from "@/lib/utils";
 import { submitButtonDisabled, uploadButtonDisabled } from "@/lib/medical-record-form";
+import { DarkButton } from "@/components/care-os/ui";
+
+const CANCEL = "h-12 px-4 text-[14px] text-[var(--c-ink-2)] hover:text-[var(--c-ink)]";
 
 export function RecordAddForms({
   mode,
@@ -53,25 +56,36 @@ export function RecordAddForms({
           onDragLeave={onDragLeave}
           onDrop={onDrop}
           className={cn(
-            "relative flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed px-4 text-center transition-colors",
+            "relative flex cursor-pointer flex-col items-center justify-center rounded-[20px] border border-dashed px-4 text-center transition-colors",
             dragOver
-              ? "border-primary bg-primary-light"
-              : "border-[var(--border-strong)] bg-[var(--card)] hover:border-primary",
+              ? "border-[var(--c-accent)] bg-[var(--c-accent-soft)]"
+              : "border-[var(--c-ink-3)] bg-[var(--c-frame)] hover:border-[var(--c-ink)]",
             compact ? "py-5" : "py-8",
           )}
         >
-          <Upload className={cn("text-primary", compact ? "mb-1.5 h-6 w-6" : "mb-2 h-8 w-8")} />
-          <p className="text-[13px] font-semibold text-[var(--text-primary)]">
+          <span
+            className={cn(
+              "flex items-center justify-center rounded-full",
+              dragOver ? "bg-[var(--c-accent)] text-white" : "bg-[var(--c-ink)] text-[var(--c-frame)]",
+              compact ? "mb-2 h-10 w-10" : "mb-3 h-12 w-12",
+            )}
+          >
+            <FileArrowUp size={compact ? 18 : 22} />
+          </span>
+          <p className="text-[14px] font-medium">
             {dragOver
               ? "Drop to add files"
               : files.length
                 ? `${files.length} file${files.length === 1 ? "" : "s"} selected`
                 : "Choose files or drag here"}
           </p>
-          <p className="mt-1 text-[11px] text-[var(--text-tertiary)]">
+          <p className="mt-1 max-w-sm text-[12px] text-[var(--c-ink-2)]">
             PDF or a photo (JPG, PNG, HEIC), including a tilted or dim phone photo · up to 15 MB
           </p>
-          <p className="mt-2 text-[11px] text-primary">Title, type, and date are detected automatically</p>
+          <p className="mt-2 flex items-center gap-1.5 text-[11.5px] font-medium text-[var(--c-accent)]">
+            <span className="h-1.5 w-1.5 rounded-full bg-[var(--c-accent)]" />
+            Title, type, and date are detected automatically
+          </p>
           <input
             type="file"
             multiple
@@ -85,31 +99,37 @@ export function RecordAddForms({
           />
         </div>
         {files.length > 0 && (
-          <ul className="max-h-32 space-y-1 overflow-y-auto rounded-lg border border-[var(--border-strong)] bg-[var(--input-bg)] p-2">
+          <ul className="c-scroll max-h-40 space-y-1.5 overflow-y-auto">
             {files.map((file) => (
               <li
                 key={`${file.name}-${file.size}-${file.lastModified}`}
-                className="flex items-center justify-between gap-2 text-[12px] text-[var(--text-secondary)]"
+                className="flex items-center gap-2.5 rounded-[14px] bg-[var(--c-frame)] py-1.5 pl-3 pr-1.5 text-[12.5px]"
               >
-                <span className="truncate">{file.name}</span>
+                <Paperclip size={14} className="shrink-0 text-[var(--c-ink-3)]" />
+                <span className="min-w-0 flex-1 truncate">{file.name}</span>
                 <button
                   type="button"
-                  className="shrink-0 text-[var(--text-tertiary)] hover:text-[var(--danger-text)]"
+                  aria-label={`Remove ${file.name}`}
+                  className="inline-flex h-7 shrink-0 items-center gap-1 rounded-full px-2.5 text-[12px] text-[var(--c-ink-2)] hover:bg-[var(--c-card)] hover:text-[#d92d20]"
                   onClick={() => onRemoveFile(file)}
                 >
+                  <X size={12} />
                   Remove
                 </button>
               </li>
             ))}
           </ul>
         )}
-        <button
-          type="submit"
-          disabled={uploadButtonDisabled({ saving, fileCount: files.length, elderId })}
-          className="w-full rounded-lg bg-primary px-4 py-2.5 text-[12px] font-bold text-white disabled:opacity-50 sm:w-auto"
-        >
-          {saving ? "Uploading & analyzing…" : files.length > 1 ? `Upload ${files.length} files` : "Upload"}
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <DarkButton type="submit" disabled={uploadButtonDisabled({ saving, fileCount: files.length, elderId })}>
+            {saving ? "Uploading & analyzing…" : files.length > 1 ? `Upload ${files.length} files` : "Upload"}
+          </DarkButton>
+          {showCancel && (
+            <button type="button" onClick={onCancel} className={CANCEL}>
+              Cancel
+            </button>
+          )}
+        </div>
       </form>
     );
   }
@@ -122,25 +142,15 @@ export function RecordAddForms({
         onChange={(e) => onText(e.target.value)}
         placeholder={"Paste report text — Saheli will detect title, type, and date:\nTSH 4.2 mIU/L (8 Aug 2026)\nFree T4 1.1 ng/dL"}
         rows={6}
-        className="w-full rounded-xl border border-[var(--border-strong)] bg-[var(--input-bg)] px-3 py-2 text-[13px] outline-none focus:border-primary"
+        className="w-full rounded-[20px] border border-[var(--c-line)] bg-[var(--c-frame)] px-4 py-3 text-[13px] leading-relaxed outline-none transition-colors placeholder:text-[var(--c-ink-3)] focus:border-[var(--c-ink)]"
       />
-      <p className="text-[11px] text-[var(--text-tertiary)]">
-        No need to enter title or date — AI fills those in from the text.
-      </p>
-      <div className="flex flex-wrap gap-2">
-        <button
-          type="submit"
-          disabled={submitButtonDisabled({ saving, text, elderId })}
-          className="w-full rounded-lg bg-primary px-4 py-2.5 text-[12px] font-bold text-white disabled:opacity-50 sm:w-auto"
-        >
+      <p className="px-1 text-[12px] text-[var(--c-ink-2)]">No need to enter title or date — AI fills those in from the text.</p>
+      <div className="flex flex-wrap items-center gap-2">
+        <DarkButton type="submit" disabled={submitButtonDisabled({ saving, text, elderId })}>
           {saving ? "Analyzing…" : "Submit"}
-        </button>
+        </DarkButton>
         {showCancel && (
-          <button
-            type="button"
-            onClick={onCancel}
-            className="rounded-lg border border-[var(--border-strong)] px-4 py-2 text-[12px] font-semibold text-[var(--text-secondary)]"
-          >
+          <button type="button" onClick={onCancel} className={CANCEL}>
             Cancel
           </button>
         )}
