@@ -1,17 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import {
-  Activity,
-  AlertTriangle,
-  ArrowLeft,
-  Brain,
-  FileText,
-  Heart,
-  Loader2,
-  Sparkles,
-  TrendingUp,
-} from "lucide-react";
+import { ArrowLeft, Sparkle, Warning } from "@phosphor-icons/react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import {
@@ -26,13 +16,6 @@ import {
   isCareRecipientRole,
 } from "@/components/dashboard/family/family-data";
 import { HealthRecordsPanel } from "@/components/dashboard/health-records/health-records-panel";
-import { StatMetricCard } from "@/components/dashboard/charts/stat-metric-card";
-import {
-  AreaTrendChart,
-  BarChart,
-  MiniVitalBar,
-  Sparkline,
-} from "@/components/dashboard/charts/chart-primitives";
 import {
   buildMetricInsights,
   groupMetricsByKey,
@@ -42,6 +25,9 @@ import {
 } from "@/lib/health-metrics";
 import { parseDocumentDate } from "@/lib/date-utils";
 import { cn } from "@/lib/utils";
+import { Bars, Panel, PanelTitle, Tag } from "@/components/care-os/ui";
+
+const shortDate = (d: Date) => d.toLocaleDateString("en-IN", { day: "numeric", month: "short" });
 
 function MetricTrendCard({
   label,
@@ -52,95 +38,75 @@ function MetricTrendCard({
   unit: string;
   series: ParsedMetric[];
 }) {
-  const values = series.map((m) => m.value);
-  const labels = series.map((m) =>
-    m.date.toLocaleDateString("en-IN", { day: "numeric", month: "short" }),
-  );
+  const shown = series.slice(-8);
   const latest = series[series.length - 1];
   const prev = series.length > 1 ? series[series.length - 2] : null;
   const delta = prev ? latest.value - prev.value : 0;
 
   return (
-    <div className="panel-card flex h-full flex-col p-5">
-      <div className="mb-3 flex items-start justify-between gap-2">
-        <div>
-          <p className="text-[13px] font-bold text-[var(--text-primary)]">{label}</p>
-          <p className="text-[11px] text-[var(--text-tertiary)]">
-            {series.length} reading{series.length === 1 ? "" : "s"} on file
-          </p>
-        </div>
-        <span
-          className={cn(
-            "rounded-md px-2 py-0.5 text-[10px] font-bold uppercase",
-            latest.status === "normal" && "bg-primary-light text-primary",
-            latest.status === "high" && "bg-[var(--danger-bg)] text-[var(--danger-text)]",
-            latest.status === "low" && "bg-[var(--warning-bg)] text-[var(--warning-text)]",
-            latest.status === "unknown" && "bg-[var(--surface)] text-[var(--text-secondary)]",
-          )}
-        >
-          {latest.status}
-        </span>
-      </div>
-      <div className="mb-3 flex items-end justify-between">
-        <div>
-          <p className="text-[1.75rem] font-extrabold leading-none text-[var(--text-primary)]">
-            {latest.value}
-            <span className="ml-1 text-[13px] font-semibold text-[var(--text-tertiary)]">{unit}</span>
-          </p>
-          {prev && (
-            <p className={cn("mt-1 text-[11px] font-semibold", delta >= 0 ? "text-[var(--danger-text)]" : "text-primary")}>
-              {delta >= 0 ? "+" : ""}
-              {delta.toFixed(1)} vs prior
-            </p>
-          )}
-        </div>
-        <Sparkline
-          color={latest.status === "high" ? "#dc2626" : "#16a34a"}
-          data={values}
-          className="h-8 w-24"
-        />
-      </div>
-      <AreaTrendChart
-        data={values}
-        labels={labels}
-        gradientId={`metric-${latest.key}`}
-        stroke={latest.status === "high" ? "#dc2626" : "#0d9488"}
-        fillColor={latest.status === "high" ? "#dc2626" : "#16a34a"}
-        height={90}
+    <Panel className="flex h-full min-w-0 flex-col">
+      <PanelTitle
+        title={label}
+        right={
+          <Tag tone={latest.status === "high" || latest.status === "low" ? "danger" : "light"} className={latest.status === "normal" || latest.status === "unknown" ? "!bg-[var(--c-frame)]" : undefined}>
+            {latest.status}
+          </Tag>
+        }
       />
+      <div className="mt-5 flex items-start gap-2">
+        <p className="c-num text-[38px] leading-none">
+          {latest.value}
+          <span className="ml-1 text-[13px] text-[var(--c-ink-3)]">{unit}</span>
+        </p>
+        {prev && (
+          <Tag trend={delta > 0 ? "up" : delta < 0 ? "down" : undefined}>
+            {delta >= 0 ? "+" : ""}
+            {delta.toFixed(1)} vs prior
+          </Tag>
+        )}
+      </div>
+      <p className="mt-1 text-[11px] text-[var(--c-ink-2)]">
+        {series.length} reading{series.length === 1 ? "" : "s"} on file
+      </p>
+      <div className="mt-auto pt-8">
+        <Bars values={shown.map((m) => m.value)} highlight={[shown.length - 1]} labels={shown.map((m, i) => (shown.length <= 5 || i % 2 === shown.length % 2 || i === shown.length - 1 ? shortDate(m.date) : null))} height={110} />
+      </div>
       {latest.refLow !== undefined && latest.refHigh !== undefined && (
-        <p className="mt-2 text-[10px] text-[var(--text-tertiary)]">
+        <p className="mt-3 text-[11px] text-[var(--c-ink-3)]">
           Typical printed range {latest.refLow}–{latest.refHigh} {unit}
         </p>
       )}
-    </div>
+    </Panel>
   );
 }
 
-function InsightCard({ insight }: { insight: MetricInsight }) {
+function InsightRow({ insight }: { insight: MetricInsight }) {
+  const flagged = insight.severity !== "info";
   return (
-    <div
-      className={cn(
-        "rounded-xl border p-4",
-        insight.severity === "alert" && "border-[var(--danger-border)] bg-[var(--danger-bg)]",
-        insight.severity === "watch" && "border-[var(--warning-border)] bg-[var(--warning-bg)]",
-        insight.severity === "info" && "border-primary/30 bg-primary-light",
-      )}
-    >
-      <div className="flex items-start gap-3">
-        {insight.severity === "watch" ? (
-          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-[var(--warning-text)]" />
-        ) : insight.severity === "alert" ? (
-          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-[var(--danger-text)]" />
-        ) : (
-          <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+    <li className="flex items-start gap-3 rounded-[18px] bg-[var(--c-frame)] p-3.5">
+      <span
+        className={cn(
+          "flex h-9 w-9 shrink-0 items-center justify-center rounded-full",
+          flagged ? "bg-[var(--c-accent)] text-white" : "bg-[var(--c-ink)] text-[var(--c-frame)]",
         )}
-        <div>
-          <p className="text-[13px] font-bold text-[var(--text-primary)]">{insight.title}</p>
-          <p className="mt-1 text-[12px] leading-relaxed text-[var(--text-secondary)]">{insight.detail}</p>
-        </div>
+      >
+        {flagged ? <Warning size={16} weight="fill" /> : <Sparkle size={16} weight="fill" />}
+      </span>
+      <div className="min-w-0">
+        <p className="text-[13.5px] font-medium">{insight.title}</p>
+        <p className="mt-0.5 text-[12.5px] leading-relaxed text-[var(--c-ink-2)]">{insight.detail}</p>
       </div>
-    </div>
+    </li>
+  );
+}
+
+function Stat({ label, value, sub }: { label: string; value: string; sub: string }) {
+  return (
+    <Panel className="min-w-0">
+      <p className="text-[12px] text-[var(--c-ink-2)]">{label}</p>
+      <p className="c-num mt-3 text-[36px] leading-none">{value}</p>
+      <p className="mt-2 text-[11px] text-[var(--c-ink-2)]">{sub}</p>
+    </Panel>
   );
 }
 
@@ -186,7 +152,8 @@ export function RecipientHealthRecordPage() {
   }, [activeFamilyId, userId]);
 
   useEffect(() => {
-    void load();
+    const t = setTimeout(() => void load(), 0);
+    return () => clearTimeout(t);
   }, [load]);
 
   const metrics = useMemo(() => parseAllMetrics(labs), [labs]);
@@ -237,181 +204,125 @@ export function RecipientHealthRecordPage() {
 
   if (familyLoading || loading) {
     return (
-      <div className="flex min-h-[320px] items-center justify-center">
-        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+      <div className="space-y-4" aria-busy="true" aria-label="Loading health records">
+        <div className="h-[110px] w-full max-w-[360px] animate-pulse rounded-[24px] bg-[var(--c-card)]" />
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+          {[0, 1, 2, 3].map((i) => (
+            <div key={i} className="h-[130px] animate-pulse rounded-[24px] bg-[var(--c-card)]" />
+          ))}
+        </div>
+        <div className="h-[260px] animate-pulse rounded-[24px] bg-[var(--c-card)]" />
       </div>
     );
   }
 
   if (isCareRecipientRole(activeFamily?.role)) {
     return (
-      <div className="rounded-2xl border border-[var(--warning-border)] bg-[var(--warning-bg)] px-5 py-8 text-center">
-        <p className="text-[14px] font-bold text-[var(--text-primary)]">Caregiver view only</p>
-      </div>
+      <Panel className="py-14 text-center">
+        <p className="text-[16px] font-medium">Caregiver view only</p>
+      </Panel>
     );
   }
 
   if (error) {
     return (
-      <div className="rounded-2xl border border-[var(--danger-border)] bg-[var(--danger-bg)] px-5 py-8 text-center">
-        <p className="text-[14px] font-bold text-[var(--text-primary)]">{error}</p>
-        <Link
-          href="/dashboard/family"
-          className="mt-4 inline-flex text-[13px] font-semibold text-primary hover:underline"
-        >
+      <Panel className="flex flex-col items-center py-14 text-center">
+        <p className="text-[16px] font-medium">{error}</p>
+        <Link href="/dashboard/family" className="mt-4 inline-flex h-8 items-center rounded-full border border-[var(--c-line)] bg-[var(--c-frame)] px-3.5 text-[12px] font-medium hover:bg-[var(--c-card)]">
           Back to family
         </Link>
-      </div>
+      </Panel>
     );
   }
 
+  const vitals: Array<{ label: string; value: string | null; unit: string }> = [
+    { label: "Blood pressure", value: latestVitals.bp, unit: "mmHg" },
+    { label: "Heart rate", value: latestVitals.hr?.toString() ?? null, unit: "bpm" },
+    { label: "Glucose", value: latestVitals.glucose?.toString() ?? null, unit: "mg/dL" },
+    { label: "SpO₂", value: latestVitals.spo2?.toString() ?? null, unit: "%" },
+    { label: "TSH", value: latestVitals.tsh?.toString() ?? null, unit: "mIU/L" },
+    { label: "HbA1c", value: latestVitals.hba1c?.toString() ?? null, unit: "%" },
+  ];
+  const breakdown = [kindCounts.lab, kindCounts.vitals, kindCounts.prescription, kindCounts.note, kindCounts.other];
+  const topKind = breakdown.indexOf(Math.max(...breakdown));
+
   return (
-    <>
+    <div className="space-y-4">
       <Link
         href={`/dashboard/family/${userId}`}
-        className="mb-4 inline-flex items-center gap-1.5 text-[13px] font-semibold text-[var(--text-secondary)] transition-colors hover:text-primary"
+        className="inline-flex h-9 items-center gap-1.5 rounded-full border border-[var(--c-line)] pl-3 pr-3.5 text-[12.5px] text-[var(--c-ink-2)] transition-colors hover:bg-[var(--c-card)] hover:text-[var(--c-ink)]"
       >
-        <ArrowLeft className="h-4 w-4" strokeWidth={2.25} />
+        <ArrowLeft size={14} weight="bold" />
         Back to {subjectName}&apos;s profile
       </Link>
 
-      <div className="mb-6 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h1 className="text-[1.5rem] font-extrabold tracking-[-0.02em] text-[var(--text-primary)]">
-            {memberName} · Health monitoring
+      <div className="flex flex-col gap-3 pb-1 sm:pb-2 lg:flex-row lg:items-end lg:justify-between">
+        <div className="min-w-0">
+          <h1 className="text-[34px] leading-[1.02] tracking-[-0.035em] sm:text-[52px]">
+            <span className="block break-words font-light text-[var(--c-ink-3)]">{memberName}&apos;s</span>
+            <span className="block font-medium">Health records</span>
           </h1>
-          <p className="mt-1 text-[13px] text-[var(--text-secondary)]">
-            Real data from uploaded labs & vitals · insights from printed values only
+          <p className="mt-2 max-w-xl text-[13px] text-[var(--c-ink-2)]">
+            Real data from uploaded labs and vitals. Insights use printed values only.
           </p>
         </div>
         {lastUpdated && (
-          <p className="text-[12px] text-[var(--text-tertiary)]">
+          <span className="self-start rounded-full bg-[var(--c-card)] px-3 py-1.5 text-[12px] text-[var(--c-ink-2)] lg:self-auto">
             Last record ·{" "}
             {lastUpdated.toLocaleDateString("en-IN", {
               day: "numeric",
               month: "short",
               year: "numeric",
             })}
-          </p>
+          </span>
         )}
       </div>
 
-      <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <StatMetricCard
-          label="Documents"
-          value={String(labs.length)}
-          sub="Total health files"
-          icon={FileText}
-          iconBg="icon-chip-blue"
-        />
-        <StatMetricCard
-          label="Markers tracked"
-          value={String(grouped.size)}
-          sub={`${metrics.length} parsed readings`}
-          icon={TrendingUp}
-          iconBg="icon-chip-purple"
-        />
-        <StatMetricCard
-          label="Lab reports"
-          value={String(kindCounts.lab)}
-          sub="Reports on file"
-          icon={Activity}
-          iconBg="icon-chip-green"
-        />
-        <StatMetricCard
-          label="Vitals entries"
-          value={String(kindCounts.vitals)}
-          sub="BP, sugar, SpO₂ logs"
-          icon={Heart}
-          iconBg="icon-chip-red"
-        />
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4 [&>*]:min-w-0">
+        <Panel accent>
+          <p className="text-[11px] font-medium uppercase tracking-[0.06em] text-white/80">Documents</p>
+          <p className="c-num mt-3 text-[36px] leading-none text-white">{labs.length}</p>
+          <p className="mt-2 text-[11px] text-white/80">Total health files</p>
+        </Panel>
+        <Stat label="Markers tracked" value={String(grouped.size)} sub={`${metrics.length} parsed readings`} />
+        <Stat label="Lab reports" value={String(kindCounts.lab)} sub="Reports on file" />
+        <Stat label="Vitals entries" value={String(kindCounts.vitals)} sub="BP, sugar, SpO₂ logs" />
       </div>
 
-      <section className="panel-card mb-6 overflow-hidden">
-        <div className="flex items-center gap-2 border-b border-[var(--border-strong)] px-5 py-4">
-          <Brain className="h-4 w-4 text-primary" strokeWidth={2.25} />
-          <div>
-            <h2 className="text-[15px] font-extrabold text-[var(--text-primary)]">Saheli health insights</h2>
-            <p className="text-[12px] text-[var(--text-tertiary)]">
-              AI-style analysis from stored records · not medical advice
-            </p>
-          </div>
-        </div>
-        <div className="grid gap-3 p-5 sm:grid-cols-2">
+      <Panel>
+        <PanelTitle title="Saheli health insights" right={<span className="text-[11px] text-[var(--c-ink-2)]">not medical advice</span>} />
+        <ul className="mt-4 grid gap-2 sm:grid-cols-2">
           {insights.map((insight) => (
-            <InsightCard key={insight.id} insight={insight} />
+            <InsightRow key={insight.id} insight={insight} />
           ))}
-        </div>
-      </section>
+        </ul>
+      </Panel>
 
-      <div className="mb-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <div className="panel-card p-5">
-          <p className="text-[13px] font-bold text-[var(--text-primary)]">Record breakdown</p>
-          <p className="mb-4 text-[11px] text-[var(--text-tertiary)]">Documents by type</p>
-          <BarChart
-            data={[
-              kindCounts.lab,
-              kindCounts.vitals,
-              kindCounts.prescription,
-              kindCounts.note,
-              kindCounts.other,
-            ]}
-            labels={["Labs", "Vitals", "Rx", "Notes", "Other"]}
-            color="#2563eb"
-          />
-        </div>
-        <div className="panel-card p-5">
-          <p className="text-[13px] font-bold text-[var(--text-primary)]">Latest vitals panel</p>
-          <p className="mb-4 text-[11px] text-[var(--text-tertiary)]">Most recent parsed values</p>
-          <div className="grid grid-cols-2 gap-3">
-            <MiniVitalBar
-              label="Blood pressure"
-              value={latestVitals.bp ?? "—"}
-              unit="mmHg"
-              pct={latestVitals.bp ? 72 : 0}
-              color="#16a34a"
-            />
-            <MiniVitalBar
-              label="Heart rate"
-              value={latestVitals.hr?.toString() ?? "—"}
-              unit="bpm"
-              pct={latestVitals.hr ? 65 : 0}
-              color="#0d9488"
-            />
-            <MiniVitalBar
-              label="Glucose"
-              value={latestVitals.glucose?.toString() ?? "—"}
-              unit="mg/dL"
-              pct={latestVitals.glucose ? 58 : 0}
-              color="#0284c7"
-            />
-            <MiniVitalBar
-              label="SpO₂"
-              value={latestVitals.spo2?.toString() ?? "—"}
-              unit="%"
-              pct={latestVitals.spo2 ?? 0}
-              color="#059669"
-            />
-            <MiniVitalBar
-              label="TSH"
-              value={latestVitals.tsh?.toString() ?? "—"}
-              unit="mIU/L"
-              pct={latestVitals.tsh ? 50 : 0}
-              color="#7c3aed"
-            />
-            <MiniVitalBar
-              label="HbA1c"
-              value={latestVitals.hba1c?.toString() ?? "—"}
-              unit="%"
-              pct={latestVitals.hba1c ? 45 : 0}
-              color="#dc2626"
-            />
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 [&>*]:min-w-0">
+        <Panel>
+          <PanelTitle title="Record breakdown" right={<span className="text-[11px] text-[var(--c-ink-2)]">documents by type</span>} />
+          <div className="mt-8">
+            <Bars values={breakdown} highlight={labs.length ? [topKind] : []} labels={["Labs", "Vitals", "Rx", "Notes", "Other"]} height={120} />
           </div>
-        </div>
+        </Panel>
+        <Panel>
+          <PanelTitle title="Latest vitals" right={<span className="text-[11px] text-[var(--c-ink-2)]">most recent parsed values</span>} />
+          <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3">
+            {vitals.map((v) => (
+              <div key={v.label} className="min-w-0 rounded-[16px] bg-[var(--c-frame)] px-3.5 py-3">
+                <p className="truncate text-[11px] text-[var(--c-ink-2)]">{v.label}</p>
+                <p className={cn("c-num mt-1.5 text-[22px] leading-none", !v.value && "text-[var(--c-ink-3)]")}>
+                  {v.value ?? "—"}
+                  {v.value && <span className="ml-1 text-[11px] text-[var(--c-ink-3)]">{v.unit}</span>}
+                </p>
+              </div>
+            ))}
+          </div>
+        </Panel>
       </div>
 
       {chartMetrics.length > 0 ? (
-        <div className="mb-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3 [&>*]:min-w-0">
           {chartMetrics.map(([key, series]) => (
             <MetricTrendCard
               key={key}
@@ -422,20 +333,24 @@ export function RecipientHealthRecordPage() {
           ))}
         </div>
       ) : (
-        <div className="panel-card mb-6 px-5 py-12 text-center">
-          <p className="text-[14px] font-bold text-[var(--text-primary)]">No trend charts yet</p>
-          <p className="mx-auto mt-2 max-w-md text-[13px] text-[var(--text-secondary)]">
+        <Panel className="flex flex-col items-center py-12 text-center">
+          <p className="text-[18px] font-medium">No trend charts yet</p>
+          <p className="mt-1 max-w-md text-[13px] text-[var(--c-ink-2)]">
             Upload lab PDFs or paste values like “TSH 4.2 mIU/L” below to populate medical trend graphs.
           </p>
-        </div>
+        </Panel>
       )}
 
-      <HealthRecordsPanel
-        fixedRecipientUserId={userId}
-        fixedRecipientName={subjectName}
-        showAddForm
-        onRecordsChange={() => void load()}
-      />
-    </>
+      <div className="pt-2">
+        <HealthRecordsPanel
+          embedded
+          addFormPinned
+          fixedRecipientUserId={userId}
+          fixedRecipientName={subjectName}
+          showAddForm
+          onRecordsChange={() => void load()}
+        />
+      </div>
+    </div>
   );
 }
