@@ -13,6 +13,7 @@ import {
   type CareFact,
 } from "@/lib/care-memory-api";
 import { cn } from "@/lib/utils";
+import { RefillsPanel } from "@/components/care-os/refills-panel";
 import { AccessGate, CenteredState, PageSpinner, formatIstDateTime, useRecipientSelection } from "../activity/activity-shared";
 import { Banner, SaheliHeader, btnDanger, btnPrimary, btnSecondary, useAction, useCareOverview } from "./saheli-shared";
 
@@ -147,6 +148,7 @@ export function SaheliCarePage() {
           }
         />
         <Banner banner={banner} />
+        <RefillsPanel />
 
         {draft && (
           <section className="panel-card p-5" aria-label="Edit care record">
