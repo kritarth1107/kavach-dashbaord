@@ -1,10 +1,10 @@
 import { Suspense } from "react";
-import { NotificationsPage } from "@/components/care-os/notifications-page";
+import { MemberFormPage } from "@/components/care-os/member-form-page";
 
 export default function Page() {
   return (
     <Suspense>
-      <NotificationsPage />
+      <MemberFormPage />
     </Suspense>
   );
 }

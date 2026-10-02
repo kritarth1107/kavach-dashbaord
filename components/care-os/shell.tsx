@@ -23,7 +23,7 @@ import {
 } from "@phosphor-icons/react";
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
-import { Avatar } from "./ui";
+import { PersonPicker } from "./person-picker";
 
 export type NavKey = "home" | "today" | "care" | "health" | "orders" | "saheli" | "memory" | "family" | "settings";
 
@@ -63,27 +63,25 @@ export function CareShell({
   active,
   people,
   selectedId,
+  loadingPeople,
   onSelectPerson,
   me,
   alerts = 0,
   onMenu,
-  menu,
   children,
 }: {
   active: NavKey;
   people: Person[];
+  loadingPeople?: boolean;
   selectedId: string | null;
   onSelectPerson?: (id: string) => void;
   me: { name: string };
   alerts?: number;
   onMenu?: () => void;
-  menu?: React.ReactNode;
   children: React.ReactNode;
 }) {
   const now = useClock();
   const pathname = usePathname();
-  const person = people.find((p) => p.id === selectedId) ?? people[0];
-  const others = people.filter((p) => p.id !== person?.id);
   const time = now.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Asia/Kolkata" });
   const date = now.toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short", timeZone: "Asia/Kolkata" });
 
@@ -154,34 +152,14 @@ export function CareShell({
                   </Link>
                 ))}
               </div>
-              {person && (
-                <div className="flex min-w-0 items-center gap-1 rounded-full border border-[var(--c-line)] p-1 pr-2">
-                  <div className="flex min-w-0 items-center gap-2.5 rounded-full bg-[var(--c-card)] py-1 pl-1 pr-4">
-                    <Avatar name={person.name} src={person.photo} size={34} />
-                    <div className="min-w-0 leading-tight">
-                      <p className="truncate text-[13px] font-medium">{person.name}</p>
-                      <p className="truncate text-[11px] text-[var(--c-ink-3)]">{person.relation ? `@${person.relation.toLowerCase()}` : "care recipient"}</p>
-                    </div>
-                  </div>
-                  {others.map((p) => (
-                    <button
-                      key={p.id}
-                      type="button"
-                      onClick={() => onSelectPerson?.(p.id)}
-                      title={`Switch to ${p.name}`}
-                      aria-label={`Switch to ${p.name}`}
-                      className="rounded-full p-0.5 hover:bg-[var(--c-card)]"
-                    >
-                      <Avatar name={p.name} src={p.photo} size={30} />
-                    </button>
-                  ))}
-                  <span className="hidden items-center gap-3 px-2 text-[var(--c-ink)] sm:flex" aria-hidden>
-                    <Heart size={18} weight="fill" />
-                    <Pill size={18} weight="fill" />
-                    <Sparkle size={18} weight="fill" />
-                  </span>
-                </div>
-              )}
+              <div className="flex min-w-0 items-center gap-1 rounded-full border border-[var(--c-line)] p-1 pr-2">
+                <PersonPicker people={people} loading={loadingPeople} selectedId={selectedId} onSelect={onSelectPerson} />
+                <span className="hidden items-center gap-3 px-2 text-[var(--c-ink)] sm:flex" aria-hidden>
+                  <Heart size={18} weight="fill" />
+                  <Pill size={18} weight="fill" />
+                  <Sparkle size={18} weight="fill" />
+                </span>
+              </div>
             </div>
             <div className="flex items-center gap-3">
               <div className="hidden items-center gap-2.5 xl:flex">
@@ -206,7 +184,6 @@ export function CareShell({
                 >
                   <List size={20} />
                 </button>
-                {menu}
               </div>
             </div>
           </header>

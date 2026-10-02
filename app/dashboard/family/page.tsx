@@ -1,5 +1,5 @@
-import { FamilyMembersPage } from "@/components/dashboard/family/family-members-page";
+import { FamilyPage } from "@/components/care-os/family-page";
 
-export default function FamilyPage() {
-  return <FamilyMembersPage />;
+export default function Page() {
+  return <FamilyPage />;
 }

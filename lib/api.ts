@@ -2218,3 +2218,10 @@ export async function answerProfileQuestion(familyId: string, recipientUserId: s
 export async function setProfileRetention(familyId: string, recipientUserId: string, days: number) {
   return parseResponse<RecipientProfile>(await timedFetch(`${profilePath(familyId, recipientUserId)}/retention`, jsonInit("PATCH", { days })));
 }
+
+export async function uploadMemberAvatar(familyId: string, memberUserId: string, file: File) {
+  const form = new FormData();
+  form.append("photo", file, file.name);
+  const res = await timedFetch(`/api/families/${familyId}/members/${memberUserId}/avatar`, { method: "POST", body: form }, 60_000);
+  return parseResponse<FamilyMembersPayload & { avatarUrl: string }>(res);
+}

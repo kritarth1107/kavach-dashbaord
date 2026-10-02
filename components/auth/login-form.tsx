@@ -254,9 +254,9 @@ export function LoginForm() {
   return (
     <div className="flex min-h-screen w-full">
       <div className="flex w-full flex-col bg-[var(--c-frame)] px-6 py-8 sm:px-12 lg:w-[46%] lg:px-16">
-        <Link href="/" className="inline-flex items-center gap-2.5">
-          <KavachShield />
-          <span className="text-[15px] font-medium">Kavach</span>
+        <Link href="/" className="inline-flex" aria-label="Kavach CareOS">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/kavach-careos-logo.png" alt="Kavach CareOS" className="h-11 w-auto" />
         </Link>
         <div className="mx-auto flex w-full max-w-[400px] flex-1 flex-col justify-center py-10">
         <div className="mb-8">
@@ -499,16 +499,6 @@ export function LoginForm() {
       </div>
       <LoginShowcase />
     </div>
-  );
-}
-
-function KavachShield() {
-  return (
-    <svg viewBox="0 0 40 40" className="h-9 w-9" aria-hidden>
-      <path d="M20 3.5 33 8v10.5c0 8.3-5.4 14.6-13 18-7.6-3.4-13-9.7-13-18V8Z" fill="#143429" />
-      <path d="M15 12v16M15 20l9-8M17.5 18l7.5 10" stroke="#f3f4f2" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" fill="none" />
-      <circle cx="28" cy="29" r="3" fill="#d3541e" />
-    </svg>
   );
 }
 

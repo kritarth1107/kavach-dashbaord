@@ -22,19 +22,21 @@ import {
   revokeOtherSessions,
   revokeSession,
   updateMyProfile,
+  uploadMemberAvatar,
   type UserPreferences,
   type UserProfile,
   type UserSession,
 } from "@/lib/api";
 import { countryCodeOptions } from "@/components/dashboard/family/form-options";
 import { cn } from "@/lib/utils";
+import { useFamily } from "@/components/dashboard/family-context";
 
 type SettingsTab = "profile" | "security" | "sessions" | "notifications";
 
 const inputClass =
-  "w-full rounded-lg border border-[var(--border-strong)] bg-[var(--input-bg)] px-3 py-2.5 text-[13px] font-medium text-[var(--text-primary)] outline-none transition-colors focus:border-primary focus:bg-[var(--card)] focus:ring-1 focus:ring-[var(--primary-ring)]";
+  "h-12 w-full rounded-full border border-[var(--c-line)] bg-[var(--c-frame)] px-5 text-[14px] text-[var(--c-ink)] outline-none transition-colors placeholder:text-[var(--c-ink-3)] focus:border-[var(--c-ink)] disabled:bg-transparent disabled:text-[var(--c-ink-2)]";
 
-const settingsCardClass = "rounded-lg border border-[var(--border-strong)] bg-[var(--card)]";
+const settingsCardClass = "rounded-[24px] bg-[var(--c-card)]";
 
 const tabs: { id: SettingsTab; label: string; icon: typeof User; description: string }[] = [
   { id: "profile", label: "Profile", icon: User, description: "Name, contact & avatar" },
@@ -45,7 +47,7 @@ const tabs: { id: SettingsTab; label: string; icon: typeof User; description: st
 
 function FieldLabel({ children }: { children: React.ReactNode }) {
   return (
-    <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-[var(--text-tertiary)]">
+    <label className="mb-2 block px-1 text-[12px] font-medium text-[var(--c-ink)]">
       {children}
     </label>
   );
@@ -60,8 +62,11 @@ function SectionHeader({
 }) {
   return (
     <div className="mb-5">
-      <h2 className="text-[16px] font-extrabold tracking-[-0.02em] text-[var(--text-primary)]">{title}</h2>
-      <p className="mt-1 text-[13px] leading-relaxed text-[var(--text-tertiary)]">{description}</p>
+      <h2 className="flex items-center gap-2.5 text-[15px] font-medium text-[var(--c-ink)]">
+        <span className="h-[14px] w-[14px] shrink-0 rounded-[4px] bg-[var(--c-accent)]" aria-hidden />
+        {title}
+      </h2>
+      <p className="mt-1.5 text-[13px] leading-relaxed text-[var(--c-ink-2)]">{description}</p>
     </div>
   );
 }
@@ -76,10 +81,10 @@ function StatusBadge({
   return (
     <span
       className={cn(
-        "rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide",
-        tone === "success" && "bg-primary-light text-primary",
-        tone === "muted" && "bg-[var(--surface)] text-[var(--text-secondary)]",
-        tone === "soon" && "bg-[var(--warning-bg)] text-[var(--warning-text)]",
+        "rounded-full px-2.5 py-[3px] text-[11px] font-medium",
+        tone === "success" && "bg-[var(--c-accent-soft)] text-[var(--c-accent-soft-ink)]",
+        tone === "muted" && "bg-[var(--c-frame)] text-[var(--c-ink-2)]",
+        tone === "soon" && "bg-[var(--c-frame)] text-[var(--c-ink-3)]",
       )}
     >
       {children}
@@ -151,10 +156,10 @@ function ToggleRow({
   onChange: (value: boolean) => void;
 }) {
   return (
-    <label className="flex cursor-pointer items-start justify-between gap-4 rounded-lg border border-[var(--border-strong)] bg-[var(--input-bg)] p-4 transition-colors hover:bg-[var(--card)]">
+    <label className="flex cursor-pointer items-start justify-between gap-4 rounded-[18px] bg-[var(--c-frame)] p-4">
       <div className="min-w-0">
-        <p className="text-[13px] font-bold text-[var(--text-primary)]">{title}</p>
-        <p className="mt-0.5 text-[12px] leading-relaxed text-[var(--text-tertiary)]">{description}</p>
+        <p className="text-[14px] font-medium text-[var(--c-ink)]">{title}</p>
+        <p className="mt-0.5 text-[12px] leading-relaxed text-[var(--c-ink-2)]">{description}</p>
       </div>
       <button
         type="button"
@@ -163,7 +168,7 @@ function ToggleRow({
         onClick={() => onChange(!checked)}
         className={cn(
           "relative mt-0.5 h-6 w-11 shrink-0 rounded-full transition-colors",
-          checked ? "bg-primary" : "bg-[var(--chart-track)]",
+          checked ? "bg-[var(--c-accent)]" : "bg-[var(--c-line)]",
         )}
       >
         <span
@@ -186,6 +191,27 @@ export function SettingsPage() {
   const [sessionsLoading, setSessionsLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [photoBusy, setPhotoBusy] = useState(false);
+  const { activeFamilyId } = useFamily();
+
+  async function changePhoto(file: File | undefined) {
+    if (!file || !activeFamilyId || !profile?.userId) return;
+    if (file.size > 5 * 1024 * 1024) {
+      setError("Photo must be under 5 MB");
+      return;
+    }
+    setPhotoBusy(true);
+    setError("");
+    try {
+      const { data } = await uploadMemberAvatar(activeFamilyId, profile.userId, file);
+      if (data?.avatarUrl) setProfile((p) => (p ? { ...p, avatarUrl: data.avatarUrl } : p));
+      setSuccess("Photo updated");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Couldn't upload photo");
+    } finally {
+      setPhotoBusy(false);
+    }
+  }
 
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -343,48 +369,31 @@ export function SettingsPage() {
 
   return (
     <div className="w-full">
-      {/* Profile header */}
-      <div className={`${settingsCardClass} mb-6 p-0`}>
-        <div className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex min-w-0 items-center gap-4">
+      <div className="mb-6 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+        <h1 className="text-[40px] leading-[1.02] tracking-[-0.035em] sm:text-[52px]">
+          <span className="block font-light text-[var(--c-ink-3)]">Your</span>
+          <span className="block font-medium">Settings</span>
+        </h1>
+        <div className="flex items-center gap-4 rounded-full bg-[var(--c-card)] py-2 pl-2 pr-6">
+          <label className="group relative cursor-pointer" title="Change photo">
             {profile?.avatarUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={profile.avatarUrl}
-                alt=""
-                className="h-16 w-16 shrink-0 rounded-lg object-cover ring-1 ring-[var(--border-strong)]"
-              />
+              <img src={profile.avatarUrl} alt="" className="h-14 w-14 rounded-full object-cover" />
             ) : (
-              <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-lg bg-[var(--charcoal)] text-xl font-extrabold text-white ring-1 ring-[var(--border-strong)]">
-                {initials}
-              </div>
+              <span className="flex h-14 w-14 items-center justify-center rounded-full bg-[var(--c-ink)] text-[18px] font-medium text-white">{initials}</span>
             )}
-            <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-2">
-                <h1 className="text-[1.35rem] font-extrabold tracking-[-0.03em] text-[var(--text-primary)]">
-                  {profile?.fullName ?? "Your account"}
-                </h1>
-                {profile?.emailVerified && (
-                  <span className="inline-flex items-center gap-1 rounded-md bg-primary-light px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-primary">
-                    <CheckCircle2 className="h-3 w-3" />
-                    Verified
-                  </span>
-                )}
-              </div>
-              <p className="mt-1 truncate text-[13px] text-[var(--text-secondary)]">{profile?.email}</p>
-              <p className="mt-1 text-[12px] text-[var(--text-tertiary)]">
-                Member since {formatMemberSince(profile?.createdAt)}
-              </p>
-            </div>
-          </div>
-          <div className="flex shrink-0 items-center gap-2 sm:flex-col sm:items-end">
-            <span className="rounded-lg border border-[var(--border-strong)] bg-[var(--input-bg)] px-3 py-1.5 text-[11px] font-semibold text-[var(--text-secondary)]">
-              Kavach account
+            <span className="absolute -bottom-0.5 -right-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-[var(--c-accent)] text-[11px] text-white">
+              {photoBusy ? <Loader2 className="h-3 w-3 animate-spin" /> : "+"}
             </span>
-            <span className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-[var(--text-secondary)]">
-              <span className="h-2 w-2 rounded-full bg-primary" />
-              Active
-            </span>
+            <input type="file" accept="image/jpeg,image/png,image/webp,image/heic" className="hidden" onChange={(e) => void changePhoto(e.target.files?.[0])} />
+          </label>
+          <div className="min-w-0 leading-tight">
+            <p className="flex items-center gap-2 truncate text-[15px] font-medium">
+              {profile?.fullName ?? "Your account"}
+              {profile?.emailVerified && <CheckCircle2 className="h-4 w-4 text-[var(--c-accent)]" />}
+            </p>
+            <p className="truncate text-[12px] text-[var(--c-ink-2)]">{profile?.email}</p>
+            <p className="text-[11px] text-[var(--c-ink-3)]">Member since {formatMemberSince(profile?.createdAt)}</p>
           </div>
         </div>
       </div>
@@ -392,38 +401,32 @@ export function SettingsPage() {
       {(error || success) && (
         <div
           className={cn(
-            "mb-4 rounded-lg px-4 py-3 text-[13px] font-medium",
-            error ? "bg-[var(--danger-bg)] text-[var(--danger-text)]" : "bg-primary-light text-primary",
+            "mb-4 rounded-[14px] px-4 py-2.5 text-[13px]",
+            error ? "bg-[var(--c-accent-soft)] text-[var(--c-accent-soft-ink)]" : "bg-[#e6f2ec] text-[var(--c-forest)]",
           )}
         >
           {error || success}
         </div>
       )}
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[220px_1fr]">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[240px_1fr]">
         {/* Tab nav */}
-        <nav className={`${settingsCardClass} flex flex-row gap-1 overflow-x-auto p-2 lg:flex-col lg:overflow-visible`}>
+        <nav className="no-scrollbar flex flex-row gap-2 overflow-x-auto lg:flex-col lg:overflow-visible">
           {tabs.map((item) => (
             <button
               key={item.id}
               type="button"
               onClick={() => setTab(item.id)}
               className={cn(
-                "flex min-w-[140px] flex-1 items-center gap-3 rounded-lg border px-3 py-3 text-left transition-colors lg:min-w-0 lg:flex-none",
-                tab === item.id
-                  ? "border-[var(--border-strong)] bg-[var(--input-bg)] text-[var(--text-primary)]"
-                  : "border-transparent text-[var(--text-secondary)] hover:bg-[var(--input-bg)] hover:text-[var(--text-primary)]",
+                "flex min-w-[150px] flex-1 items-center gap-3 rounded-[18px] px-3 py-3 text-left transition-colors lg:min-w-0 lg:flex-none",
+                tab === item.id ? "bg-[var(--c-ink)] text-white" : "bg-[var(--c-card)] text-[var(--c-ink-2)] hover:text-[var(--c-ink)]",
               )}
             >
-              <item.icon
-                className={cn(
-                  "h-4 w-4 shrink-0",
-                  tab === item.id ? "text-primary" : "text-[var(--text-tertiary)]",
-                )}
-                strokeWidth={2.25}
-              />
+              <span className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-full", tab === item.id ? "bg-[var(--c-accent)] text-white" : "bg-[var(--c-frame)]")}>
+                <item.icon className="h-4 w-4" strokeWidth={2} />
+              </span>
               <div className="min-w-0">
-                <p className="text-[13px] font-bold">{item.label}</p>
+                <p className="text-[13px] font-medium">{item.label}</p>
                 <p className="hidden text-[11px] opacity-70 lg:block">{item.description}</p>
               </div>
             </button>

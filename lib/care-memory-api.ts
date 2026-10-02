@@ -211,3 +211,9 @@ export async function getCareHome(familyId: string, subjectUserId: string): Prom
   if (!data) throw new Error("Empty response");
   return data;
 }
+
+export async function getRecentLearning(familyId: string, subjectUserId: string): Promise<CareEvent[]> {
+  const kinds = "fact_created,fact_superseded,fact_pending,fact_stopped";
+  const data = await request<{ events: CareEvent[] }>(`${base(familyId, subjectUserId)}/events?kinds=${kinds}&limit=300`);
+  return (data?.events ?? []).slice().reverse();
+}
