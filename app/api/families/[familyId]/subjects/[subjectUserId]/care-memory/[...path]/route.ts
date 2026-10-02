@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { proxyAuthGet, proxyAuthPost, proxyAuthPut } from "@/lib/auth-proxy";
+import { proxyAuthDelete, proxyAuthGet, proxyAuthPost, proxyAuthPut } from "@/lib/auth-proxy";
 
 type RouteParams = { params: Promise<{ familyId: string; subjectUserId: string; path: string[] }> };
 
@@ -20,4 +20,8 @@ export async function POST(req: NextRequest, ctx: RouteParams) {
 
 export async function PUT(req: NextRequest, ctx: RouteParams) {
   return proxyAuthPut(req, await backendPath(req, ctx));
+}
+
+export async function DELETE(req: NextRequest, ctx: RouteParams) {
+  return proxyAuthDelete(req, await backendPath(req, ctx));
 }
