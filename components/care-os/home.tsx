@@ -58,10 +58,11 @@ export function CareHome({
   const today = data.week.adherence.length - 1;
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-col gap-5 pb-2 lg:flex-row lg:items-end lg:justify-between">
+    // Phones: the three grids dissolve (max-md:contents) into one column, re-ordered so the day's summary and anything needing you come first.
+    <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-4 pb-1 sm:gap-5 sm:pb-2 lg:flex-row lg:items-end lg:justify-between">
         <div className="flex items-end gap-5">
-          <h1 className="text-[40px] leading-[1.02] tracking-[-0.035em] sm:text-[52px]">
+          <h1 className="text-[34px] leading-[1.02] tracking-[-0.035em] sm:text-[52px]">
             <span className="block font-light text-[var(--c-ink-3)]">{data.person.callAs === "You" ? "Your" : `${data.person.callAs}'s`} Care</span>
             <span className="block font-medium">Today</span>
           </h1>
@@ -74,29 +75,31 @@ export function CareHome({
             </span>
           </div>
         </div>
-        <div className="flex flex-wrap items-center gap-2.5">
-          <button type="button" className="flex h-12 items-center gap-2.5 rounded-full bg-[var(--c-card)] pl-1.5 pr-4 text-[13px]">
-            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--c-frame)]">
+        <div className="flex items-center gap-2.5 sm:flex-wrap">
+          <button type="button" className="flex h-12 min-w-0 items-center gap-2.5 rounded-full bg-[var(--c-card)] pl-1.5 pr-4 text-[13px] max-sm:flex-1">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--c-frame)]">
               <CalendarBlank size={16} />
             </span>
-            {data.week.labels[0]} – {data.week.labels[data.week.labels.length - 1]}
-            <CaretDown size={12} />
+            <span className="truncate">
+              {data.week.labels[0]} – {data.week.labels[data.week.labels.length - 1]}
+            </span>
+            <CaretDown size={12} className="shrink-0" />
           </button>
-          <button type="button" className="flex h-12 items-center gap-2.5 rounded-full bg-[var(--c-card)] pl-1.5 pr-4 text-[13px]">
+          <button type="button" className="hidden h-12 items-center gap-2.5 rounded-full bg-[var(--c-card)] pl-1.5 pr-4 text-[13px] sm:flex">
             <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--c-frame)]">
               <Clock size={16} />
             </span>
             24h
             <CaretDown size={12} />
           </button>
-          <Link href="/dashboard/saheli">
-            <DarkButton>Full day</DarkButton>
+          <Link href="/dashboard/saheli" className="shrink-0">
+            <DarkButton className="max-sm:gap-3 max-sm:pl-5">Full day</DarkButton>
           </Link>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_1.9fr] xl:grid-cols-[1fr_2fr_1fr] [&>*]:min-w-0">
-        <Panel className="flex flex-col">
+      <div className="grid grid-cols-1 gap-4 max-md:contents lg:grid-cols-[1fr_1.9fr] xl:grid-cols-[1fr_2fr_1fr] [&>*]:min-w-0">
+        <Panel className="flex flex-col max-md:order-3">
           <PanelTitle
             title="Medicines"
             right={
@@ -105,8 +108,8 @@ export function CareHome({
               </span>
             }
           />
-          <div className="mt-8 flex items-start gap-3">
-            <p className="c-num text-[56px] leading-none">
+          <div className="mt-6 flex items-start gap-3 sm:mt-8">
+            <p className="c-num text-[48px] leading-none sm:text-[56px]">
               {taken}
               <span className="text-[var(--c-ink-3)]">/{data.doses.length}</span>
             </p>
@@ -117,7 +120,7 @@ export function CareHome({
             )}
           </div>
           <p className="mt-2 text-[10px] font-medium uppercase tracking-[0.06em]">Doses taken today</p>
-          <div className="mt-auto flex items-end justify-between pt-8">
+          <div className="mt-auto flex items-end justify-between pt-6 sm:pt-8">
             <p className="max-w-[170px] text-[10px] font-medium uppercase leading-relaxed tracking-[0.04em]">
               {data.person.callAs === "You" ? (
                 "Tick off each dose here"
@@ -151,9 +154,9 @@ export function CareHome({
           </div>
         </Panel>
 
-        <Panel className="flex flex-col">
+        <Panel className="flex flex-col max-md:order-4">
           <PanelTitle title="Care trends" right={<Hourglass size={18} />} />
-          <div className="mt-5 flex flex-wrap items-center gap-x-8 gap-y-3">
+          <div className="mt-5 flex flex-wrap items-center gap-x-6 gap-y-3 sm:gap-x-8">
             <span className="text-[13px]">Next dose</span>
             <span className="flex items-start gap-2">
               <span className="c-num text-[34px] leading-none">{next?.time ?? "—"}</span>
@@ -166,13 +169,13 @@ export function CareHome({
               </span>
             )}
           </div>
-          <div className="mt-6 flex gap-3">
-            <div className="flex w-8 flex-col justify-between pb-6 text-[10px] text-[var(--c-ink-3)]">
+          <div className="mt-6 flex gap-2 sm:gap-3">
+            <div className="flex w-8 shrink-0 flex-col justify-between pb-6 text-[10px] text-[var(--c-ink-3)]">
               <span>100%</span>
               <span>50%</span>
               <span>0%</span>
             </div>
-            <div className="flex-1">
+            <div className="min-w-0 flex-1">
               {series && series.values.length ? (
                 <Bars
                   values={series.values}
@@ -209,7 +212,7 @@ export function CareHome({
           />
         </Panel>
 
-        <Panel className="flex flex-col lg:col-span-2 xl:col-span-1">
+        <Panel className="flex flex-col max-md:order-2 lg:col-span-2 xl:col-span-1">
           <PanelTitle title="Needs you" right={<DotsThree size={20} weight="bold" />} />
           <div className="mt-4 rounded-[18px] bg-[var(--c-frame)] p-4">
             {data.needsYou.length === 0 ? (
@@ -260,15 +263,15 @@ export function CareHome({
         </Panel>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-[1.45fr_1.15fr_0.7fr_0.7fr] [&>*]:min-w-0">
-        <Panel className="relative overflow-hidden">
+      <div className="grid grid-cols-1 gap-4 max-md:contents md:grid-cols-2 xl:grid-cols-[1.45fr_1.15fr_0.7fr_0.7fr] [&>*]:min-w-0">
+        <Panel className="relative overflow-hidden max-md:order-1">
           <div className="relative z-10 sm:pr-[150px]">
             <div className="flex items-center gap-2">
               <span className="h-1.5 w-1.5 rounded-full bg-[var(--c-accent)]" />
               <span className="text-[11px] font-medium uppercase tracking-[0.06em] text-[var(--c-ink-2)]">Saheli says</span>
             </div>
-            <p className="mt-3 text-[19px] font-medium leading-snug tracking-[-0.02em]">{data.saheliSays}</p>
-            <div className="mt-5 flex items-center gap-3">
+            <p className="mt-3 text-[17px] font-medium leading-snug tracking-[-0.02em] sm:text-[19px]">{data.saheliSays}</p>
+            <div className="mt-5 flex flex-wrap items-center gap-3">
               <Link href="/dashboard/saheli">
                 <SmallButton dark icon={CalendarDots}>
                   See the day
@@ -288,7 +291,7 @@ export function CareHome({
           </div>
         </Panel>
 
-        <Panel className="flex flex-col">
+        <Panel className="flex flex-col max-md:order-7">
           <div className="flex items-start justify-between gap-3">
             <p className="text-[22px] font-medium uppercase leading-[1.05] tracking-[-0.02em]">
               Today
@@ -315,7 +318,7 @@ export function CareHome({
         </Panel>
 
         {data.bp && (
-          <Panel accent className="flex flex-col">
+          <Panel accent className="flex flex-col max-md:order-5">
             <div className="flex items-start justify-between">
               <Tag tone="light" trend={data.bp.changeDir} className="!text-[var(--c-accent)]">
                 {data.bp.change ?? data.bp.state}
@@ -338,7 +341,7 @@ export function CareHome({
         )}
 
         {!data.bp && !data.sugar && !data.weight && (
-          <Panel className="flex flex-col justify-between md:col-span-2 xl:col-span-2">
+          <Panel className="flex flex-col justify-between max-md:order-6 md:col-span-2 xl:col-span-2">
             <PanelTitle title="Health readings" />
             <p className="mt-6 text-[22px] font-medium leading-snug tracking-[-0.02em]">
               No BP, sugar or weight yet.
@@ -348,7 +351,7 @@ export function CareHome({
             </p>
           </Panel>
         )}
-        <div className={cn("grid grid-cols-2 gap-4 md:col-span-2 xl:col-span-1 xl:grid-cols-1", !data.sugar && !data.weight && "hidden")}>
+        <div className={cn("grid grid-cols-2 gap-4 max-md:order-6 md:col-span-2 xl:col-span-1 xl:grid-cols-1 [&>*]:min-w-0", !data.sugar && !data.weight && "hidden")}>
           {data.sugar && (
             <Panel>
               <p className="text-[12px] text-[var(--c-ink-2)]">Sugar</p>
@@ -372,8 +375,8 @@ export function CareHome({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 [&>*]:min-w-0">
-        <Panel>
+      <div className="grid grid-cols-1 gap-4 max-md:contents md:grid-cols-2 [&>*]:min-w-0">
+        <Panel className="max-md:order-8">
           <PanelTitle title="Saheli is following up" right={<span className="text-[11px] text-[var(--c-ink-2)]">checks back on her own</span>} />
           <ul className="mt-3">
             {data.followUps.length === 0 && <li className="py-2 text-[13px] text-[var(--c-ink-3)]">Nothing open.</li>}
@@ -385,7 +388,7 @@ export function CareHome({
             ))}
           </ul>
         </Panel>
-        <Panel>
+        <Panel className="max-md:order-9">
           <PanelTitle
             title="Orders & rides"
             right={
