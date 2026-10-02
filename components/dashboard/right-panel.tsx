@@ -14,7 +14,7 @@ import { canApproveOrders } from "@/components/dashboard/family/family-data";
 import { sidePanelClass } from "@/components/dashboard/side-panel";
 
 const quickActions = [
-  { label: "Zepto", logo: "/assets/zepto.png", href: "/dashboard/approvals" },
+  { label: "Zepto", logo: "/assets/brands/zepto.png", href: "/dashboard/approvals" },
   { label: "More", icon: MoreHorizontal, href: "/dashboard/integrations" },
 ] as const;
 

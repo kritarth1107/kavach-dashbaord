@@ -1,9 +1,10 @@
 "use client";
 
-import { ChevronRight, Loader2, MessageCircle, Sparkles } from "lucide-react";
+import { ArrowRight, ArrowSquareOut, CheckCircle, Lightning, LockSimple, MapPin, Money, WhatsappLogo } from "@phosphor-icons/react";
 import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
+import { Panel, PanelTitle, Tag } from "@/components/care-os/ui";
 import { useFamily } from "@/components/dashboard/family-context";
 import { canApproveOrders } from "@/components/dashboard/family/family-data";
 import { INTEGRATION_PARTNERS } from "@/components/dashboard/integrations-data";
@@ -16,134 +17,20 @@ import {
 } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
-function ConnectionDot({ connected }: { connected: boolean }) {
-  return (
-    <span
-      className={cn(
-        "inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide",
-        connected
-          ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
-          : "border-[var(--border-strong)] bg-[var(--input-bg)] text-[var(--text-secondary)]",
-      )}
-    >
-      <span className={cn("h-1.5 w-1.5 rounded-full", connected ? "bg-emerald-500" : "bg-[var(--text-tertiary)]")} />
-      {connected ? "Connected" : "Not connected"}
-    </span>
-  );
-}
-
-function PartnerOverviewCard({
-  title,
-  subtitle,
-  logoSrc,
-  href,
-  connected,
-  addressCount,
-  connectedAt,
-  linkedBy,
-  canManage,
-  busy,
-  onConnect,
-  onDisconnect,
-}: {
-  title: string;
-  subtitle: string;
-  logoSrc: string;
-  href: string;
-  connected: boolean;
-  addressCount?: number;
-  connectedAt: string | null;
-  linkedBy?: string | null;
-  canManage: boolean;
-  busy: boolean;
-  onConnect: () => void;
-  onDisconnect: () => void;
-}) {
-  return (
-    <div className="panel-card flex items-center gap-3 p-5 transition-colors hover:border-primary/30">
-      <Link href={href} className="group flex min-w-0 flex-1 items-center gap-4">
-        <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-black/5">
-          <Image src={logoSrc} alt={title} width={44} height={44} className="h-11 w-11 object-cover" />
-        </div>
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <h2 className="text-[14px] font-extrabold text-[var(--text-primary)]">{title}</h2>
-            <ConnectionDot connected={connected} />
-          </div>
-          <p className="mt-0.5 text-[12px] text-[var(--text-secondary)]">{subtitle}</p>
-          {connected ? (
-            <p className="mt-1 text-[11px] text-[var(--text-tertiary)]">
-              {linkedBy ? `Linked by ${linkedBy}` : "Linked"}
-              {connectedAt
-                ? ` · ${new Date(connectedAt).toLocaleDateString("en-IN", {
-                    day: "numeric",
-                    month: "short",
-                    year: "numeric",
-                  })}`
-                : null}
-              {typeof addressCount === "number" && addressCount > 0
-                ? ` · ${addressCount} store address${addressCount === 1 ? "" : "es"}`
-                : null}
-              {" · WhatsApp orders without OTP"}
-            </p>
-          ) : (
-            <p className="mt-1 text-[11px] text-[var(--text-tertiary)]">
-              Not linked — Saheli uses the website instead (asks for an OTP).
-            </p>
-          )}
-        </div>
-        <ChevronRight className="h-5 w-5 shrink-0 text-[var(--text-tertiary)] transition-transform group-hover:translate-x-0.5 group-hover:text-primary" />
-      </Link>
-      {canManage && (
-        <button
-          type="button"
-          disabled={busy}
-          onClick={connected ? onDisconnect : onConnect}
-          className={cn(
-            "shrink-0 rounded-full px-3.5 py-1.5 text-[11px] font-bold disabled:opacity-50",
-            connected
-              ? "border border-[var(--border-strong)] text-[var(--text-secondary)] hover:border-red-300 hover:text-red-600"
-              : "bg-primary text-white",
-          )}
-        >
-          {connected ? "Disconnect" : "Connect"}
-        </button>
-      )}
-    </div>
-  );
-}
-
-function WhatsAppCard({ info }: { info: FamilyIntegrations["whatsapp"] }) {
-  const displayNumber = info.kavachNumber ?? "+91 83109 05372";
-
-  return (
-    <div className="panel-card p-5">
-      <div className="flex gap-4">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-600">
-          <MessageCircle className="h-5 w-5" strokeWidth={2} />
-        </div>
-        <div className="min-w-0 flex-1">
-          <h2 className="text-[14px] font-bold text-[var(--text-primary)]">WhatsApp</h2>
-          <p className="mt-1 text-[12px] leading-relaxed text-[var(--text-secondary)]">
-            {info.description}
-          </p>
-          <p className="mt-3 text-[20px] font-extrabold tracking-tight text-[var(--text-primary)]">
-            {displayNumber}
-          </p>
-          <p className="mt-2 text-[11px] text-[var(--text-tertiary)]">
-            Save this number and message Saheli anytime — no setup in the dashboard.
-          </p>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 function partnerInfo(data: FamilyIntegrations, key: McpIntegrationPartner) {
   if (key === "swiggy") return data.swiggy;
   if (key === "instamart") return data.instamart;
   return data.zepto;
 }
+
+const shortDate = (iso: string | null) =>
+  iso ? new Date(iso).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : null;
+
+const RULES = [
+  { icon: Money, title: "Cash on delivery", body: "Saheli never pays online. Every order is COD." },
+  { icon: MapPin, title: "Saved addresses only", body: "Orders go to a place in your family address book." },
+  { icon: CheckCircle, title: "Confirm before ordering", body: "Nothing is placed until someone replies “confirm”." },
+];
 
 export function IntegrationsPage() {
   const { activeFamilyId, activeFamily } = useFamily();
@@ -159,7 +46,6 @@ export function IntegrationsPage() {
       setLoading(false);
       return;
     }
-    setLoading(true);
     try {
       const { data: integrations } = await getFamilyIntegrations(activeFamilyId);
       setData(integrations ?? null);
@@ -171,7 +57,8 @@ export function IntegrationsPage() {
   }, [activeFamilyId]);
 
   useEffect(() => {
-    void load();
+    const t = setTimeout(() => void load(), 0);
+    return () => clearTimeout(t);
   }, [load]);
 
   async function connect(key: McpIntegrationPartner) {
@@ -194,7 +81,7 @@ export function IntegrationsPage() {
 
   async function disconnect(key: McpIntegrationPartner, title: string) {
     if (!activeFamilyId) return;
-    if (!window.confirm(`Disconnect ${title} for the whole family? Saheli will fall back to the website, which asks for an OTP.`)) return;
+    if (!window.confirm(`Disconnect ${title} for the whole family? Saheli will use the website instead, which asks for an OTP.`)) return;
     setBusyKey(key);
     setError(null);
     try {
@@ -207,77 +94,130 @@ export function IntegrationsPage() {
     }
   }
 
-  const connectedCount =
-    data && [data.zepto, data.swiggy, data.instamart].filter((p) => p.connected).length;
+  const connected = data ? INTEGRATION_PARTNERS.filter((p) => partnerInfo(data, p.key).connected).length : 0;
+  const number = data?.whatsapp.kavachNumber ?? "+91 83109 05372";
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
-      <div>
-        <h1 className="text-[22px] font-extrabold tracking-tight text-[var(--text-primary)]">Integrations</h1>
-        <p className="mt-1.5 text-[14px] leading-relaxed text-[var(--text-secondary)]">
-          Link your family&apos;s Swiggy (Food + Instamart) and Zepto accounts once. After that your family
-          member just asks Saheli on WhatsApp, picks an option and replies &quot;confirm&quot; — no OTP. Always
-          Cash on Delivery, always to a place in your family address book.
-        </p>
+    <div className="space-y-4">
+      <div className="flex flex-col gap-3 pb-2 lg:flex-row lg:items-end lg:justify-between">
+        <div>
+          <h1 className="text-[40px] leading-[1.02] tracking-[-0.035em] sm:text-[52px]">
+            <span className="block font-light text-[var(--c-ink-3)]">Connected</span>
+            <span className="block font-medium">Apps</span>
+          </h1>
+          <p className="mt-2 max-w-xl text-[13px] text-[var(--c-ink-2)]">
+            Link your family&apos;s accounts once. Then anyone just asks Saheli on WhatsApp and replies “confirm”. No OTP each time.
+          </p>
+        </div>
       </div>
 
-      {loading ? (
-        <div className="flex justify-center py-20">
-          <Loader2 className="h-6 w-6 animate-spin text-primary" />
-        </div>
-      ) : !data ? (
-        <p className="py-16 text-center text-[13px] text-[var(--text-tertiary)]">
-          Select a family to manage integrations.
-        </p>
-      ) : (
-        <>
-          {connectedCount !== null && connectedCount > 0 && (
-            <div className="flex items-center gap-2 rounded-xl border border-primary/20 bg-primary-light px-4 py-3 text-[12px] text-primary">
-              <Sparkles className="h-4 w-4 shrink-0" />
-              <span>
-                {connectedCount} delivery {connectedCount === 1 ? "partner" : "partners"} connected — ask Saheli
-                in chat to order.
-              </span>
+      {error && <p className="rounded-[14px] bg-[var(--c-accent-soft)] px-4 py-2.5 text-[13px] text-[var(--c-accent-soft-ink)]">{error}</p>}
+
+      <div className="grid gap-4 lg:grid-cols-[1fr_320px]">
+        <div className="min-w-0 space-y-4">
+          <Panel>
+            <PanelTitle title="Delivery apps" right={data && <span className="text-[12px] text-[var(--c-ink-3)]">{connected} of {INTEGRATION_PARTNERS.length} linked</span>} />
+            <div className="mt-4 grid gap-3 md:grid-cols-3">
+              {loading
+                ? INTEGRATION_PARTNERS.map((p) => <div key={p.key} className="h-[230px] animate-pulse rounded-[20px] bg-[var(--c-frame)]" />)
+                : INTEGRATION_PARTNERS.map((p) => {
+                    const info = data ? partnerInfo(data, p.key) : null;
+                    const on = Boolean(info?.connected);
+                    const by = info?.connectedByMe ? "you" : info?.connectedByName;
+                    return (
+                      <div key={p.key} className="flex flex-col rounded-[20px] bg-[var(--c-frame)] p-4">
+                        <div className="flex items-start justify-between">
+                          <Image src={p.logoSrc} alt={p.title} width={56} height={56} className="h-14 w-14 rounded-[16px]" />
+                          {on ? <Tag tone="dark">Linked</Tag> : <Tag tone="light">Not linked</Tag>}
+                        </div>
+                        <p className="mt-4 text-[16px] font-medium">{p.title}</p>
+                        <p className="text-[12px] text-[var(--c-ink-2)]">{p.subtitle}</p>
+                        <p className="mt-3 flex-1 text-[11.5px] leading-relaxed text-[var(--c-ink-3)]">
+                          {on
+                            ? [by && `Linked by ${by}`, shortDate(info?.connectedAt ?? null), info?.addressCount ? `${info.addressCount} saved address${info.addressCount === 1 ? "" : "es"}` : null]
+                                .filter(Boolean)
+                                .join(" · ")
+                            : "Saheli can still order through the website, but it will ask for an OTP."}
+                        </p>
+                        <div className="mt-4 flex items-center gap-2">
+                          {canManage && (
+                            <button
+                              type="button"
+                              disabled={busyKey === p.key || !data}
+                              onClick={() => void (on ? disconnect(p.key, p.title) : connect(p.key))}
+                              className={cn(
+                                "h-9 flex-1 rounded-full text-[12.5px] font-medium transition-colors disabled:opacity-50",
+                                on ? "border border-[var(--c-line)] text-[var(--c-ink-2)] hover:border-[#d92d20] hover:text-[#d92d20]" : "bg-[var(--c-ink)] text-white hover:opacity-90",
+                              )}
+                            >
+                              {busyKey === p.key ? "…" : on ? "Disconnect" : "Connect"}
+                            </button>
+                          )}
+                          <Link
+                            href={p.href}
+                            aria-label={`${p.title} details`}
+                            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[var(--c-line)] hover:bg-[var(--c-card)]"
+                          >
+                            <ArrowRight size={14} />
+                          </Link>
+                        </div>
+                      </div>
+                    );
+                  })}
             </div>
-          )}
+          </Panel>
 
-          {error && (
-            <p className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-[12px] text-red-700">{error}</p>
-          )}
-          <section className="space-y-3">
-            <h2 className="text-[11px] font-bold uppercase tracking-wider text-[var(--text-tertiary)]">
-              Order delivery
-            </h2>
-            {INTEGRATION_PARTNERS.map((partner) => {
-              const info = partnerInfo(data, partner.key);
-              return (
-                <PartnerOverviewCard
-                  key={partner.key}
-                  title={partner.title}
-                  subtitle={partner.subtitle}
-                  logoSrc={partner.logoSrc}
-                  href={partner.href}
-                  connected={info.connected}
-                  addressCount={info.addressCount}
-                  connectedAt={info.connectedAt}
-                  linkedBy={info.connectedByMe ? "you" : info.connectedByName}
-                  canManage={canManage}
-                  busy={busyKey === partner.key}
-                  onConnect={() => void connect(partner.key)}
-                  onDisconnect={() => void disconnect(partner.key, partner.title)}
-                />
-              );
-            })}
-          </section>
+          <Panel>
+            <PanelTitle title="How ordering works" />
+            <div className="mt-4 grid gap-3 sm:grid-cols-3">
+              {RULES.map((r) => (
+                <div key={r.title} className="rounded-[18px] bg-[var(--c-frame)] p-4">
+                  <span className="flex h-9 w-9 items-center justify-center rounded-full border border-[var(--c-line)]">
+                    <r.icon size={17} />
+                  </span>
+                  <p className="mt-3 text-[13.5px] font-medium">{r.title}</p>
+                  <p className="mt-1 text-[12px] leading-relaxed text-[var(--c-ink-2)]">{r.body}</p>
+                </div>
+              ))}
+            </div>
+          </Panel>
+        </div>
 
-          <section className="space-y-3">
-            <h2 className="text-[11px] font-bold uppercase tracking-wider text-[var(--text-tertiary)]">
-              Message Saheli
-            </h2>
-            <WhatsAppCard info={data.whatsapp} />
-          </section>
-        </>
-      )}
+        <aside className="space-y-4">
+          <Panel accent className="flex flex-col">
+            <div className="flex items-center justify-between">
+              <p className="text-[11px] font-medium uppercase tracking-[0.06em] text-white/80">Saheli on WhatsApp</p>
+              <WhatsappLogo size={22} weight="fill" className="text-white" />
+            </div>
+            <p className="c-num mt-6 text-[26px] leading-none text-white">{number}</p>
+            <p className="mt-3 text-[12px] leading-relaxed text-white/85">Save this number. Your family messages Saheli here; nothing to set up.</p>
+            <a
+              href={`https://wa.me/${number.replace(/\D/g, "")}`}
+              target="_blank"
+              rel="noreferrer"
+              className="mt-5 inline-flex h-9 items-center gap-1.5 self-start rounded-full bg-white px-4 text-[12.5px] font-medium text-[var(--c-ink)]"
+            >
+              Open chat <ArrowSquareOut size={13} />
+            </a>
+          </Panel>
+          <Panel>
+            <p className="flex items-center gap-2 text-[14px] font-medium">
+              <Lightning size={16} className="text-[var(--c-accent)]" /> Linked vs not linked
+            </p>
+            <ul className="mt-3 space-y-2 text-[12.5px] text-[var(--c-ink-2)]">
+              <li className="flex gap-2">
+                <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--c-ink)]" /> Linked: Saheli orders straight from the app with live prices.
+              </li>
+              <li className="flex gap-2">
+                <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--c-ink-3)]" /> Not linked: Saheli uses the website and asks for a login OTP.
+              </li>
+            </ul>
+            <p className="mt-3 flex items-center gap-1.5 text-[11.5px] text-[var(--c-ink-3)]">
+              <LockSimple size={12} /> Your family&apos;s own accounts. Saheli only places cash-on-delivery orders.
+            </p>
+          </Panel>
+        </aside>
+      </div>
     </div>
   );
 }
