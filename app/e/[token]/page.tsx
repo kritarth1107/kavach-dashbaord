@@ -34,9 +34,8 @@ function CallRow({ name, meta, phone, primary }: { name: string; meta?: string |
     >
       <span className="min-w-0 flex-1">
         <span className="block truncate text-[16px] font-medium">{name}</span>
-        <span className={cn("block truncate text-[13px] tabular-nums", primary ? "opacity-75" : "text-[var(--c-ink-2)]")}>
-          {[meta, phone].filter(Boolean).join(" · ")}
-        </span>
+        {meta && <span className={cn("block truncate text-[12.5px] first-letter:uppercase", primary ? "opacity-75" : "text-[var(--c-ink-2)]")}>{meta}</span>}
+        <span className={cn("block text-[13px] tabular-nums", primary ? "opacity-90" : "text-[var(--c-ink-2)]")}>{phone}</span>
       </span>
       <span className={cn("flex h-11 shrink-0 items-center gap-1.5 rounded-full px-4 text-[14px] font-medium", primary ? "bg-[var(--c-accent)] text-white" : "bg-[var(--c-ink)] text-[var(--c-frame)]")}>
         <Phone size={16} weight="fill" /> Call

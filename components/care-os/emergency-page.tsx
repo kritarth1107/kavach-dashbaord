@@ -121,9 +121,9 @@ function Editor({
       {msg && <Notice tone={msg.error ? "soft" : "plain"}>{msg.text}</Notice>}
       <section>
         <p className="mb-3 text-[14px] font-medium">Health details</p>
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid gap-3 sm:grid-cols-3">
           {EDIT_FIELDS.map((k) => (
-            <Field key={k} label={label(k)} className={k === "blood_group" || k === "height" || k === "weight" ? "" : "sm:col-span-2"}>
+            <Field key={k} label={label(k)} className={k === "blood_group" || k === "height" || k === "weight" ? "" : "sm:col-span-3"}>
               {k === "blood_group" ? (
                 <select className={INPUT} value={profile[k]} onChange={(e) => setProfile({ ...profile, [k]: e.target.value })}>
                   <option value="">Not known</option>

@@ -115,8 +115,13 @@ function ReportBody({ r, fullName, print }: { r: CareReport; fullName: string; p
       )}
 
       <Panel className={panel}>
-        <PanelTitle title="Summary" right={!print && <span className="text-[11px] text-[var(--c-ink-3)]">{ymd(r.from)} – {ymd(r.to)}</span>} />
+        <PanelTitle title="Summary" right={!print && <span className="hidden text-[11px] text-[var(--c-ink-3)] sm:inline">{ymd(r.from)} – {ymd(r.to)} · generated {fmtAt(r.generatedAt)}</span>} />
         <p className="mt-3 max-w-[80ch] text-[15px] leading-relaxed">{r.narrative || "No summary for this period."}</p>
+        {!print && (
+          <p className="mt-3 text-[11px] text-[var(--c-ink-3)] sm:hidden">
+            {ymd(r.from)} – {ymd(r.to)} · generated {fmtAt(r.generatedAt)}
+          </p>
+        )}
       </Panel>
 
       <div className="grid gap-4 sm:grid-cols-[220px_1fr]">
@@ -353,9 +358,6 @@ export function ReportPage() {
       ) : (
         <>
           {report.error && <Notice>{report.error}</Notice>}
-          <p className="text-[12px] text-[var(--c-ink-3)]">
-            {ymd(r.from)} – {ymd(r.to)} · generated {fmtAt(r.generatedAt)}
-          </p>
           <ReportBody r={r} fullName={selected?.name ?? name} />
           <PrintSheet>
             <ReportBody r={r} fullName={selected?.name ?? name} print />
