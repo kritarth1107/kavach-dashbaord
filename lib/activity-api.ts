@@ -113,7 +113,7 @@ export class ActivityApiError extends Error {
   }
 }
 
-async function request<T>(
+export async function request<T>(
   url: string,
   init: RequestInit = {},
   timeoutMs = 15_000,

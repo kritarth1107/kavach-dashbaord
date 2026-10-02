@@ -1,5 +1,9 @@
 import {
   Activity,
+  Brain,
+  CalendarClock,
+  ClipboardList,
+  ShoppingBag,
   BarChart3,
   CalendarDays,
   Bell,
@@ -30,6 +34,15 @@ export type NavGroup = {
 };
 
 export const navGroups: NavGroup[] = [
+  {
+    title: "Saheli",
+    items: [
+      { label: "Today", href: "/dashboard/saheli", icon: CalendarClock },
+      { label: "Care Record", href: "/dashboard/saheli/care", icon: ClipboardList },
+      { label: "Orders & Rides", href: "/dashboard/saheli/tasks", icon: ShoppingBag },
+      { label: "Memory", href: "/dashboard/saheli/memory", icon: Brain },
+    ],
+  },
   {
     title: "Care",
     items: [
