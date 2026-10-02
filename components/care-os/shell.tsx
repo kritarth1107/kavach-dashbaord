@@ -36,7 +36,7 @@ const RAIL: Array<{ key: NavKey; label: string; href: string; icon?: PhosphorIco
   { key: "family", label: "Family", href: "/dashboard/family", icon: UsersThree },
 ];
 
-export type Person = { id: string; name: string; relation?: string; photo?: string | null };
+export type Person = { id: string; name: string; relation?: string; photo?: string | null; self?: boolean };
 
 function useClock() {
   const [now, setNow] = useState(() => new Date());

@@ -8,6 +8,7 @@ import type { Person } from "./shell";
 import { Avatar } from "./ui";
 
 function handle(p: Person) {
+  if (p.self) return "self care";
   return p.relation ? `@${p.relation.toLowerCase().replace(/\s+/g, "")}` : "care recipient";
 }
 
@@ -57,7 +58,7 @@ export function PersonPicker({
         onClick={() => setOpen((v) => !v)}
         aria-haspopup="listbox"
         aria-expanded={open}
-        aria-label={`Caring for ${person.name}. Switch person`}
+        aria-label={person.self ? "Self care. Switch person" : `Caring for ${person.name}. Switch person`}
         className="flex min-w-0 items-center gap-2.5 rounded-full bg-[var(--c-card)] py-1 pl-1 pr-3 text-left transition-colors hover:bg-[#ebedee]"
       >
         <Avatar name={person.name} src={person.photo} size={34} />
@@ -69,8 +70,15 @@ export function PersonPicker({
       </button>
       {open && (
         <div role="listbox" className="absolute left-0 top-[calc(100%+8px)] z-50 w-[300px] rounded-[22px] border border-[var(--c-line)] bg-[var(--c-frame)] p-2 shadow-[0_24px_60px_-20px_rgba(0,0,0,0.3)]">
-          <p className="px-3 pb-1 pt-2 text-[11px] font-medium uppercase tracking-[0.06em] text-[var(--c-ink-3)]">Caring for</p>
-          {people.map((p) => {
+          {[
+            { label: "Caring for", list: people.filter((p) => !p.self) },
+            { label: "Self care", list: people.filter((p) => p.self) },
+          ]
+            .filter((g) => g.list.length)
+            .map((g) => (
+              <div key={g.label}>
+          <p className="px-3 pb-1 pt-2 text-[11px] font-medium uppercase tracking-[0.06em] text-[var(--c-ink-3)]">{g.label}</p>
+          {g.list.map((p) => {
             const on = p.id === person.id;
             return (
               <button
@@ -93,6 +101,8 @@ export function PersonPicker({
               </button>
             );
           })}
+              </div>
+            ))}
           <Link
             href="/dashboard/family/new?role=care_recipient"
             onClick={() => setOpen(false)}

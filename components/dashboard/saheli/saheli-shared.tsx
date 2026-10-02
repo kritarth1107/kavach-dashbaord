@@ -34,7 +34,7 @@ export function SaheliHeader({
   const searchParams = useSearchParams();
   const { selected } = usePerson();
   const name = callName(selected) || "Care";
-  const full = title(name);
+  const full = title(name).replace(/^You's /, "Your ");
   // Two-tone heading: the person in light grey, the page in ink.
   const split = full.lastIndexOf(" ");
   const tabHref = (href: string) => {

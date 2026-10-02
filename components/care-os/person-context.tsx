@@ -67,13 +67,15 @@ export function PersonProvider({ children }: { children: React.ReactNode }) {
   }, [activeFamilyId, tick]);
 
   const members = useMemo(() => (state.key === activeFamilyId ? state.members : []), [state, activeFamilyId]);
-  const people: Person[] = useMemo(
-    () =>
-      members
-        .filter((m) => isCareRecipientRole(m.role) && m.status === "joined" && m.userId)
-        .map((m) => ({ id: m.userId as string, name: [m.prefix, m.name].filter(Boolean).join(" ") || m.name, relation: m.relationship || undefined, photo: m.avatarUrl })),
-    [members],
-  );
+  // Everyone being cared for, then the caregiver themselves (self care) last.
+  const people: Person[] = useMemo(() => {
+    const recipients: Person[] = members
+      .filter((m) => isCareRecipientRole(m.role) && m.status === "joined" && m.userId)
+      .map((m) => ({ id: m.userId as string, name: [m.prefix, m.name].filter(Boolean).join(" ") || m.name, relation: m.relationship || undefined, photo: m.avatarUrl }));
+    if (!isCaregiver || !userId || state.key !== activeFamilyId) return recipients;
+    const mine = members.find((m) => m.userId === userId);
+    return [...recipients, { id: userId, name: me.name || mine?.name || "You", relation: "self care", photo: me.avatar ?? mine?.avatarUrl, self: true }];
+  }, [members, isCaregiver, userId, me.name, me.avatar, state.key, activeFamilyId]);
 
   const requested = params.get("recipient");
   const stored = typeof window !== "undefined" && activeFamilyId ? window.localStorage.getItem(key(activeFamilyId)) : null;
@@ -126,13 +128,20 @@ export function usePerson() {
   return v;
 }
 
-/** "Maa" for a recipient whose relationship is Mother, else their first name. */
+/** "Maa" for a recipient whose relationship is Mother, "You" for self care, else their first name. */
 export function callName(p: Person | null): string {
   if (!p) return "";
+  if (p.self) return "You";
   const r = (p.relation || "").toLowerCase();
   if (["mother", "mom", "mum", "maa", "amma"].includes(r)) return "Maa";
   if (["father", "dad", "papa", "pitaji"].includes(r)) return "Papa";
   if (r.startsWith("grandmother") || r === "dadi" || r === "nani") return r === "nani" ? "Nani" : "Dadi";
   if (r.startsWith("grandfather") || r === "dada" || r === "nana") return r === "nana" ? "Nana" : "Dada";
   return p.name.split(" ")[0];
+}
+
+/** Heading form: "Maa's", "Papa's", or "Your" for self care. */
+export function possessive(p: Person | null): string {
+  if (!p) return "Their";
+  return p.self ? "Your" : `${callName(p)}'s`;
 }

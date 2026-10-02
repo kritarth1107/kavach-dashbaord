@@ -15,7 +15,7 @@ import { cn } from "@/lib/utils";
 
 export const IST = "Asia/Kolkata";
 
-export type CareRecipientOption = { userId: string; name: string };
+export type CareRecipientOption = { userId: string; name: string; self?: boolean };
 
 /* ------------------------------------------------------------------ */
 /* Time helpers (all rendering in IST)                                */
@@ -183,7 +183,7 @@ type RecipientsState = {
 };
 
 export function useCareRecipients() {
-  const { activeFamilyId, activeFamily, loading: familyLoading } = useFamily();
+  const { activeFamilyId, activeFamily, userId, loading: familyLoading } = useFamily();
   const role = activeFamily?.role ?? null;
   const isCaregiver = canManageFamilyMembers(role);
   const isRecipient = isCareRecipientRole(role);
@@ -195,10 +195,13 @@ export function useCareRecipients() {
     getFamilyMembers(activeFamilyId)
       .then(({ data }) => {
         if (cancelled) return;
-        const recipients = (data?.members ?? [])
-          .map(apiMemberToFamilyMember)
+        const all = (data?.members ?? []).map(apiMemberToFamilyMember);
+        const recipients: CareRecipientOption[] = all
           .filter((m) => isCareRecipientRole(m.role) && m.status === "joined" && m.userId)
           .map((m) => ({ userId: m.userId as string, name: m.name }));
+        // Self care: the caregiver can keep their own medicines and schedule too.
+        const mine = all.find((m) => m.userId === userId);
+        if (userId) recipients.push({ userId, name: mine?.name || "You", self: true });
         setState({ key: activeFamilyId, recipients, error: "" });
       })
       .catch((err: unknown) => {
@@ -212,7 +215,7 @@ export function useCareRecipients() {
     return () => {
       cancelled = true;
     };
-  }, [activeFamilyId, isCaregiver]);
+  }, [activeFamilyId, isCaregiver, userId]);
 
   const ready = state.key === activeFamilyId;
   return {

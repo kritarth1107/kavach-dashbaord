@@ -18,7 +18,7 @@ import { useEffect, useMemo, useState } from "react";
 import { DOMAIN_TITLE, SOURCE_LABEL, getRecentLearning, saveNote, type CareEvent, type CareFact, type MemoryNote } from "@/lib/care-memory-api";
 import { useCareOverview } from "@/components/dashboard/saheli/saheli-shared";
 import { cn } from "@/lib/utils";
-import { callName, usePerson } from "./person-context";
+import { callName, possessive, usePerson } from "./person-context";
 import { DarkButton, Panel, PanelTitle, SmallButton, Tag } from "./ui";
 
 const IST = "Asia/Kolkata";
@@ -104,7 +104,7 @@ export function MemoryPage() {
       <div className="flex flex-col gap-5 pb-2 lg:flex-row lg:items-end lg:justify-between">
         <div className="flex items-end gap-5">
           <h1 className="text-[40px] leading-[1.02] tracking-[-0.035em] sm:text-[52px]">
-            <span className="block font-light text-[var(--c-ink-3)]">{name ? `${name}'s` : "Their"}</span>
+            <span className="block font-light text-[var(--c-ink-3)]">{possessive(selected)}</span>
             <span className="block font-medium">Memory</span>
           </h1>
           <span className="mb-2 hidden h-[68px] w-[68px] items-center justify-center rounded-full bg-[var(--c-accent)] text-white sm:flex">
@@ -179,7 +179,7 @@ export function MemoryPage() {
           </div>
 
           <Panel>
-            <PanelTitle title={name ? `Who ${name} is` : "Who they are"} right={<span className="text-[11px] text-[var(--c-ink-3)]">{identity.length} facts</span>} />
+            <PanelTitle title={selected?.self ? "About you" : name ? `Who ${name} is` : "Who they are"} right={<span className="text-[11px] text-[var(--c-ink-3)]">{identity.length} facts</span>} />
             {identity.length === 0 ? (
               <p className="mt-4 text-[13px] text-[var(--c-ink-2)]">Name, language, routines, dishes and family rules show here as Saheli learns them.</p>
             ) : (
@@ -196,7 +196,7 @@ export function MemoryPage() {
           </Panel>
 
           {[
-            { label: `About ${name || "them"}`, subject: selectedId ?? "", items: personNotes },
+            { label: selected?.self ? "About you" : `About ${name || "them"}`, subject: selectedId ?? "", items: personNotes },
             { label: "About the family", subject: "family", items: familyNotes },
           ].map((g) => (
             <section key={g.subject}>

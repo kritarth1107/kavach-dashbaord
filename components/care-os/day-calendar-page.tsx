@@ -21,7 +21,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { closeLoop, resolveFact, type CareEvent, type CareFact } from "@/lib/care-memory-api";
 import { useCareOverview } from "@/components/dashboard/saheli/saheli-shared";
 import { cn } from "@/lib/utils";
-import { callName, usePerson } from "./person-context";
+import { possessive, usePerson } from "./person-context";
 import { Panel, PanelTitle, SmallButton, Tag } from "./ui";
 
 const IST = "Asia/Kolkata";
@@ -92,7 +92,6 @@ export function DayCalendarPage() {
   const [nowMins, setNowMins] = useState(() => istMinutes(new Date().toISOString()));
   const [busy, setBusy] = useState<string | null>(null);
   const scroller = useRef<HTMLDivElement>(null);
-  const name = callName(selected);
 
   useEffect(() => {
     const t = setInterval(() => setNowMins(istMinutes(new Date().toISOString())), 60_000);
@@ -169,7 +168,7 @@ export function DayCalendarPage() {
       <div className="flex flex-col gap-5 pb-2 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <h1 className="text-[40px] leading-[1.02] tracking-[-0.035em] sm:text-[52px]">
-            <span className="block font-light text-[var(--c-ink-3)]">{name ? `${name}'s` : "Their"}</span>
+            <span className="block font-light text-[var(--c-ink-3)]">{possessive(selected)}</span>
             <span className="block font-medium">Day</span>
           </h1>
           <p className="mt-2 text-[13px] text-[var(--c-ink-2)]">{label}</p>

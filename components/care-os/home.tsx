@@ -62,7 +62,7 @@ export function CareHome({
       <div className="flex flex-col gap-5 pb-2 lg:flex-row lg:items-end lg:justify-between">
         <div className="flex items-end gap-5">
           <h1 className="text-[40px] leading-[1.02] tracking-[-0.035em] sm:text-[52px]">
-            <span className="block font-light text-[var(--c-ink-3)]">{data.person.callAs}&apos;s Care</span>
+            <span className="block font-light text-[var(--c-ink-3)]">{data.person.callAs === "You" ? "Your" : `${data.person.callAs}'s`} Care</span>
             <span className="block font-medium">Today</span>
           </h1>
           <div className="relative mb-2 hidden sm:block">
@@ -119,7 +119,13 @@ export function CareHome({
           <p className="mt-2 text-[10px] font-medium uppercase tracking-[0.06em]">Doses taken today</p>
           <div className="mt-auto flex items-end justify-between pt-8">
             <p className="max-w-[170px] text-[10px] font-medium uppercase leading-relaxed tracking-[0.04em]">
-              Every dose reminded on <span className="underline underline-offset-2">WhatsApp</span> at its time
+              {data.person.callAs === "You" ? (
+                "Tick off each dose here"
+              ) : (
+                <>
+                  Every dose reminded on <span className="underline underline-offset-2">WhatsApp</span> at its time
+                </>
+              )}
             </p>
             <div className="flex flex-col items-center gap-1 text-[var(--c-ink-2)]" aria-hidden>
               <Plus size={16} />
@@ -338,7 +344,7 @@ export function CareHome({
               No BP, sugar or weight yet.
             </p>
             <p className="mt-2 max-w-sm text-[12.5px] text-[var(--c-ink-2)]">
-              When {data.person.callAs} tells Saheli a reading on WhatsApp, or a lab report is uploaded, it shows here with its trend.
+              {data.person.callAs === "You" ? "Add a reading or upload a lab report and it shows here with its trend." : <>When {data.person.callAs} tells Saheli a reading on WhatsApp, or a lab report is uploaded, it shows here with its trend.</>}
             </p>
           </Panel>
         )}
