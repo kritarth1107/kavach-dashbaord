@@ -66,6 +66,8 @@ export function CareShell({
   onSelectPerson,
   me,
   alerts = 0,
+  onMenu,
+  menu,
   children,
 }: {
   active: NavKey;
@@ -74,6 +76,8 @@ export function CareShell({
   onSelectPerson?: (id: string) => void;
   me: { name: string };
   alerts?: number;
+  onMenu?: () => void;
+  menu?: React.ReactNode;
   children: React.ReactNode;
 }) {
   const now = useClock();
@@ -192,9 +196,18 @@ export function CareShell({
                 <span className="hidden sm:inline">{date}</span>
                 <span className="flex h-6 min-w-6 items-center justify-center rounded-full bg-[var(--c-ink)] px-1.5 text-[11px] text-[var(--c-frame)]">{alerts}</span>
               </Link>
-              <Link href="/dashboard/settings" aria-label="Menu" className="flex h-12 w-12 items-center justify-center rounded-[14px] border border-[var(--c-line)]">
-                <List size={20} />
-              </Link>
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={onMenu}
+                  aria-label="Menu"
+                  aria-haspopup="menu"
+                  className="flex h-12 w-12 items-center justify-center rounded-[14px] border border-[var(--c-line)] hover:bg-[var(--c-card)]"
+                >
+                  <List size={20} />
+                </button>
+                {menu}
+              </div>
             </div>
           </header>
           <main className="c-scroll min-h-0 flex-1 overflow-y-auto px-5 pb-24 pt-3 sm:px-8 md:pb-8">{children}</main>

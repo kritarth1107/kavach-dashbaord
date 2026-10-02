@@ -34,7 +34,7 @@ export function Tag({ children, tone = "accent", trend, className }: { children:
     <span
       className={cn(
         "inline-flex items-center gap-0.5 whitespace-nowrap rounded-full px-2 py-[3px] text-[11px] font-medium",
-        tone === "accent" && "bg-[var(--c-accent)] text-[var(--c-accent-ink)]",
+        tone === "accent" && "bg-[var(--c-accent-soft)] text-[var(--c-accent-soft-ink)]",
         tone === "dark" && "bg-[var(--c-ink)] text-[var(--c-frame)]",
         tone === "light" && "bg-[var(--c-chip)] text-[var(--c-ink-2)]",
         tone === "danger" && "bg-[#ffe1e1] text-[#b4232a]",
@@ -185,7 +185,7 @@ export function Bars({
                 className={cn("absolute bottom-0 w-full max-w-[26px] rounded-full", hi ? "bg-[var(--c-accent)]" : "bg-[var(--c-ink)]")}
                 style={{ height: h }}
               >
-                {hi && <span className="absolute left-1/2 top-1.5 h-2.5 w-2.5 -translate-x-1/2 rounded-full border-2 border-[var(--c-ink)] bg-[var(--c-accent)]" />}
+                {hi && <span className="absolute left-1/2 top-1.5 h-2.5 w-2.5 -translate-x-1/2 rounded-full border-2 border-white bg-[var(--c-accent)]" />}
               </div>
             </div>
           );

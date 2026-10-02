@@ -87,13 +87,13 @@
   --color-primary: var(--primary);
   --color-primary-light: var(--primary-light);
   --color-charcoal: var(--charcoal);
-  --font-sans: var(--font-plus-jakarta);
+  --font-sans: var(--font-geist), var(--font-plus-jakarta);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-plus-jakarta), system-ui, sans-serif;
+  font-family: var(--font-geist), var(--font-plus-jakarta), system-ui, sans-serif;
   margin: 0;
   padding: 0;
 }
@@ -352,11 +352,14 @@ input[type="checkbox"] {
   --c-card: #f3f4f5;
   --c-chip: #ffffff;
   --c-line: #e4e6e9;
-  --c-ink: #111312;
-  --c-ink-2: #6b6f74;
-  --c-ink-3: #a4a8ad;
-  --c-accent: #d6f36a;
-  --c-accent-ink: #111312;
+  /* Brand from the Kavach CareOS logo: forest for dark fills and text, saffron as the one accent. */
+  --c-ink: #142a22;
+  --c-ink-2: #66706b;
+  --c-ink-3: #a3aaa6;
+  --c-accent: #d3541e;
+  --c-accent-ink: #ffffff;
+  --c-accent-soft: #fbe4d6;
+  --c-accent-soft-ink: #9c3a10;
   --c-forest: #143429;
   --c-saffron: #d3541e;
   --c-danger: #e5484d;
@@ -376,6 +379,9 @@ input[type="checkbox"] {
   --c-ink: #f2f3f2;
   --c-ink-2: #a3a8a6;
   --c-ink-3: #6e7371;
+  --c-accent: #e2672f;
+  --c-accent-soft: rgba(226, 103, 47, 0.18);
+  --c-accent-soft-ink: #f6a678;
   background: #0c0d0d;
 }
 
@@ -391,5 +397,94 @@ input[type="checkbox"] {
 }
 
 .care-os .c-hatch {
-  background-image: repeating-linear-gradient(135deg, transparent 0 6px, rgba(17, 19, 18, 0.05) 6px 7px);
+  background-image: repeating-linear-gradient(135deg, transparent 0 6px, rgba(20, 42, 34, 0.05) 6px 7px);
+}
+
+/* ── Bridge: older pages inside the Care OS frame take its look ─────────────── */
+.care-os {
+  --background: var(--c-frame);
+  --foreground: var(--c-ink);
+  --primary: var(--c-accent);
+  --primary-dark: #b4461a;
+  --primary-light: var(--c-accent-soft);
+  --primary-muted: #f2a77e;
+  --primary-ring: rgba(211, 84, 30, 0.18);
+  --main-surface: var(--c-frame);
+  --card: var(--c-card);
+  --surface: var(--c-frame);
+  --surface-hover: var(--c-card);
+  --border: var(--c-line);
+  --border-strong: var(--c-line);
+  --text-primary: var(--c-ink);
+  --text-secondary: var(--c-ink-2);
+  --text-tertiary: var(--c-ink-3);
+  --header-bg: var(--c-frame);
+  --input-bg: var(--c-frame);
+  --elevated: var(--c-frame);
+  --elevated-muted: var(--c-card);
+  --shadow-soft: none;
+}
+
+.care-os .panel-card,
+.care-os .dashboard-card {
+  background: var(--c-card);
+  border: 0;
+  border-radius: 24px;
+}
+
+.care-os .dashboard-card-hover:hover {
+  box-shadow: none;
+  background: #eceeef;
+}
+
+.care-os .lime-card {
+  background: var(--c-accent);
+  border-radius: 24px;
+}
+
+.care-os .theme-field,
+.care-os .theme-input {
+  background: var(--c-frame);
+  border: 1px solid var(--c-line);
+  border-radius: 12px;
+}
+
+.care-os .theme-modal {
+  border-radius: 28px;
+  border: 1px solid var(--c-line);
+}
+
+.care-os .status-pill-success {
+  background: #e6f2ec;
+  color: var(--c-forest);
+}
+
+.care-os .status-pill-pending {
+  background: var(--c-accent-soft);
+  color: var(--c-accent-soft-ink);
+}
+
+.care-os .bg-primary {
+  background-color: var(--c-ink);
+}
+
+.care-os .text-primary {
+  color: var(--c-accent);
+}
+
+.care-os .icon-chip-green,
+.care-os .icon-chip-blue,
+.care-os .icon-chip-purple,
+.care-os .icon-chip-yellow {
+  background: var(--c-frame);
+  color: var(--c-ink);
+}
+
+.care-os .icon-chip-red {
+  background: var(--c-accent-soft);
+  color: var(--c-accent-soft-ink);
+}
+
+.care-os .font-extrabold {
+  font-weight: 600;
 }

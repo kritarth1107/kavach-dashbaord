@@ -89,7 +89,7 @@ export function SaheliTodayPage() {
           recipients={sel.recipients}
           selectedId={selectedId}
           onSelect={sel.select}
-          title={(n) => `${n} today`}
+          title={(n) => `${n}'s Day`}
           subtitle="What actually happened, from Saheli's ledger: reminders sent, doses, vitals, alerts, orders. Updates every 30 seconds."
           badges={{ "/dashboard/saheli/care": data?.pending.length, "/dashboard/saheli/tasks": liveTasks.length }}
           actions={
@@ -120,7 +120,7 @@ export function SaheliTodayPage() {
         ) : data ? (
           <div className="grid gap-4 lg:grid-cols-[1fr_340px]">
             <section className="panel-card p-5">
-              <h2 className="text-[14px] font-extrabold text-[var(--text-primary)]">Timeline</h2>
+              <h2 className="flex items-center gap-2.5 text-[14px] font-medium text-[var(--text-primary)]"><span className="h-[14px] w-[14px] shrink-0 rounded-[4px] bg-[var(--c-accent)]" aria-hidden />Timeline</h2>
               {events.length === 0 ? (
                 <p className="mt-3 text-[12px] text-[var(--text-tertiary)]">Nothing logged yet for this day: no reminders sent, no doses marked.</p>
               ) : (
@@ -167,7 +167,7 @@ export function SaheliTodayPage() {
               )}
               {liveTasks.length > 0 && (
                 <section className="panel-card p-5">
-                  <h2 className="text-[14px] font-extrabold text-[var(--text-primary)]">Orders & rides in progress</h2>
+                  <h2 className="flex items-center gap-2.5 text-[14px] font-medium text-[var(--text-primary)]"><span className="h-[14px] w-[14px] shrink-0 rounded-[4px] bg-[var(--c-accent)]" aria-hidden />Orders & rides in progress</h2>
                   <ul className="mt-3 space-y-2">
                     {liveTasks.map((t) => (
                       <li key={t.id} className="text-[12px] text-[var(--text-secondary)]">

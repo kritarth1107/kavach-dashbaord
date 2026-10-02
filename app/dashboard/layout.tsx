@@ -1,20 +1,15 @@
-import { CommandPalette } from "@/components/dashboard/command-palette";
-import { DashboardSidebar } from "@/components/dashboard/sidebar";
-import { DashboardShell } from "@/components/dashboard/dashboard-shell";
+import { Suspense } from "react";
+import { CareOsFrame } from "@/components/care-os/frame";
 import { FamilyProvider } from "@/components/dashboard/family-context";
 import { SidebarProvider } from "@/components/dashboard/sidebar-context";
 
-export default function DashboardLayout({
-  children,
-}: LayoutProps<"/dashboard">) {
+export default function DashboardLayout({ children }: LayoutProps<"/dashboard">) {
   return (
     <SidebarProvider>
       <FamilyProvider>
-        <div className="flex h-dvh w-full overflow-hidden bg-[var(--background)]">
-          <DashboardSidebar />
-          <DashboardShell>{children}</DashboardShell>
-          <CommandPalette />
-        </div>
+        <Suspense>
+          <CareOsFrame>{children}</CareOsFrame>
+        </Suspense>
       </FamilyProvider>
     </SidebarProvider>
   );

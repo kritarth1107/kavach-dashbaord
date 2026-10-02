@@ -49,7 +49,7 @@ export function SaheliTasksPage() {
           recipients={sel.recipients}
           selectedId={selectedId}
           onSelect={sel.select}
-          title={(n) => `Orders & rides for ${n}`}
+          title={(n) => `${n}'s Orders`}
           subtitle="Saheli runs these on the family's own accounts, cash on delivery only. Nothing is placed without a yes. Updates every 10 seconds."
           badges={{ "/dashboard/saheli/tasks": live.length }}
         />
@@ -71,7 +71,7 @@ export function SaheliTasksPage() {
             ))}
             {past.length > 0 && (
               <section className="panel-card p-5">
-                <h2 className="text-[14px] font-extrabold text-[var(--text-primary)]">Earlier</h2>
+                <h2 className="flex items-center gap-2.5 text-[14px] font-medium text-[var(--text-primary)]"><span className="h-[14px] w-[14px] shrink-0 rounded-[4px] bg-[var(--c-accent)]" aria-hidden />Earlier</h2>
                 <ul className="mt-3 divide-y divide-[var(--border)]">
                   {past.map((t) => (
                     <li key={t.id} className="py-2.5">

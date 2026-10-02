@@ -184,3 +184,30 @@ export const DOMAIN_TITLE: Record<string, string> = {
 };
 
 export const DOMAIN_ORDER = Object.keys(DOMAIN_TITLE);
+
+export type VitalSummary = {
+  value: string;
+  unit: string | null;
+  at: string;
+  trend: number[];
+  change: { pct: number; dir: "up" | "down" } | null;
+  redFlag: string | null;
+} | null;
+
+export type CareHomeSummary = {
+  now: string;
+  doses: Array<{ id: string; time: string; name: string; dose?: string | null; status: "taken" | "reminded" | "missed" | "due" | "upcoming" | "skipped" | "unmarked" }>;
+  week: { taken: number; scheduled: number; streakDays: number; adherence: number[]; days: string[] };
+  vitals: Record<"bp" | "sugar" | "weight" | "temperature" | "spo2", VitalSummary>;
+  needsYou: Array<{ id: string; kind: "fact" | "task"; key?: string; taskId?: string; input?: string | null; title: string; meta: string }>;
+  followUps: OpenLoop[];
+  tasks: CareTask[];
+  timeline: Array<{ id: number; at: string; kind: string; text: string }>;
+  lastHeardAt: string | null;
+};
+
+export async function getCareHome(familyId: string, subjectUserId: string): Promise<CareHomeSummary> {
+  const data = await request<CareHomeSummary>(`${base(familyId, subjectUserId)}/home`, {}, 45_000);
+  if (!data) throw new Error("Empty response");
+  return data;
+}

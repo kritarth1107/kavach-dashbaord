@@ -2,31 +2,29 @@
 
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
-import { Brain, CalendarClock, ShoppingBag, UserRound, type LucideIcon, ClipboardList } from "lucide-react";
+import { Brain, CalendarClock, ShoppingBag, type LucideIcon, ClipboardList } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { getCareOverview, type CareOverview } from "@/lib/care-memory-api";
 import { cn } from "@/lib/utils";
 import type { CareRecipientOption } from "../activity/activity-shared";
+import { callName, usePerson } from "@/components/care-os/person-context";
 
 const TABS: Array<{ href: string; label: string; icon: LucideIcon }> = [
   { href: "/dashboard/saheli", label: "Today", icon: CalendarClock },
-  { href: "/dashboard/saheli/care", label: "Care record", icon: ClipboardList },
+  { href: "/dashboard/saheli/care", label: "Medicines & care", icon: ClipboardList },
   { href: "/dashboard/saheli/tasks", label: "Orders & rides", icon: ShoppingBag },
   { href: "/dashboard/saheli/memory", label: "Memory", icon: Brain },
 ];
 
 export function SaheliHeader({
-  recipients,
-  selectedId,
-  onSelect,
   title,
   subtitle,
   badges = {},
   actions,
 }: {
-  recipients: CareRecipientOption[];
-  selectedId: string | null;
-  onSelect: (userId: string) => void;
+  recipients?: CareRecipientOption[];
+  selectedId?: string | null;
+  onSelect?: (userId: string) => void;
   title: (name: string) => string;
   subtitle: string;
   badges?: Partial<Record<string, number>>;
@@ -34,76 +32,55 @@ export function SaheliHeader({
 }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const selected = recipients.find((r) => r.userId === selectedId) ?? null;
+  const { selected } = usePerson();
+  const name = callName(selected) || "Care";
+  const full = title(name);
+  // Two-tone heading: the person in light grey, the page in ink.
+  const split = full.lastIndexOf(" ");
   const tabHref = (href: string) => {
     const recipient = searchParams.get("recipient");
     return recipient ? `${href}?recipient=${encodeURIComponent(recipient)}` : href;
   };
 
   return (
-    <div className="panel-card overflow-hidden">
-      <div className="flex flex-col gap-4 px-5 py-5 sm:flex-row sm:items-start sm:justify-between">
-        <div className="flex min-w-0 items-start gap-3">
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary-light text-[15px] font-extrabold text-primary">
-            {selected ? selected.name.charAt(0).toUpperCase() : <UserRound className="h-5 w-5" />}
-          </div>
-          <div className="min-w-0">
-            <h1 className="break-words text-[18px] font-extrabold tracking-[-0.01em] text-[var(--text-primary)]">
-              {title(selected?.name ?? "Care recipient")}
-            </h1>
-            <p className="mt-0.5 text-[12px] leading-relaxed text-[var(--text-tertiary)]">{subtitle}</p>
-          </div>
+    <div className="pb-2">
+      <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+        <div>
+          <h1 className="text-[38px] leading-[1.04] tracking-[-0.035em] sm:text-[48px]">
+            <span className="block font-light text-[var(--c-ink-3)]">{split > 0 ? full.slice(0, split) : name}</span>
+            <span className="block font-medium">{split > 0 ? full.slice(split + 1) : full}</span>
+          </h1>
+          <p className="mt-2 max-w-xl text-[13px] leading-relaxed text-[var(--c-ink-2)]">{subtitle}</p>
         </div>
-        {actions && <div className="flex shrink-0 items-center gap-2">{actions}</div>}
+        {actions && <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div>}
       </div>
-      <div className="flex flex-col gap-3 border-t border-[var(--border-strong)] px-5 py-3 sm:flex-row sm:items-center sm:justify-between">
-        <nav className="no-scrollbar flex overflow-x-auto rounded-full bg-[var(--surface)] p-1" aria-label="Saheli views">
-          {TABS.map((tab) => {
-            const active = pathname === tab.href;
-            const Icon = tab.icon;
-            const badge = badges[tab.href];
-            return (
-              <Link
-                key={tab.href}
-                href={tabHref(tab.href)}
-                className={cn(
-                  "inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-3.5 py-1.5 text-[12px] font-bold transition-all",
-                  active
-                    ? "bg-[var(--card)] text-[var(--text-primary)] shadow-sm"
-                    : "text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]",
-                )}
-              >
-                <Icon className="h-3.5 w-3.5" />
-                {tab.label}
-                {badge ? (
-                  <span className="rounded-full bg-primary px-1.5 text-[10px] font-extrabold leading-[16px] text-white">{badge}</span>
-                ) : null}
-              </Link>
-            );
-          })}
-        </nav>
-        {recipients.length > 1 && (
-          <div className="no-scrollbar flex gap-1.5 overflow-x-auto" role="tablist" aria-label="Care recipient">
-            {recipients.map((r) => (
-              <button
-                key={r.userId}
-                type="button"
-                role="tab"
-                aria-selected={r.userId === selectedId}
-                onClick={() => onSelect(r.userId)}
-                className={cn(
-                  "shrink-0 rounded-full px-3 py-1.5 text-[11px] font-semibold transition-colors",
-                  r.userId === selectedId
-                    ? "bg-primary text-white"
-                    : "border border-[var(--border-strong)] bg-[var(--card)] text-[var(--text-secondary)] hover:border-primary/40",
-                )}
-              >
-                {r.name}
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
+      <nav className="no-scrollbar mt-5 flex gap-2 overflow-x-auto" aria-label="Saheli views">
+        {TABS.map((tab) => {
+          const active = pathname === tab.href;
+          const Icon = tab.icon;
+          const badge = badges[tab.href];
+          return (
+            <Link
+              key={tab.href}
+              href={tabHref(tab.href)}
+              className={cn(
+                "inline-flex h-9 shrink-0 items-center gap-1.5 rounded-[10px] border px-3.5 text-[13px] transition-colors",
+                active
+                  ? "border-transparent bg-[var(--c-accent)] text-white"
+                  : "border-[var(--c-line)] bg-[var(--c-frame)] text-[var(--c-ink-2)] hover:text-[var(--c-ink)]",
+              )}
+            >
+              <Icon className="h-3.5 w-3.5" />
+              {tab.label}
+              {badge ? (
+                <span className={cn("rounded-full px-1.5 text-[10px] font-semibold leading-[16px]", active ? "bg-white text-[var(--c-accent)]" : "bg-[var(--c-accent)] text-white")}>
+                  {badge}
+                </span>
+              ) : null}
+            </Link>
+          );
+        })}
+      </nav>
     </div>
   );
 }
@@ -161,15 +138,15 @@ export function useAction() {
 export function Banner({ banner }: { banner: { tone: "ok" | "error"; text: string } | null }) {
   if (!banner) return null;
   return (
-    <div role="status" className={banner.tone === "ok" ? "status-pill-success rounded-2xl px-4 py-2 text-[12px] font-semibold" : "alert-error"}>
+    <div role="status" className={banner.tone === "ok" ? "rounded-[14px] bg-[#e6f2ec] px-4 py-2.5 text-[13px] text-[var(--c-forest)]" : "rounded-[14px] bg-[var(--c-accent-soft)] px-4 py-2.5 text-[13px] text-[var(--c-accent-soft-ink)]"}>
       {banner.text}
     </div>
   );
 }
 
 export const btnPrimary =
-  "inline-flex items-center gap-1.5 rounded-full bg-primary px-4 py-1.5 text-[11px] font-bold text-white disabled:opacity-50";
+  "inline-flex h-9 items-center gap-1.5 rounded-full bg-[var(--c-ink)] px-4 text-[12px] font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-40";
 export const btnSecondary =
-  "inline-flex items-center gap-1.5 rounded-full border border-[var(--border-strong)] bg-[var(--card)] px-4 py-1.5 text-[11px] font-bold text-[var(--text-secondary)] hover:border-primary/40 disabled:opacity-50";
+  "inline-flex h-9 items-center gap-1.5 rounded-full border border-[var(--c-line)] bg-[var(--c-frame)] px-4 text-[12px] font-medium text-[var(--c-ink)] hover:bg-[var(--c-card)] disabled:opacity-40";
 export const btnDanger =
-  "inline-flex items-center gap-1.5 rounded-full border border-[var(--danger-text)]/30 bg-[var(--danger-bg)] px-4 py-1.5 text-[11px] font-bold text-[var(--danger-text)] disabled:opacity-50";
+  "inline-flex h-9 items-center gap-1.5 rounded-full bg-[var(--c-accent-soft)] px-4 text-[12px] font-medium text-[var(--c-accent-soft-ink)] hover:brightness-95 disabled:opacity-40";

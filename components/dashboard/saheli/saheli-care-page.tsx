@@ -137,7 +137,7 @@ export function SaheliCarePage() {
           recipients={sel.recipients}
           selectedId={selectedId}
           onSelect={sel.select}
-          title={(n) => `${n}'s care record`}
+          title={(n) => `${n}'s Medicines`}
           subtitle="What Saheli treats as true: medicines, allergies, diet, naming and family rules. Every change keeps its history and where it came from."
           badges={{ "/dashboard/saheli/care": pending.length }}
           actions={
@@ -151,7 +151,7 @@ export function SaheliCarePage() {
         {draft && (
           <section className="panel-card p-5" aria-label="Edit care record">
             <div className="flex items-center justify-between">
-              <h2 className="text-[14px] font-extrabold text-[var(--text-primary)]">{draft.editingKey ? "Change" : "Add to the care record"}</h2>
+              <h2 className="flex items-center gap-2.5 text-[14px] font-medium text-[var(--text-primary)]"><span className="h-[14px] w-[14px] shrink-0 rounded-[4px] bg-[var(--c-accent)]" aria-hidden />{draft.editingKey ? "Change" : "Add to the care record"}</h2>
               <button type="button" aria-label="Close" onClick={() => setDraft(null)} className="text-[var(--text-tertiary)]">
                 <X className="h-4 w-4" />
               </button>
@@ -309,7 +309,7 @@ export function SaheliCarePage() {
               <div className="grid gap-4 md:grid-cols-2">
                 {grouped.map(([domain, facts]) => (
                   <section key={domain} className={cn("panel-card p-5", (domain === "medicine" || domain === "allergy") && "md:col-span-2")}>
-                    <h2 className="text-[14px] font-extrabold text-[var(--text-primary)]">{DOMAIN_TITLE[domain] ?? domain}</h2>
+                    <h2 className="flex items-center gap-2.5 text-[14px] font-medium text-[var(--text-primary)]"><span className="h-[14px] w-[14px] shrink-0 rounded-[4px] bg-[var(--c-accent)]" aria-hidden />{DOMAIN_TITLE[domain] ?? domain}</h2>
                     <ul className="mt-3 divide-y divide-[var(--border)]">
                       {facts.map((f) => (
                         <li key={f.id} className="flex flex-col gap-2 py-2.5 sm:flex-row sm:items-center sm:justify-between">
@@ -357,7 +357,7 @@ export function SaheliCarePage() {
           <div role="dialog" aria-modal="true" aria-label="History" className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setHistory(null)}>
             <div className="theme-modal w-full max-w-lg rounded-3xl p-5" onClick={(e) => e.stopPropagation()}>
               <div className="flex items-center justify-between">
-                <h2 className="text-[14px] font-extrabold text-[var(--text-primary)]">History</h2>
+                <h2 className="flex items-center gap-2.5 text-[14px] font-medium text-[var(--text-primary)]"><span className="h-[14px] w-[14px] shrink-0 rounded-[4px] bg-[var(--c-accent)]" aria-hidden />History</h2>
                 <button type="button" aria-label="Close" onClick={() => setHistory(null)}>
                   <X className="h-4 w-4" />
                 </button>

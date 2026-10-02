@@ -18,7 +18,7 @@ import {
 import { cn } from "@/lib/utils";
 import { Bars, Check, DarkButton, Panel, PanelTitle, PillTabs, SmallButton, Tag } from "./ui";
 
-export type DoseStatus = "taken" | "reminded" | "missed" | "due" | "upcoming" | "skipped";
+export type DoseStatus = "taken" | "reminded" | "missed" | "due" | "upcoming" | "skipped" | "unmarked";
 
 export type HomeData = {
   person: { id: string; name: string; callAs: string };
@@ -27,21 +27,33 @@ export type HomeData = {
   lastHeard?: string;
   doses: Array<{ id: string; time: string; name: string; dose?: string; status: DoseStatus }>;
   week: { taken: number; scheduled: number; streakDays: number; adherence: number[]; labels: string[] };
+  trends?: Partial<Record<"bp" | "sugar", { values: number[]; labels: string[]; unit: string }>>;
   bp?: { value: string; at: string; trend: number[]; change?: string; changeDir?: "up" | "down"; state: "in range" | "high" | "low" };
   sugar?: { value: string; note: string; change?: string };
   weight?: { value: string; note: string; change?: string };
-  needsYou: Array<{ id: string; title: string; meta?: string }>;
+  needsYou: Array<{ id: string; title: string; meta?: string; approveLabel?: string; declineLabel?: string }>;
   followUps: Array<{ id: string; title: string; when: string }>;
   tasks: Array<{ id: string; label: string; status: string; total?: string }>;
   timeline: Array<{ id: string; time: string; text: string }>;
 };
 
-type Trend = "medicines" | "bp" | "sugar" | "mood";
+type Trend = "medicines" | "bp" | "sugar";
 
-export function CareHome({ data }: { data: HomeData }) {
+export function CareHome({
+  data,
+  onDecide,
+  busy,
+}: {
+  data: HomeData;
+  onDecide?: (id: string, approve: boolean) => void;
+  busy?: string | null;
+}) {
   const [trend, setTrend] = useState<Trend>("medicines");
+  const series = trend === "bp" || trend === "sugar" ? data.trends?.[trend] : undefined;
   const taken = data.doses.filter((d) => d.status === "taken").length;
-  const next = data.doses.find((d) => d.status === "due" || d.status === "upcoming" || d.status === "reminded");
+  const nextToday = data.doses.find((d) => d.status === "due" || d.status === "upcoming");
+  const next = nextToday ?? data.doses[0];
+  const nextLabel = next ? (nextToday ? next.name : `${next.name} · tomorrow`) : null;
   const weekPct = data.week.scheduled ? Math.round((data.week.taken / data.week.scheduled) * 100) : 0;
   const today = data.week.adherence.length - 1;
 
@@ -54,7 +66,7 @@ export function CareHome({ data }: { data: HomeData }) {
             <span className="block font-medium">Today</span>
           </h1>
           <div className="relative mb-2 hidden sm:block">
-            <span className="flex h-[68px] w-[68px] items-center justify-center rounded-full bg-[var(--c-accent)]">
+            <span className="flex h-[68px] w-[68px] items-center justify-center rounded-full bg-[var(--c-accent)] text-white">
               <Asterisk size={34} weight="bold" />
             </span>
             <span className="absolute -bottom-1 -right-2 flex h-7 w-7 items-center justify-center rounded-full bg-[var(--c-ink)] text-[var(--c-frame)]">
@@ -98,9 +110,11 @@ export function CareHome({ data }: { data: HomeData }) {
               {taken}
               <span className="text-[var(--c-ink-3)]">/{data.doses.length}</span>
             </p>
-            <Tag trend="up" className="mt-2">
-              {weekPct}%
-            </Tag>
+            {weekPct > 0 && (
+              <Tag trend="up" className="mt-2">
+                {weekPct}% this week
+              </Tag>
+            )}
           </div>
           <p className="mt-2 text-[10px] font-medium uppercase tracking-[0.06em]">Doses taken today</p>
           <div className="mt-auto flex items-end justify-between pt-8">
@@ -137,7 +151,7 @@ export function CareHome({ data }: { data: HomeData }) {
             <span className="text-[13px]">Next dose</span>
             <span className="flex items-start gap-2">
               <span className="c-num text-[34px] leading-none">{next?.time ?? "—"}</span>
-              {next && <Tag trend="up">{next.name}</Tag>}
+              {nextLabel && <Tag>{nextLabel}</Tag>}
             </span>
             {data.bp && (
               <span className="flex items-start gap-2">
@@ -153,14 +167,28 @@ export function CareHome({ data }: { data: HomeData }) {
               <span>0%</span>
             </div>
             <div className="flex-1">
-              <Bars
-                values={data.week.adherence}
-                highlight={[today]}
-                labels={data.week.labels.map((l, i) => (i % 3 === 0 || i === today ? l : null))}
-                max={100}
-                height={150}
-                callout={{ index: today, text: `${data.week.adherence[today]}%` }}
-              />
+              {series && series.values.length ? (
+                <Bars
+                  values={series.values}
+                  highlight={[series.values.length - 1]}
+                  labels={series.labels}
+                  height={150}
+                  callout={{ index: series.values.length - 1, text: `${series.values[series.values.length - 1]} ${series.unit}` }}
+                />
+              ) : trend === "medicines" ? (
+                <Bars
+                  values={data.week.adherence}
+                  highlight={[today]}
+                  labels={data.week.labels.map((l, i) => (i % 3 === 0 || i === today ? l : null))}
+                  max={100}
+                  height={150}
+                  callout={{ index: today, text: `${data.week.adherence[today]}%` }}
+                />
+              ) : (
+                <div className="c-hatch flex h-[150px] items-center justify-center rounded-[16px] text-[12px] text-[var(--c-ink-2)]">
+                  No readings yet. Saheli logs them when {data.person.callAs} shares one.
+                </div>
+              )}
             </div>
           </div>
           <PillTabs<Trend>
@@ -171,7 +199,6 @@ export function CareHome({ data }: { data: HomeData }) {
               { id: "medicines", label: "Medicines" },
               { id: "bp", label: "Blood pressure" },
               { id: "sugar", label: "Sugar" },
-              { id: "mood", label: "Mood" },
             ]}
           />
         </Panel>
@@ -182,13 +209,17 @@ export function CareHome({ data }: { data: HomeData }) {
             {data.needsYou.length === 0 ? (
               <p className="text-[13px] text-[var(--c-ink-2)]">Nothing waiting on you.</p>
             ) : (
-              data.needsYou.map((n) => (
-                <div key={n.id}>
+              data.needsYou.slice(0, 2).map((n, i) => (
+                <div key={n.id} className={cn(i > 0 && "mt-4 border-t border-[var(--c-line)] pt-4")}>
                   <p className="text-[14px] font-medium leading-snug">{n.title}</p>
                   {n.meta && <p className="mt-1 text-[12px] leading-relaxed text-[var(--c-ink-2)]">{n.meta}</p>}
                   <div className="mt-3 flex gap-2">
-                    <SmallButton dark>Approve</SmallButton>
-                    <SmallButton>Not now</SmallButton>
+                    <SmallButton dark disabled={busy === n.id} onClick={() => onDecide?.(n.id, true)}>
+                      {n.approveLabel ?? "Approve"}
+                    </SmallButton>
+                    <SmallButton disabled={busy === n.id} onClick={() => onDecide?.(n.id, false)}>
+                      {n.declineLabel ?? "Not now"}
+                    </SmallButton>
                   </div>
                 </div>
               ))
@@ -203,7 +234,19 @@ export function CareHome({ data }: { data: HomeData }) {
                   checked={d.status === "taken"}
                   label={d.name}
                   meta={d.time}
-                  tag={d.status === "due" ? <Tag>due</Tag> : d.status === "missed" ? <Tag tone="danger">missed</Tag> : undefined}
+                  tag={
+                    d.status === "due" ? (
+                      <Tag>due</Tag>
+                    ) : d.status === "missed" ? (
+                      <Tag tone="danger">missed</Tag>
+                    ) : d.status === "skipped" ? (
+                      <Tag tone="danger">skipped</Tag>
+                    ) : d.status === "unmarked" ? (
+                      <Tag tone="light">not marked</Tag>
+                    ) : d.status === "reminded" ? (
+                      <Tag tone="light">reminded</Tag>
+                    ) : undefined
+                  }
                 />
               ))}
             </div>
@@ -213,9 +256,9 @@ export function CareHome({ data }: { data: HomeData }) {
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-[1.45fr_1.15fr_0.7fr_0.7fr] [&>*]:min-w-0">
         <Panel className="relative overflow-hidden">
-          <div className="relative z-10 max-w-[300px]">
+          <div className="relative z-10 sm:pr-[150px]">
             <div className="flex items-center gap-2">
-              <span className="h-1.5 w-1.5 rounded-full bg-[var(--c-ink)]" />
+              <span className="h-1.5 w-1.5 rounded-full bg-[var(--c-accent)]" />
               <span className="text-[11px] font-medium uppercase tracking-[0.06em] text-[var(--c-ink-2)]">Saheli says</span>
             </div>
             <p className="mt-3 text-[19px] font-medium leading-snug tracking-[-0.02em]">{data.saheliSays}</p>
@@ -232,7 +275,7 @@ export function CareHome({ data }: { data: HomeData }) {
             {[300, 230, 160].map((s) => (
               <span key={s} className="absolute rounded-full border border-[var(--c-line)]" style={{ width: s, height: s, left: (300 - s) / 2, top: (300 - s) / 2 }} />
             ))}
-            <span className="absolute left-[95px] top-[95px] flex h-[110px] w-[110px] flex-col items-center justify-center rounded-full bg-[var(--c-accent)] shadow-[0_20px_40px_-12px_rgba(150,190,40,0.6)]">
+            <span className="absolute left-[95px] top-[95px] flex h-[110px] w-[110px] flex-col items-center justify-center rounded-full bg-[var(--c-accent)] text-white shadow-[0_20px_40px_-12px_rgba(211,84,30,0.55)]">
               <span className="c-num text-[26px] leading-none">{data.mood ?? "—"}</span>
               <span className="mt-1 text-[10px] font-medium uppercase tracking-[0.06em]">mood</span>
             </span>
@@ -250,6 +293,11 @@ export function CareHome({ data }: { data: HomeData }) {
               <span className="font-medium text-[var(--c-ink)]">From the ledger.</span> What actually happened.
             </p>
           </div>
+          {data.timeline.length === 0 && (
+            <p className="c-hatch mt-4 flex flex-1 items-center justify-center rounded-[16px] px-4 py-8 text-center text-[12.5px] text-[var(--c-ink-2)]">
+              Nothing logged yet today. Reminders, doses and messages appear here as they happen.
+            </p>
+          )}
           <ol className="mt-4 space-y-2">
             {data.timeline.slice(0, 4).map((t) => (
               <li key={t.id} className="flex items-center gap-3 rounded-[14px] bg-[var(--c-frame)] px-3 py-2.5">
@@ -263,7 +311,7 @@ export function CareHome({ data }: { data: HomeData }) {
         {data.bp && (
           <Panel accent className="flex flex-col">
             <div className="flex items-start justify-between">
-              <Tag tone="light" trend={data.bp.changeDir}>
+              <Tag tone="light" trend={data.bp.changeDir} className="!text-[var(--c-accent)]">
                 {data.bp.change ?? data.bp.state}
               </Tag>
               <span className="text-right text-[10px] font-medium uppercase leading-tight tracking-[0.04em]">
@@ -274,7 +322,7 @@ export function CareHome({ data }: { data: HomeData }) {
             </div>
             <div className="mt-4 flex gap-1.5" aria-hidden>
               {[0, 1, 2].map((i) => (
-                <span key={i} className={cn("h-3 w-3 rounded-full", i === 2 ? "border-[3px] border-[var(--c-ink)] bg-[var(--c-accent)]" : "bg-[var(--c-ink)]")} />
+                <span key={i} className={cn("h-3 w-3 rounded-full", i === 2 ? "border-[3px] border-white bg-[var(--c-accent)]" : "bg-white")} />
               ))}
             </div>
             <p className="mt-auto pt-6 text-[11px] font-medium">mmHg</p>
@@ -283,7 +331,18 @@ export function CareHome({ data }: { data: HomeData }) {
           </Panel>
         )}
 
-        <div className="grid grid-cols-2 gap-4 md:col-span-2 xl:col-span-1 xl:grid-cols-1">
+        {!data.bp && !data.sugar && !data.weight && (
+          <Panel className="flex flex-col justify-between md:col-span-2 xl:col-span-2">
+            <PanelTitle title="Health readings" />
+            <p className="mt-6 text-[22px] font-medium leading-snug tracking-[-0.02em]">
+              No BP, sugar or weight yet.
+            </p>
+            <p className="mt-2 max-w-sm text-[12.5px] text-[var(--c-ink-2)]">
+              When {data.person.callAs} tells Saheli a reading on WhatsApp, or a lab report is uploaded, it shows here with its trend.
+            </p>
+          </Panel>
+        )}
+        <div className={cn("grid grid-cols-2 gap-4 md:col-span-2 xl:col-span-1 xl:grid-cols-1", !data.sugar && !data.weight && "hidden")}>
           {data.sugar && (
             <Panel>
               <p className="text-[12px] text-[var(--c-ink-2)]">Sugar</p>

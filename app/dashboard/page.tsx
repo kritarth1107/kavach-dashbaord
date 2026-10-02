@@ -1,5 +1,5 @@
-import { DashboardHome } from "@/components/dashboard/dashboard-home";
+import { CareHomePage } from "@/components/care-os/home-page";
 
 export default function DashboardPage() {
-  return <DashboardHome />;
+  return <CareHomePage />;
 }

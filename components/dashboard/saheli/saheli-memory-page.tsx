@@ -60,7 +60,7 @@ export function SaheliMemoryPage() {
           recipients={sel.recipients}
           selectedId={selectedId}
           onSelect={sel.select}
-          title={(n) => `What Saheli knows about ${n}`}
+          title={(n) => `${n}'s Memory`}
           subtitle="Life around the care: people, stories, dishes, likes, how they like things done. Saheli adds to these from conversations; you can correct anything."
         />
         <Banner banner={banner} />
@@ -104,7 +104,7 @@ export function SaheliMemoryPage() {
           groups.map((g) => (
             <section key={g.subjectId} className="panel-card p-5">
               <div className="flex items-center justify-between">
-                <h2 className="text-[14px] font-extrabold text-[var(--text-primary)]">{g.label}</h2>
+                <h2 className="flex items-center gap-2.5 text-[14px] font-medium text-[var(--text-primary)]"><span className="h-[14px] w-[14px] shrink-0 rounded-[4px] bg-[var(--c-accent)]" aria-hidden />{g.label}</h2>
                 <button className={btnSecondary} onClick={() => setEditing({ subjectId: g.subjectId, slug: "", title: "", body: "", isNew: true })}>
                   <Plus className="h-3.5 w-3.5" /> New note
                 </button>
