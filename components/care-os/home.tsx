@@ -1,335 +1,347 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 import {
+  ArrowDownRight,
   ArrowUpRight,
-  Bed,
-  CaretRight,
-  ChatCircleDots,
-  Car,
-  CheckCircle,
+  Asterisk,
+  CalendarBlank,
+  CaretDown,
+  ChatCircle,
   Clock,
-  Drop,
-  ForkKnife,
-  Heartbeat,
-  Phone,
-  Pill,
-  Scales,
-  ShieldCheck,
-  ShoppingBagOpen,
-  Smiley,
-  Sparkle,
-  Thermometer,
-  WarningCircle,
-  type Icon as PhosphorIcon,
+  DotsThree,
+  Hourglass,
+  Minus,
+  Plus,
 } from "@phosphor-icons/react";
 import { cn } from "@/lib/utils";
-import { ChaiAndTulsi, ElderMan, ElderWoman, SaheliOrb } from "./illustrations";
-import { BigStat, Card, CardTitle, Empty, IconBubble, InkButton, AccentButton, Pill as Chip, Ring, SoftButton, Sparkline, type Tone } from "./ui";
+import { Bars, Check, DarkButton, Panel, PanelTitle, PillTabs, SmallButton, Tag } from "./ui";
 
 export type DoseStatus = "taken" | "reminded" | "missed" | "due" | "upcoming" | "skipped";
+
 export type HomeData = {
-  caregiverName: string;
-  person: { id: string; name: string; callAs: string; gender?: "female" | "male" };
-  greeting: string;
-  headline: string;
+  person: { id: string; name: string; callAs: string };
   saheliSays: string;
-  mood?: { label: string; tone: Tone };
+  mood?: string;
   lastHeard?: string;
-  doses: Array<{ id: string; time: string; name: string; dose?: string; note?: string; status: DoseStatus }>;
-  vitals: Array<{ kind: "bp" | "sugar" | "weight" | "temperature" | "spo2"; value: string; unit: string; state: "good" | "watch" | "high" | "low"; when: string; trend: number[] }>;
-  needsYou: Array<{ id: string; title: string; detail: string; kind: "confirm" | "order" | "alert" }>;
+  doses: Array<{ id: string; time: string; name: string; dose?: string; status: DoseStatus }>;
+  week: { taken: number; scheduled: number; streakDays: number; adherence: number[]; labels: string[] };
+  bp?: { value: string; at: string; trend: number[]; change?: string; changeDir?: "up" | "down"; state: "in range" | "high" | "low" };
+  sugar?: { value: string; note: string; change?: string };
+  weight?: { value: string; note: string; change?: string };
+  needsYou: Array<{ id: string; title: string; meta?: string }>;
   followUps: Array<{ id: string; title: string; when: string }>;
-  tasks: Array<{ id: string; kind: "order" | "ride"; service: string; goal: string; status: string; total?: string }>;
-  timeline: Array<{ id: string; time: string; label: string; summary: string; tone: Tone; icon: "pill" | "alarm" | "heart" | "food" | "mood" | "alert" | "order" | "chat" }>;
-  life: Array<{ label: string; value: string; icon: "food" | "walk" | "sleep" | "water" }>;
+  tasks: Array<{ id: string; label: string; status: string; total?: string }>;
+  timeline: Array<{ id: string; time: string; text: string }>;
 };
 
-const DOSE: Record<DoseStatus, { label: string; tone: Tone }> = {
-  taken: { label: "Taken", tone: "mint" },
-  reminded: { label: "Reminded", tone: "sky" },
-  missed: { label: "Missed", tone: "rose" },
-  skipped: { label: "Skipped", tone: "butter" },
-  due: { label: "Due now", tone: "accent" },
-  upcoming: { label: "Later", tone: "plain" },
-};
-
-const VITAL: Record<HomeData["vitals"][number]["kind"], { label: string; icon: PhosphorIcon; tone: Tone }> = {
-  bp: { label: "Blood pressure", icon: Heartbeat, tone: "rose" },
-  sugar: { label: "Sugar", icon: Drop, tone: "sky" },
-  weight: { label: "Weight", icon: Scales, tone: "lavender" },
-  temperature: { label: "Temperature", icon: Thermometer, tone: "peach" },
-  spo2: { label: "Oxygen", icon: Heartbeat, tone: "mint" },
-};
-
-const STATE: Record<HomeData["vitals"][number]["state"], { label: string; tone: Tone }> = {
-  good: { label: "In range", tone: "mint" },
-  watch: { label: "Keep an eye", tone: "butter" },
-  high: { label: "High", tone: "rose" },
-  low: { label: "Low", tone: "rose" },
-};
-
-const TL_ICON: Record<HomeData["timeline"][number]["icon"], PhosphorIcon> = {
-  pill: Pill,
-  alarm: Clock,
-  heart: Heartbeat,
-  food: ForkKnife,
-  mood: Smiley,
-  alert: WarningCircle,
-  order: ShoppingBagOpen,
-  chat: ChatCircleDots,
-};
-
-const LIFE_ICON = { food: ForkKnife, walk: Heartbeat, sleep: Bed, water: Drop } as const;
+type Trend = "medicines" | "bp" | "sugar" | "mood";
 
 export function CareHome({ data }: { data: HomeData }) {
-  const Portrait = data.person.gender === "male" ? ElderMan : ElderWoman;
+  const [trend, setTrend] = useState<Trend>("medicines");
   const taken = data.doses.filter((d) => d.status === "taken").length;
+  const next = data.doses.find((d) => d.status === "due" || d.status === "upcoming" || d.status === "reminded");
+  const weekPct = data.week.scheduled ? Math.round((data.week.taken / data.week.scheduled) * 100) : 0;
+  const today = data.week.adherence.length - 1;
+
   return (
-    <div className="grid grid-cols-1 gap-4 xl:grid-cols-12 [&>*]:min-w-0">
-      {/* Hero */}
-      <Card className="relative overflow-hidden p-6 sm:p-8 xl:col-span-8" delay={0}>
-        <div className="flex flex-col gap-6 sm:flex-row sm:items-center">
-          <div className="relative shrink-0">
-            <Portrait className="h-28 w-28 sm:h-36 sm:w-36" title={data.person.name} />
-            {data.mood && (
-              <Chip tone={data.mood.tone} icon={Smiley} className="absolute -bottom-1 left-1/2 -translate-x-1/2 shadow-sm">
-                {data.mood.label}
-              </Chip>
+    <div className="space-y-4">
+      <div className="flex flex-col gap-5 pb-2 lg:flex-row lg:items-end lg:justify-between">
+        <div className="flex items-end gap-5">
+          <h1 className="text-[40px] leading-[1.02] tracking-[-0.035em] sm:text-[52px]">
+            <span className="block font-light text-[var(--c-ink-3)]">{data.person.callAs}&apos;s Care</span>
+            <span className="block font-medium">Today</span>
+          </h1>
+          <div className="relative mb-2 hidden sm:block">
+            <span className="flex h-[68px] w-[68px] items-center justify-center rounded-full bg-[var(--c-accent)]">
+              <Asterisk size={34} weight="bold" />
+            </span>
+            <span className="absolute -bottom-1 -right-2 flex h-7 w-7 items-center justify-center rounded-full bg-[var(--c-ink)] text-[var(--c-frame)]">
+              <ArrowDownRight size={13} weight="bold" />
+            </span>
+          </div>
+        </div>
+        <div className="flex flex-wrap items-center gap-2.5">
+          <button type="button" className="flex h-12 items-center gap-2.5 rounded-full bg-[var(--c-card)] pl-1.5 pr-4 text-[13px]">
+            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--c-frame)]">
+              <CalendarBlank size={16} />
+            </span>
+            {data.week.labels[0]} – {data.week.labels[data.week.labels.length - 1]}
+            <CaretDown size={12} />
+          </button>
+          <button type="button" className="flex h-12 items-center gap-2.5 rounded-full bg-[var(--c-card)] pl-1.5 pr-4 text-[13px]">
+            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--c-frame)]">
+              <Clock size={16} />
+            </span>
+            24h
+            <CaretDown size={12} />
+          </button>
+          <Link href="/dashboard/saheli">
+            <DarkButton>Full day</DarkButton>
+          </Link>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_1.9fr] xl:grid-cols-[1fr_2fr_1fr] [&>*]:min-w-0">
+        <Panel className="flex flex-col">
+          <PanelTitle
+            title="Medicines"
+            right={
+              <span className="flex items-center gap-1.5 text-[11px]">
+                <span className="h-3.5 w-3.5 rounded-full bg-[var(--c-ink)]" /> Today
+              </span>
+            }
+          />
+          <div className="mt-8 flex items-start gap-3">
+            <p className="c-num text-[56px] leading-none">
+              {taken}
+              <span className="text-[var(--c-ink-3)]">/{data.doses.length}</span>
+            </p>
+            <Tag trend="up" className="mt-2">
+              {weekPct}%
+            </Tag>
+          </div>
+          <p className="mt-2 text-[10px] font-medium uppercase tracking-[0.06em]">Doses taken today</p>
+          <div className="mt-auto flex items-end justify-between pt-8">
+            <p className="max-w-[170px] text-[10px] font-medium uppercase leading-relaxed tracking-[0.04em]">
+              Every dose reminded on <span className="underline underline-offset-2">WhatsApp</span> at its time
+            </p>
+            <div className="flex flex-col items-center gap-1 text-[var(--c-ink-2)]" aria-hidden>
+              <Plus size={16} />
+              <span className="h-px w-4 bg-[var(--c-ink-3)]" />
+              <Minus size={16} />
+            </div>
+          </div>
+          <div className="mt-4 grid grid-cols-2 border-t border-[var(--c-line)] pt-4">
+            <div className="border-r border-[var(--c-line)] pr-3">
+              <p className="c-num text-[30px] leading-none">
+                {data.week.taken}
+                <span className="text-[16px] text-[var(--c-ink-3)]">/{data.week.scheduled}</span>
+              </p>
+              <p className="mt-1.5 text-[10px] font-medium uppercase tracking-[0.04em]">This week</p>
+            </div>
+            <div className="pl-4">
+              <div className="flex items-start justify-between">
+                <p className="c-num text-[30px] leading-none">{data.week.streakDays}</p>
+                <Tag trend="up">days</Tag>
+              </div>
+              <p className="mt-1.5 text-[10px] font-medium uppercase tracking-[0.04em]">On-time streak</p>
+            </div>
+          </div>
+        </Panel>
+
+        <Panel className="flex flex-col">
+          <PanelTitle title="Care trends" right={<Hourglass size={18} />} />
+          <div className="mt-5 flex flex-wrap items-center gap-x-8 gap-y-3">
+            <span className="text-[13px]">Next dose</span>
+            <span className="flex items-start gap-2">
+              <span className="c-num text-[34px] leading-none">{next?.time ?? "—"}</span>
+              {next && <Tag trend="up">{next.name}</Tag>}
+            </span>
+            {data.bp && (
+              <span className="flex items-start gap-2">
+                <span className="c-num text-[34px] leading-none">{data.bp.value}</span>
+                {data.bp.change && <Tag trend={data.bp.changeDir}>{data.bp.change}</Tag>}
+              </span>
             )}
           </div>
-          <div className="min-w-0 flex-1">
-            <p className="text-[13px] font-medium text-[var(--c-ink-3)]">{data.greeting}</p>
-            <h1 className="c-serif mt-1 text-[30px] leading-[1.1] sm:text-[38px]">{data.headline}</h1>
-            <div className="mt-4 flex items-start gap-3 rounded-[20px] bg-[var(--c-card-solid)] p-3.5">
-              <SaheliOrb className="h-8 w-8 shrink-0" />
-              <p className="text-[13.5px] leading-relaxed text-[var(--c-ink-2)]">
-                <span className="font-semibold text-[var(--c-ink)]">Saheli: </span>
-                {data.saheliSays}
-              </p>
+          <div className="mt-6 flex gap-3">
+            <div className="flex w-8 flex-col justify-between pb-6 text-[10px] text-[var(--c-ink-3)]">
+              <span>100%</span>
+              <span>50%</span>
+              <span>0%</span>
             </div>
-            <div className="mt-4 flex flex-wrap items-center gap-2">
-              {data.lastHeard && <Chip icon={ChatCircleDots}>Last heard {data.lastHeard}</Chip>}
-              <Link href="/dashboard/chat">
-                <SoftButton size="sm" icon={ChatCircleDots}>
-                  Ask Saheli about {data.person.callAs}
-                </SoftButton>
-              </Link>
-              <SoftButton size="sm" icon={Phone}>
-                Call {data.person.callAs}
-              </SoftButton>
+            <div className="flex-1">
+              <Bars
+                values={data.week.adherence}
+                highlight={[today]}
+                labels={data.week.labels.map((l, i) => (i % 3 === 0 || i === today ? l : null))}
+                max={100}
+                height={150}
+                callout={{ index: today, text: `${data.week.adherence[today]}%` }}
+              />
             </div>
           </div>
-          <div className="hidden shrink-0 sm:block">
-            <Ring value={taken} total={data.doses.length} label="Doses today" size={124} />
-          </div>
-        </div>
-      </Card>
+          <PillTabs<Trend>
+            className="mt-5"
+            value={trend}
+            onChange={setTrend}
+            tabs={[
+              { id: "medicines", label: "Medicines" },
+              { id: "bp", label: "Blood pressure" },
+              { id: "sugar", label: "Sugar" },
+              { id: "mood", label: "Mood" },
+            ]}
+          />
+        </Panel>
 
-      {/* Needs you */}
-      <Card tone="ink" className="flex flex-col p-6 xl:col-span-4" delay={60}>
-        <div className="flex items-center justify-between">
-          <p className="text-[13px] font-semibold opacity-70">Needs you</p>
-          <span className="flex h-7 min-w-7 items-center justify-center rounded-full bg-[var(--c-accent)] px-2 text-[12px] font-bold text-white">
-            {data.needsYou.length}
-          </span>
-        </div>
-        {data.needsYou.length === 0 ? (
-          <div className="mt-6 flex flex-1 flex-col items-start justify-end">
-            <ShieldCheck size={36} weight="duotone" className="text-[#f3a77c]" />
-            <p className="c-serif mt-3 text-[24px] leading-tight">Nothing waiting on you.</p>
-            <p className="mt-1 text-[13px] opacity-60">Saheli will message you if something needs a decision.</p>
-          </div>
-        ) : (
-          <ul className="mt-4 space-y-3">
-            {data.needsYou.slice(0, 2).map((n) => (
-              <li key={n.id} className="rounded-[20px] bg-white/[0.07] p-4">
-                <p className="c-serif text-[19px] leading-snug">{n.title}</p>
-                <p className="mt-1 text-[12.5px] leading-relaxed opacity-65">{n.detail}</p>
-                <div className="mt-3 flex gap-2">
-                  <AccentButton size="sm" icon={CheckCircle}>
-                    {n.kind === "order" ? "Confirm" : "Approve"}
-                  </AccentButton>
-                  <button type="button" className="h-8 rounded-full px-3.5 text-[12px] font-semibold text-white/75 ring-1 ring-white/20 hover:bg-white/10">
-                    {n.kind === "order" ? "Decline" : "Not now"}
-                  </button>
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
-      </Card>
-
-      {/* Medicines today */}
-      <Card className="xl:col-span-8" delay={120}>
-        <CardTitle
-          icon={Pill}
-          tone="lavender"
-          title="Medicines today"
-          hint={`${taken} of ${data.doses.length} taken · reminders go on WhatsApp at each time`}
-          action={
-            <Link href="/dashboard/saheli/care" className="flex items-center gap-1 text-[12px] font-semibold text-[var(--c-ink-2)] hover:text-[var(--c-ink)]">
-              Edit <CaretRight size={12} weight="bold" />
-            </Link>
-          }
-        />
-        <ol className="c-scroll mt-5 flex gap-3 overflow-x-auto pb-1">
-          {data.doses.map((d) => {
-            const s = DOSE[d.status];
-            return (
-              <li
-                key={d.id}
-                className={cn(
-                  "relative min-w-[168px] flex-1 rounded-[22px] p-4",
-                  d.status === "due" ? "bg-[var(--c-accent)] text-[var(--c-accent-ink)]" : "bg-[var(--c-card-solid)]",
-                )}
-              >
-                <div className="flex items-center justify-between">
-                  <span className="c-num text-[24px] leading-none">{d.time}</span>
-                  {d.status === "taken" ? (
-                    <CheckCircle size={22} weight="fill" className="text-[var(--c-mint-ink)]" />
-                  ) : (
-                    <Chip tone={d.status === "due" ? "ink" : s.tone}>{s.label}</Chip>
-                  )}
-                </div>
-                <p className="mt-4 text-[14px] font-semibold leading-tight">{d.name}</p>
-                <p className={cn("mt-0.5 text-[12px]", d.status === "due" ? "opacity-70" : "text-[var(--c-ink-3)]")}>
-                  {[d.dose, d.note].filter(Boolean).join(" · ")}
-                </p>
-              </li>
-            );
-          })}
-        </ol>
-      </Card>
-
-      {/* Life today */}
-      <Card tone="peach" className="xl:col-span-4" delay={160}>
-        <div className="flex items-center justify-between">
-          <p className="text-[15px] font-semibold">{data.person.callAs}&apos;s day</p>
-          <Sparkle size={18} weight="duotone" />
-        </div>
-        <ul className="mt-4 grid grid-cols-2 gap-2.5">
-          {data.life.map((l) => {
-            const Icon = LIFE_ICON[l.icon];
-            return (
-              <li key={l.label} className="rounded-[18px] bg-white/55 p-3 dark:bg-black/15">
-                <Icon size={18} weight="duotone" />
-                <p className="mt-2 text-[11px] font-medium opacity-70">{l.label}</p>
-                <p className="text-[13px] font-semibold leading-snug">{l.value}</p>
-              </li>
-            );
-          })}
-        </ul>
-      </Card>
-
-      {/* Vitals */}
-      {data.vitals.map((v, i) => {
-        const meta = VITAL[v.kind];
-        const st = STATE[v.state];
-        return (
-          <Card key={v.kind} className="xl:col-span-4" delay={200 + i * 40}>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <IconBubble icon={meta.icon} tone={meta.tone} size="sm" />
-                <span className="text-[13px] font-semibold">{meta.label}</span>
-              </div>
-              <Chip tone={st.tone}>{st.label}</Chip>
-            </div>
-            <div className="mt-5 flex items-end justify-between gap-3">
-              <BigStat value={v.value} unit={v.unit} sub={<span className="text-[var(--c-ink-3)]">{v.when}</span>} />
-              <Sparkline points={v.trend} className={cn("h-10 w-28", `text-[var(--c-${meta.tone}-ink)]`)} />
-            </div>
-          </Card>
-        );
-      })}
-
-      {/* Timeline */}
-      <Card className="xl:col-span-8" delay={320}>
-        <CardTitle
-          icon={Clock}
-          tone="sky"
-          title="Today so far"
-          hint="What actually happened, as Saheli recorded it"
-          action={
-            <Link href="/dashboard/saheli" className="flex items-center gap-1 text-[12px] font-semibold text-[var(--c-ink-2)] hover:text-[var(--c-ink)]">
-              Full day <ArrowUpRight size={12} weight="bold" />
-            </Link>
-          }
-        />
-        {data.timeline.length === 0 ? (
-          <Empty art={<ChaiAndTulsi className="h-24 w-40" />} title="A quiet morning" body="Nothing has happened yet today. Reminders and messages will appear here." />
-        ) : (
-          <ol className="relative mt-5 space-y-1 before:absolute before:bottom-3 before:left-[19px] before:top-3 before:w-px before:bg-[var(--c-line)]">
-            {data.timeline.map((t) => {
-              const Icon = TL_ICON[t.icon];
-              return (
-                <li key={t.id} className="relative flex gap-3 rounded-[18px] p-1.5 hover:bg-[var(--c-card-solid)]">
-                  <IconBubble icon={Icon} tone={t.tone} size="md" className="relative z-10 ring-4 ring-[var(--c-bg)]" />
-                  <div className="min-w-0 flex-1 pt-0.5">
-                    <div className="flex items-baseline justify-between gap-2">
-                      <p className="text-[13.5px] font-semibold">{t.label}</p>
-                      <span className="shrink-0 text-[12px] tabular-nums text-[var(--c-ink-3)]">{t.time}</span>
-                    </div>
-                    <p className="mt-0.5 text-[12.5px] leading-relaxed text-[var(--c-ink-2)]">{t.summary}</p>
+        <Panel className="flex flex-col lg:col-span-2 xl:col-span-1">
+          <PanelTitle title="Needs you" right={<DotsThree size={20} weight="bold" />} />
+          <div className="mt-4 rounded-[18px] bg-[var(--c-frame)] p-4">
+            {data.needsYou.length === 0 ? (
+              <p className="text-[13px] text-[var(--c-ink-2)]">Nothing waiting on you.</p>
+            ) : (
+              data.needsYou.map((n) => (
+                <div key={n.id}>
+                  <p className="text-[14px] font-medium leading-snug">{n.title}</p>
+                  {n.meta && <p className="mt-1 text-[12px] leading-relaxed text-[var(--c-ink-2)]">{n.meta}</p>}
+                  <div className="mt-3 flex gap-2">
+                    <SmallButton dark>Approve</SmallButton>
+                    <SmallButton>Not now</SmallButton>
                   </div>
-                </li>
-              );
-            })}
-          </ol>
-        )}
-      </Card>
-
-      <div className="flex flex-col gap-4 xl:col-span-4">
-        {/* Following up */}
-        <Card delay={360}>
-          <CardTitle icon={ChatCircleDots} tone="butter" title="Saheli is following up" hint="She will check back on her own" />
-          <ul className="mt-4 space-y-2">
-            {data.followUps.length === 0 && <li className="text-[13px] text-[var(--c-ink-3)]">Nothing open.</li>}
-            {data.followUps.map((f) => (
-              <li key={f.id} className="flex items-center gap-3 rounded-[18px] bg-[var(--c-card-solid)] p-3">
-                <span className="h-2 w-2 shrink-0 rounded-full bg-[var(--c-butter-ink)]" />
-                <div className="min-w-0 flex-1">
-                  <p className="text-[13px] font-semibold leading-snug">{f.title}</p>
-                  <p className="text-[11.5px] text-[var(--c-ink-3)]">{f.when}</p>
                 </div>
+              ))
+            )}
+          </div>
+          <div className="mt-5">
+            <PanelTitle title="Today's doses" right={<span className="text-[11px] text-[var(--c-ink-2)]">{taken} done</span>} />
+            <div className="mt-2">
+              {data.doses.map((d) => (
+                <Check
+                  key={d.id}
+                  checked={d.status === "taken"}
+                  label={d.name}
+                  meta={d.time}
+                  tag={d.status === "due" ? <Tag>due</Tag> : d.status === "missed" ? <Tag tone="danger">missed</Tag> : undefined}
+                />
+              ))}
+            </div>
+          </div>
+        </Panel>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-[1.45fr_1.15fr_0.7fr_0.7fr] [&>*]:min-w-0">
+        <Panel className="relative overflow-hidden">
+          <div className="relative z-10 max-w-[300px]">
+            <div className="flex items-center gap-2">
+              <span className="h-1.5 w-1.5 rounded-full bg-[var(--c-ink)]" />
+              <span className="text-[11px] font-medium uppercase tracking-[0.06em] text-[var(--c-ink-2)]">Saheli says</span>
+            </div>
+            <p className="mt-3 text-[19px] font-medium leading-snug tracking-[-0.02em]">{data.saheliSays}</p>
+            <div className="mt-5 flex items-center gap-3">
+              <Link href="/dashboard/chat">
+                <SmallButton dark icon={ChatCircle}>
+                  Ask Saheli
+                </SmallButton>
+              </Link>
+              {data.lastHeard && <span className="text-[12px] text-[var(--c-ink-2)]">Last heard {data.lastHeard}</span>}
+            </div>
+          </div>
+          <div className="pointer-events-none absolute -bottom-16 -right-16 hidden h-[300px] w-[300px] sm:block" aria-hidden>
+            {[300, 230, 160].map((s) => (
+              <span key={s} className="absolute rounded-full border border-[var(--c-line)]" style={{ width: s, height: s, left: (300 - s) / 2, top: (300 - s) / 2 }} />
+            ))}
+            <span className="absolute left-[95px] top-[95px] flex h-[110px] w-[110px] flex-col items-center justify-center rounded-full bg-[var(--c-accent)] shadow-[0_20px_40px_-12px_rgba(150,190,40,0.6)]">
+              <span className="c-num text-[26px] leading-none">{data.mood ?? "—"}</span>
+              <span className="mt-1 text-[10px] font-medium uppercase tracking-[0.06em]">mood</span>
+            </span>
+          </div>
+        </Panel>
+
+        <Panel className="flex flex-col">
+          <div className="flex items-start justify-between gap-3">
+            <p className="text-[22px] font-medium uppercase leading-[1.05] tracking-[-0.02em]">
+              Today
+              <br />
+              so far
+            </p>
+            <p className="max-w-[130px] text-right text-[11px] leading-snug text-[var(--c-ink-2)]">
+              <span className="font-medium text-[var(--c-ink)]">From the ledger.</span> What actually happened.
+            </p>
+          </div>
+          <ol className="mt-4 space-y-2">
+            {data.timeline.slice(0, 4).map((t) => (
+              <li key={t.id} className="flex items-center gap-3 rounded-[14px] bg-[var(--c-frame)] px-3 py-2.5">
+                <span className="rounded-full bg-[var(--c-card)] px-2 py-0.5 text-[11px] tabular-nums">{t.time}</span>
+                <span className="min-w-0 flex-1 truncate text-[12.5px]">{t.text}</span>
+              </li>
+            ))}
+          </ol>
+        </Panel>
+
+        {data.bp && (
+          <Panel accent className="flex flex-col">
+            <div className="flex items-start justify-between">
+              <Tag tone="light" trend={data.bp.changeDir}>
+                {data.bp.change ?? data.bp.state}
+              </Tag>
+              <span className="text-right text-[10px] font-medium uppercase leading-tight tracking-[0.04em]">
+                Blood
+                <br />
+                pressure
+              </span>
+            </div>
+            <div className="mt-4 flex gap-1.5" aria-hidden>
+              {[0, 1, 2].map((i) => (
+                <span key={i} className={cn("h-3 w-3 rounded-full", i === 2 ? "border-[3px] border-[var(--c-ink)] bg-[var(--c-accent)]" : "bg-[var(--c-ink)]")} />
+              ))}
+            </div>
+            <p className="mt-auto pt-6 text-[11px] font-medium">mmHg</p>
+            <p className="c-num text-[34px] leading-none">{data.bp.value}</p>
+            <p className="mt-1 text-[11px] opacity-70">{data.bp.at}</p>
+          </Panel>
+        )}
+
+        <div className="grid grid-cols-2 gap-4 md:col-span-2 xl:col-span-1 xl:grid-cols-1">
+          {data.sugar && (
+            <Panel>
+              <p className="text-[12px] text-[var(--c-ink-2)]">Sugar</p>
+              <p className="c-num mt-3 text-[32px] leading-none">
+                {data.sugar.value}
+                <span className="text-[14px] text-[var(--c-ink-3)]"> mg/dL</span>
+              </p>
+              <p className="mt-2 text-[11px] text-[var(--c-ink-2)]">{data.sugar.change ?? data.sugar.note}</p>
+            </Panel>
+          )}
+          {data.weight && (
+            <Panel>
+              <p className="text-[12px] text-[var(--c-ink-2)]">Weight</p>
+              <p className="c-num mt-3 text-[32px] leading-none">
+                {data.weight.value}
+                <span className="text-[14px] text-[var(--c-ink-3)]"> kg</span>
+              </p>
+              <p className="mt-2 text-[11px] text-[var(--c-ink-2)]">{data.weight.change ?? data.weight.note}</p>
+            </Panel>
+          )}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 [&>*]:min-w-0">
+        <Panel>
+          <PanelTitle title="Saheli is following up" right={<span className="text-[11px] text-[var(--c-ink-2)]">checks back on her own</span>} />
+          <ul className="mt-3">
+            {data.followUps.length === 0 && <li className="py-2 text-[13px] text-[var(--c-ink-3)]">Nothing open.</li>}
+            {data.followUps.map((f) => (
+              <li key={f.id} className="flex items-center justify-between gap-3 border-b border-[var(--c-line)] py-3 last:border-0">
+                <span className="text-[13px]">{f.title}</span>
+                <span className="shrink-0 rounded-full bg-[var(--c-frame)] px-2.5 py-1 text-[11px] text-[var(--c-ink-2)]">{f.when}</span>
               </li>
             ))}
           </ul>
-        </Card>
-
-        {/* Orders & rides */}
-        <Card delay={400}>
-          <CardTitle
-            icon={ShoppingBagOpen}
-            tone="mint"
+        </Panel>
+        <Panel>
+          <PanelTitle
             title="Orders & rides"
-            hint="On your family's own accounts · cash on delivery"
-            action={
-              <Link href="/dashboard/saheli/tasks" aria-label="All orders and rides" className="text-[var(--c-ink-2)] hover:text-[var(--c-ink)]">
-                <ArrowUpRight size={16} weight="bold" />
+            right={
+              <Link href="/dashboard/saheli/tasks" className="flex items-center gap-1 text-[11px]">
+                All <ArrowUpRight size={12} weight="bold" />
               </Link>
             }
           />
-          <ul className="mt-4 space-y-2">
-            {data.tasks.length === 0 && <li className="text-[13px] text-[var(--c-ink-3)]">Nothing running.</li>}
+          <ul className="mt-3">
+            {data.tasks.length === 0 && <li className="py-2 text-[13px] text-[var(--c-ink-3)]">Nothing running.</li>}
             {data.tasks.map((t) => (
-              <li key={t.id} className="flex items-center gap-3 rounded-[18px] bg-[var(--c-card-solid)] p-3">
-                <IconBubble icon={t.kind === "ride" ? Car : ShoppingBagOpen} tone="mint" size="sm" />
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-[13px] font-semibold">{t.goal}</p>
-                  <p className="text-[11.5px] text-[var(--c-ink-3)]">
-                    {t.service} · {t.status}
-                    {t.total ? ` · ${t.total}` : ""}
-                  </p>
-                </div>
+              <li key={t.id} className="flex items-center justify-between gap-3 border-b border-[var(--c-line)] py-3 last:border-0">
+                <span className="min-w-0 truncate text-[13px]">{t.label}</span>
+                <span className="flex shrink-0 items-center gap-2">
+                  {t.total && <span className="text-[13px] font-medium tabular-nums">{t.total}</span>}
+                  <Tag>{t.status}</Tag>
+                </span>
               </li>
             ))}
           </ul>
-        </Card>
-
-        <InkButton className="w-full" icon={ChatCircleDots}>
-          Message {data.person.callAs} through Saheli
-        </InkButton>
+        </Panel>
       </div>
     </div>
   );
