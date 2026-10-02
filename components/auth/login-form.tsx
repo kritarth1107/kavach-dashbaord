@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRight, Loader2, Mail, Shield, Smartphone, Sparkles } from "lucide-react";
+import { ArrowRight, Loader2, Mail, Smartphone, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
@@ -48,11 +48,11 @@ function MethodToggle({
   onChange: (method: LoginMethod) => void;
 }) {
   return (
-    <div className="relative grid grid-cols-2 rounded-xl border border-[var(--border-strong)] bg-[var(--surface)] p-1">
+    <div className="relative grid grid-cols-2 rounded-full bg-[var(--c-card)] p-1">
       <span
         aria-hidden
         className={cn(
-          "absolute inset-y-1 w-[calc(50%-4px)] rounded-lg bg-[var(--card)] shadow-[var(--shadow-soft)] transition-transform duration-200 ease-out",
+          "absolute inset-y-1 w-[calc(50%-4px)] rounded-full bg-[var(--c-ink)] transition-transform duration-200 ease-out",
           value === "phone" ? "translate-x-[calc(100%+4px)]" : "translate-x-1",
         )}
       />
@@ -69,8 +69,8 @@ function MethodToggle({
             type="button"
             onClick={() => onChange(id)}
             className={cn(
-              "relative z-[1] flex items-center justify-center gap-1.5 rounded-lg py-2 text-[12px] font-bold transition-colors",
-              selected ? "text-primary" : "text-[var(--text-secondary)] hover:text-[var(--text-secondary)]",
+              "relative z-[1] flex h-10 items-center justify-center gap-1.5 rounded-full text-[13px] font-medium transition-colors",
+              selected ? "text-white" : "text-[var(--c-ink-2)] hover:text-[var(--c-ink)]",
             )}
           >
             <Icon className="h-3.5 w-3.5" strokeWidth={2.25} />
@@ -252,40 +252,25 @@ export function LoginForm() {
   }
 
   return (
-    <div className="relative flex min-h-full w-full items-center justify-center overflow-auto px-4 py-10">
-      <div
-        className="pointer-events-none absolute inset-0"
-        style={{
-          backgroundImage: `
-            linear-gradient(to right, rgba(0,0,0,0.04) 1px, transparent 1px),
-            linear-gradient(to bottom, rgba(0,0,0,0.04) 1px, transparent 1px)
-          `,
-          backgroundSize: "32px 32px",
-        }}
-      />
-
-      <div className="pointer-events-none absolute h-[420px] w-[420px] rounded-full bg-primary/15 blur-[80px]" />
-
-      <div className="relative w-full max-w-[400px] rounded-2xl border border-[var(--border-strong)] bg-[var(--card)] px-5 py-8 shadow-[var(--shadow-soft)] sm:px-8 sm:py-9">
-        <div className="mb-6 flex justify-center">
-          <Link href="/" className="inline-flex items-center gap-2">
-            <Shield className="h-6 w-6 text-primary" strokeWidth={2.25} />
-            <span className="text-[17px] font-extrabold tracking-[-0.02em] text-[var(--text-primary)]">
-              Kavach
+    <div className="flex min-h-screen w-full">
+      <div className="flex w-full flex-col bg-[var(--c-frame)] px-6 py-8 sm:px-12 lg:w-[46%] lg:px-16">
+        <Link href="/" className="inline-flex items-center gap-2.5">
+          <KavachShield />
+          <span className="text-[15px] font-medium">Kavach</span>
+        </Link>
+        <div className="mx-auto flex w-full max-w-[400px] flex-1 flex-col justify-center py-10">
+        <div className="mb-8">
+          <h1 className="text-[44px] leading-[1.02] tracking-[-0.035em]">
+            <span className="block font-light text-[var(--c-ink-3)]">
+              {step === "identifier" ? "Welcome to" : step === "register" ? "Almost" : "Check your"}
             </span>
-          </Link>
-        </div>
-
-        <div className="mb-6 text-center">
-          <h1 className="text-[22px] font-extrabold tracking-[-0.02em] text-[var(--text-primary)]">
-            {step === "otp" && channel === "phone" && "Check your phone"}
-            {step === "otp" && channel === "email" && "Check your email"}
-            {step === "register" && "Create your account"}
-            {step === "identifier" && "Welcome back"}
+            <span className="block font-medium">
+              {step === "identifier" ? "Kavach" : step === "register" ? "there" : channel === "phone" ? "phone" : "email"}
+            </span>
           </h1>
           {step === "identifier" && (
-            <p className="mt-1.5 text-[13px] text-[var(--text-secondary)]">
-              Sign in with email or mobile — we&apos;ll send a one-time code
+            <p className="mt-3 text-[13px] text-[var(--c-ink-2)]">
+              Sign in with email or mobile. We&apos;ll send a one-time code.
             </p>
           )}
           {step === "register" && (
@@ -312,13 +297,13 @@ export function LoginForm() {
         </div>
 
         {declinedInvite && step === "identifier" && (
-          <p className="mb-4 rounded-xl bg-primary-light px-3 py-2 text-center text-[12px] font-medium text-primary">
+          <p className="mb-4 rounded-full bg-[var(--c-accent-soft)] px-4 py-2 text-center text-[12px] font-medium text-primary">
             Invitation declined. Sign in again to set up your own family.
           </p>
         )}
 
         {error && (
-          <p className="mb-4 rounded-xl bg-[var(--danger-bg)] px-3 py-2 text-center text-[12px] font-medium text-[var(--danger-text)]">
+          <p className="mb-4 rounded-[14px] bg-[var(--c-accent-soft)] px-4 py-2.5 text-center text-[12px] font-medium text-[var(--c-accent-soft-ink)]">
             {error}
           </p>
         )}
@@ -330,7 +315,7 @@ export function LoginForm() {
             {loginMethod === "email" ? (
               <div className="relative">
                 <Mail
-                  className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--text-tertiary)]"
+                  className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--text-tertiary)]"
                   strokeWidth={2}
                 />
                 <input
@@ -340,7 +325,7 @@ export function LoginForm() {
                   placeholder="name@example.com"
                   required
                   autoComplete="email"
-                  className="w-full rounded-xl border border-[var(--border-strong)] bg-[var(--input-bg)] py-3 pl-10 pr-4 text-[13px] font-medium text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] outline-none transition-colors focus:border-primary focus:bg-[var(--card)] focus:ring-2 focus:ring-[var(--primary-ring)]"
+                  className="w-full rounded-full border border-[var(--c-line)] bg-[var(--c-card)] h-12 pl-11 pr-4 text-[13px] font-medium text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] outline-none transition-colors focus:border-[var(--c-ink)] focus:bg-[var(--c-frame)]"
                 />
               </div>
             ) : (
@@ -349,7 +334,7 @@ export function LoginForm() {
                   <select
                     value={phoneCountryCode}
                     onChange={(e) => setPhoneCountryCode(e.target.value)}
-                    className="w-[92px] shrink-0 rounded-xl border border-[var(--border-strong)] bg-[var(--input-bg)] px-2 py-3 text-[12px] font-semibold text-[var(--text-primary)] outline-none transition-colors focus:border-primary focus:bg-[var(--card)] focus:ring-2 focus:ring-[var(--primary-ring)]"
+                    className="h-12 w-[96px] shrink-0 rounded-full border border-[var(--c-line)] bg-[var(--c-card)] px-3 text-[12px] font-semibold text-[var(--text-primary)] outline-none transition-colors focus:border-[var(--c-ink)] focus:bg-[var(--c-frame)]"
                   >
                     {countryCodeOptions.map(({ code, flag }) => (
                       <option key={code} value={code}>
@@ -359,7 +344,7 @@ export function LoginForm() {
                   </select>
                   <div className="relative min-w-0 flex-1">
                     <Smartphone
-                      className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--text-tertiary)]"
+                      className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--text-tertiary)]"
                       strokeWidth={2}
                     />
                     <input
@@ -371,13 +356,13 @@ export function LoginForm() {
                       required
                       autoComplete="tel-national"
                       maxLength={15}
-                      className="w-full rounded-xl border border-[var(--border-strong)] bg-[var(--input-bg)] py-3 pl-10 pr-4 text-[13px] font-medium text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] outline-none transition-colors focus:border-primary focus:bg-[var(--card)] focus:ring-2 focus:ring-[var(--primary-ring)]"
+                      className="w-full rounded-full border border-[var(--c-line)] bg-[var(--c-card)] h-12 pl-11 pr-4 text-[13px] font-medium text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] outline-none transition-colors focus:border-[var(--c-ink)] focus:bg-[var(--c-frame)]"
                     />
                   </div>
                 </div>
-                <div className="flex items-center gap-2 rounded-xl border border-dashed border-primary/30 bg-primary-light px-3 py-2">
-                  <Sparkles className="h-3.5 w-3.5 shrink-0 text-primary" strokeWidth={2.25} />
-                  <p className="text-[11px] font-medium leading-snug text-primary">
+                <div className="flex items-center gap-2 rounded-full bg-[var(--c-accent-soft)] px-4 py-2">
+                  <Sparkles className="h-3.5 w-3.5 shrink-0 text-[var(--c-accent)]" strokeWidth={2.25} />
+                  <p className="text-[11px] font-medium leading-snug text-[var(--c-accent-soft-ink)]">
                     Demo mode — use code{" "}
                     <span className="font-extrabold tracking-widest">{MOCK_PHONE_OTP}</span>
                   </p>
@@ -388,7 +373,7 @@ export function LoginForm() {
             <button
               type="submit"
               disabled={loading}
-              className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3 text-[13px] font-bold text-white transition-colors hover:bg-[var(--primary-dark)] disabled:opacity-60"
+              className="flex h-12 w-full items-center justify-between gap-2 rounded-full bg-[var(--c-ink)] pl-6 pr-1.5 text-[14px] font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50 [&>svg:last-child]:h-9 [&>svg:last-child]:w-9 [&>svg:last-child]:rounded-full [&>svg:last-child]:bg-white [&>svg:last-child]:p-2.5 [&>svg:last-child]:text-[var(--c-ink)]"
             >
               {loading ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -405,7 +390,7 @@ export function LoginForm() {
         {step === "otp" && (
           <form onSubmit={handleVerifyOtp} className="space-y-4">
             {channel === "phone" && (
-              <div className="flex items-center justify-center gap-2 rounded-xl bg-primary-light px-3 py-2">
+              <div className="flex items-center justify-center gap-2 rounded-full bg-[var(--c-accent-soft)] px-4 py-2">
                 <Sparkles className="h-3.5 w-3.5 text-primary" strokeWidth={2.25} />
                 <p className="text-[11px] font-semibold text-primary">
                   Demo code: <span className="tracking-widest">{MOCK_PHONE_OTP}</span>
@@ -418,7 +403,7 @@ export function LoginForm() {
             <button
               type="submit"
               disabled={loading || otp.length !== 6}
-              className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3 text-[13px] font-bold text-white transition-colors hover:bg-[var(--primary-dark)] disabled:opacity-60"
+              className="flex h-12 w-full items-center justify-between gap-2 rounded-full bg-[var(--c-ink)] pl-6 pr-1.5 text-[14px] font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50 [&>svg:last-child]:h-9 [&>svg:last-child]:w-9 [&>svg:last-child]:rounded-full [&>svg:last-child]:bg-white [&>svg:last-child]:p-2.5 [&>svg:last-child]:text-[var(--c-ink)]"
             >
               {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Verify code"}
             </button>
@@ -453,12 +438,12 @@ export function LoginForm() {
               placeholder="Your full name"
               required
               minLength={2}
-              className="w-full rounded-xl border border-[var(--border-strong)] bg-[var(--input-bg)] py-3 px-4 text-[13px] font-medium text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] outline-none transition-colors focus:border-primary focus:bg-[var(--card)] focus:ring-2 focus:ring-[var(--primary-ring)]"
+              className="w-full rounded-full border border-[var(--c-line)] bg-[var(--c-card)] h-12 px-5 text-[13px] font-medium text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] outline-none transition-colors focus:border-[var(--c-ink)] focus:bg-[var(--c-frame)]"
             />
             <button
               type="submit"
               disabled={loading || name.trim().length < 2}
-              className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3 text-[13px] font-bold text-white transition-colors hover:bg-[var(--primary-dark)] disabled:opacity-60"
+              className="flex h-12 w-full items-center justify-between gap-2 rounded-full bg-[var(--c-ink)] pl-6 pr-1.5 text-[14px] font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50 [&>svg:last-child]:h-9 [&>svg:last-child]:w-9 [&>svg:last-child]:rounded-full [&>svg:last-child]:bg-white [&>svg:last-child]:p-2.5 [&>svg:last-child]:text-[var(--c-ink)]"
             >
               {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Create account"}
             </button>
@@ -475,7 +460,7 @@ export function LoginForm() {
               <div className="h-px flex-1 bg-[var(--chart-track)]" />
             </div>
 
-            <div className="flex justify-center pb-2">
+            <div className="pb-2">
               <button
                 type="button"
                 onClick={handleGoogleSignIn}
@@ -483,32 +468,98 @@ export function LoginForm() {
                 aria-label="Continue with Google"
                 title="Continue with Google"
                 className={cn(
-                  "relative flex h-11 w-11 items-center justify-center rounded-full border border-[var(--border-strong)] bg-[var(--card)] transition-colors hover:border-primary hover:bg-primary-light",
+                  "relative flex h-12 w-full items-center justify-center gap-2 rounded-full border border-[var(--c-line)] bg-[var(--c-frame)] text-[13px] font-medium transition-colors hover:bg-[var(--c-card)]",
                   googleLoading && "opacity-60",
                 )}
               >
                 {googleLoading ? (
                   <Loader2 className="h-4 w-4 animate-spin text-primary" />
                 ) : (
-                  <GoogleIcon />
+                  <>
+                    <GoogleIcon /> Continue with Google
+                  </>
                 )}
               </button>
             </div>
           </>
         )}
 
-        <p className="mt-8 text-center text-[11px] leading-relaxed text-[var(--text-tertiary)]">
-          By clicking continue, you agree to our{" "}
-          <Link href="#" className="underline underline-offset-2 hover:text-[var(--text-secondary)]">
-            Terms of Service
+        <p className="mt-8 text-[11px] leading-relaxed text-[var(--c-ink-3)]">
+          By continuing you agree to our{" "}
+          <Link href="#" className="underline underline-offset-2 hover:text-[var(--c-ink-2)]">
+            Terms
           </Link>{" "}
           and{" "}
-          <Link href="#" className="underline underline-offset-2 hover:text-[var(--text-secondary)]">
+          <Link href="#" className="underline underline-offset-2 hover:text-[var(--c-ink-2)]">
             Privacy Policy
           </Link>
           .
         </p>
+        </div>
       </div>
+      <LoginShowcase />
     </div>
+  );
+}
+
+function KavachShield() {
+  return (
+    <svg viewBox="0 0 40 40" className="h-9 w-9" aria-hidden>
+      <path d="M20 3.5 33 8v10.5c0 8.3-5.4 14.6-13 18-7.6-3.4-13-9.7-13-18V8Z" fill="#143429" />
+      <path d="M15 12v16M15 20l9-8M17.5 18l7.5 10" stroke="#f3f4f2" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+      <circle cx="28" cy="29" r="3" fill="#d3541e" />
+    </svg>
+  );
+}
+
+const BARS = [70, 100, 100, 72, 100, 100, 48, 100, 100, 100, 74, 100, 100, 90];
+
+function LoginShowcase() {
+  return (
+    <aside className="hidden flex-1 flex-col justify-between bg-[var(--c-card)] p-12 lg:flex" aria-hidden>
+      <div className="flex items-start justify-between">
+        <h2 className="text-[52px] leading-[1.02] tracking-[-0.035em]">
+          <span className="block font-light text-[var(--c-ink-3)]">Care for</span>
+          <span className="block font-medium">your parents</span>
+        </h2>
+        <span className="flex h-[68px] w-[68px] items-center justify-center rounded-full bg-[var(--c-accent)] text-white"><svg viewBox="0 0 24 24" className="h-8 w-8"><path d="M12 3v18M4.2 7.5l15.6 9M4.2 16.5l15.6-9" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" /></svg></span>
+      </div>
+      <div className="grid grid-cols-[1fr_1.6fr] gap-4">
+        <div className="rounded-[24px] bg-[var(--c-frame)] p-5">
+          <p className="flex items-center gap-2 text-[13px] font-medium">
+            <span className="h-3.5 w-3.5 rounded-[4px] bg-[var(--c-accent)]" /> Medicines
+          </p>
+          <p className="c-num mt-6 text-[52px] leading-none">
+            3<span className="text-[var(--c-ink-3)]">/4</span>
+          </p>
+          <p className="mt-2 text-[10px] font-medium uppercase tracking-[0.06em]">Doses taken today</p>
+          <div className="mt-6 space-y-2 text-[12px]">
+            {["BP tablet · 08:00", "Vitamin D3 · 10:00", "Folvite · 13:00"].map((t) => (
+              <p key={t} className="flex items-center gap-2">
+                <span className="flex h-4 w-4 items-center justify-center rounded-[5px] bg-[var(--c-ink)] text-[9px] text-white">✓</span>
+                {t}
+              </p>
+            ))}
+          </div>
+        </div>
+        <div className="rounded-[24px] bg-[var(--c-frame)] p-5">
+          <p className="flex items-center gap-2 text-[13px] font-medium">
+            <span className="h-3.5 w-3.5 rounded-[4px] bg-[var(--c-accent)]" /> Care trends
+          </p>
+          <div className="mt-6 flex h-[150px] items-end gap-[6px]">
+            {BARS.map((v, i) => (
+              <span key={i} className={i === BARS.length - 1 ? "flex-1 rounded-full bg-[var(--c-accent)]" : "flex-1 rounded-full bg-[var(--c-ink)]"} style={{ height: `${v}%` }} />
+            ))}
+          </div>
+          <p className="mt-4 text-[12px] text-[var(--c-ink-2)]">14 days of doses, reminded on WhatsApp</p>
+        </div>
+      </div>
+      <div className="flex items-end justify-between gap-6">
+        <p className="max-w-sm text-[19px] font-medium leading-snug tracking-[-0.02em]">
+          Saheli talks to them on WhatsApp, remembers every medicine, and tells you only what matters.
+        </p>
+        <span className="rounded-full bg-[var(--c-frame)] px-4 py-2 text-[12px] text-[var(--c-ink-2)]">Kavach CareOS</span>
+      </div>
+    </aside>
   );
 }

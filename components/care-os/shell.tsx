@@ -88,8 +88,8 @@ export function CareShell({
   const date = now.toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short", timeZone: "Asia/Kolkata" });
 
   return (
-    <div className="care-os h-dvh w-full overflow-hidden p-0 sm:p-5">
-      <div className="flex h-full w-full overflow-hidden bg-[var(--c-frame)] sm:rounded-[32px] sm:shadow-[0_30px_80px_-40px_rgba(0,0,0,0.25)]">
+    <div className="care-os h-dvh w-full overflow-hidden">
+      <div className="flex h-full w-full overflow-hidden bg-[var(--c-frame)]">
         <aside className="hidden w-[84px] shrink-0 flex-col items-center justify-between border-r border-[var(--c-line)] py-6 md:flex">
           <div className="flex flex-col items-center gap-1">
             <Link href="/dashboard" className="flex flex-col items-center gap-1">
