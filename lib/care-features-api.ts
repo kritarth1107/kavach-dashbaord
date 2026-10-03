@@ -162,6 +162,31 @@ export async function getPatterns(familyId: string, subjectUserId: string) {
   return (await request<{ patterns: CarePattern[]; windowDays: number }>(`${base(familyId, subjectUserId)}/patterns`))!;
 }
 
+/* ── what happened (outcomes), feedback, learning consent ─────────────────── */
+
+export type CareOutcome = { at: string; kind: string; label: string; summary: string; source: "said" | "button" | "dashboard" | "auto" };
+export type OutcomesView = {
+  outcomes: CareOutcome[];
+  kinds: Record<string, string>;
+  consent: { granted: boolean; by: string | null; at: string | null };
+};
+
+export async function getOutcomes(familyId: string, subjectUserId: string) {
+  return (await request<OutcomesView>(`${base(familyId, subjectUserId)}/outcomes`))!;
+}
+
+export async function logOutcome(familyId: string, subjectUserId: string, kind: string, summary: string) {
+  return (await send<{ outcomes: CareOutcome[] }>(`${base(familyId, subjectUserId)}/outcomes`, { kind, summary }))!;
+}
+
+export async function sendFeedback(familyId: string, subjectUserId: string, target: string, vote: "up" | "down") {
+  return send<{ ok: boolean }>(`${base(familyId, subjectUserId)}/feedback`, { target, vote });
+}
+
+export async function setLearningConsent(familyId: string, subjectUserId: string, granted: boolean) {
+  return send<{ granted: boolean }>(`${base(familyId, subjectUserId)}/consent`, { granted });
+}
+
 /* ── family tasks ────────────────────────────────────────────────────────── */
 
 export type FamilyTask = {
