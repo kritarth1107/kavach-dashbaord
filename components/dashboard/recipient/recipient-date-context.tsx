@@ -38,7 +38,7 @@ function parseAccountMinDate(iso?: string) {
 }
 
 export function RecipientDateProvider({ children }: { children: React.ReactNode }) {
-  const today = useMemo(startOfToday, []);
+  const today = useMemo(() => startOfToday(), []);
   const [selectedDate, setSelectedDateState] = useState(today);
   const [minDate, setMinDate] = useState<Date | null>(null);
 

@@ -117,7 +117,7 @@ export function useRecipientDashboardData(
     if (briefing?.adherencePercent != null) return briefing.adherencePercent;
     if (!daySchedules.length) return null;
     return 0;
-  }, [briefing?.adherencePercent, daySchedules.length]);
+  }, [briefing, daySchedules.length]);
 
   const adherenceValue = useMemo(() => {
     if (completionPercent !== null) return `${completionPercent}%`;
