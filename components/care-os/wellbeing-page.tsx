@@ -1,8 +1,8 @@
 "use client";
 
-import { ChatCircleDots, Fire, HeartHalf, SealCheck, WarningCircle } from "@phosphor-icons/react";
+import { ChatCircleDots, Fire, HeartHalf, Lightbulb, SealCheck, WarningCircle } from "@phosphor-icons/react";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { getWellbeing, type Wellbeing } from "@/lib/care-features-api";
+import { getPatterns, getWellbeing, type CarePattern, type Wellbeing } from "@/lib/care-features-api";
 import { cn } from "@/lib/utils";
 import { ErrorNote, IST, OnWhatsApp, PageHeading, ago, clock, dayWord, parseIst, shortDate } from "./feature-kit";
 import { callName, possessive, usePerson } from "./person-context";
@@ -43,6 +43,20 @@ export function WellbeingPage() {
     const t = setTimeout(() => void load(), 0);
     return () => clearTimeout(t);
   }, [load]);
+
+  // What Saheli noticed by herself over the last two weeks (independent of the range tabs).
+  const [noticed, setNoticed] = useState<{ id: string; items: CarePattern[] } | null>(null);
+  useEffect(() => {
+    if (!familyId || !selectedId) return;
+    let live = true;
+    getPatterns(familyId, selectedId)
+      .then((r) => live && setNoticed({ id: selectedId, items: r.patterns }))
+      .catch(() => live && setNoticed({ id: selectedId, items: [] }));
+    return () => {
+      live = false;
+    };
+  }, [familyId, selectedId]);
+  const patterns = noticed?.id === selectedId ? noticed.items : null;
 
   const loading = !result || result.key !== key;
   const data = loading ? null : result.data;
@@ -143,6 +157,35 @@ export function WellbeingPage() {
           </div>
 
           <Panel>
+            <PanelTitle title="Saheli noticed" right={<Lightbulb size={18} />} />
+            <p className="mt-1 text-[12px] text-[var(--c-ink-3)]">
+              Patterns from the last two weeks that nobody asked about. Facts from the logs, not a diagnosis.
+            </p>
+            {patterns === null ? (
+              <div className="mt-4 h-14 animate-pulse rounded-[16px] bg-[var(--c-frame)]" />
+            ) : patterns.length === 0 ? (
+              <p className="mt-4 flex items-center gap-2 text-[13px] text-[var(--c-ink-2)]">
+                <SealCheck size={16} /> Nothing stands out in the last two weeks.
+              </p>
+            ) : (
+              <ul className="mt-4 grid gap-2 md:grid-cols-2">
+                {patterns.map((p) => (
+                  <li key={p.key} className="rounded-[16px] bg-[var(--c-frame)] px-3.5 py-3">
+                    <div className="flex items-start gap-3">
+                      <span className={cn("mt-1.5 h-2 w-2 shrink-0 rounded-full", p.severity === "watch" ? "bg-[var(--c-accent)]" : "bg-[var(--c-ink-3)]")} />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-[13px] font-medium leading-snug">{p.title}</p>
+                        {p.detail && <p className="mt-1 text-[12px] leading-snug text-[var(--c-ink-2)]">{p.detail}</p>}
+                        <p className="mt-1.5 text-[12px] leading-snug text-[var(--c-ink)]">{p.suggestion}</p>
+                      </div>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Panel>
+
+          <Panel>
             <PanelTitle title={`The last ${days.length || range} days`} right={<span className="text-[11px] text-[var(--c-ink-3)]">tap a day</span>} />
             <div className={cn("mt-5 flex items-end", dense ? "gap-[3px] sm:gap-1.5" : "gap-1 sm:gap-2")}>
               {days.map((d) => (
@@ -239,7 +282,7 @@ export function WellbeingPage() {
       ) : null}
 
       <OnWhatsApp>
-        {self ? <>reply to Saheli&apos;s Sunday check-in, or just tell her &ldquo;feeling tired today&rdquo;.</> : <>ask Saheli &ldquo;How has {name || "Maa"} been this week?&rdquo;</>}
+        {self ? <>reply to Saheli&apos;s Sunday check-in, or just tell her &ldquo;feeling tired today&rdquo;.</> : <>ask Saheli &ldquo;How has {name || "Maa"} been this week?&rdquo; or &ldquo;Anything you&apos;ve noticed?&rdquo;</>}
       </OnWhatsApp>
     </div>
   );

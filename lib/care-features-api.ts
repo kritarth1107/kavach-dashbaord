@@ -147,6 +147,21 @@ export async function getWellbeing(familyId: string, subjectUserId: string, days
   return (await request<Wellbeing>(`${base(familyId, subjectUserId)}/wellbeing?days=${days}`))!;
 }
 
+/* ── patterns Saheli noticed ─────────────────────────────────────────────── */
+
+export type CarePattern = {
+  kind: string;
+  key: string;
+  title: string;
+  detail: string;
+  suggestion: string;
+  severity: "info" | "watch";
+};
+
+export async function getPatterns(familyId: string, subjectUserId: string) {
+  return (await request<{ patterns: CarePattern[]; windowDays: number }>(`${base(familyId, subjectUserId)}/patterns`))!;
+}
+
 /* ── family tasks ────────────────────────────────────────────────────────── */
 
 export type FamilyTask = {
