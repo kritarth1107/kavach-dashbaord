@@ -18,6 +18,7 @@ import { useEffect, useMemo, useState } from "react";
 import { DOMAIN_TITLE, SOURCE_LABEL, getRecentLearning, saveNote, type CareEvent, type CareFact, type MemoryNote } from "@/lib/care-memory-api";
 import { useCareOverview } from "@/components/dashboard/saheli/saheli-shared";
 import { cn } from "@/lib/utils";
+import { MemoryHealthPanel } from "./memory-health-panel";
 import { callName, possessive, usePerson } from "./person-context";
 import { DarkButton, Panel, PanelTitle, SmallButton, Tag } from "./ui";
 
@@ -194,6 +195,8 @@ export function MemoryPage() {
               </div>
             )}
           </Panel>
+
+          {familyId && selectedId && <MemoryHealthPanel familyId={familyId} subjectId={selectedId} name={name} />}
 
           {[
             { label: selected?.self ? "About you" : `About ${name || "them"}`, subject: selectedId ?? "", items: personNotes },

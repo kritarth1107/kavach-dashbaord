@@ -187,6 +187,26 @@ export async function setLearningConsent(familyId: string, subjectUserId: string
   return send<{ granted: boolean }>(`${base(familyId, subjectUserId)}/consent`, { granted });
 }
 
+/* ── memory health, profile card, forget ──────────────────────────────────── */
+
+export type MemoryHealth = {
+  issues: Array<{ kind: string; key: string; problem: string; ask: string }>;
+  profileCard: string | null;
+  forgotten: Array<{ id: number; at: string; what: string; restored: boolean }>;
+};
+
+export async function getMemoryHealth(familyId: string, subjectUserId: string) {
+  return (await request<MemoryHealth>(`${base(familyId, subjectUserId)}/memory-health`))!;
+}
+
+export async function forgetMemory(familyId: string, subjectUserId: string, what: string) {
+  return (await send<{ forgotten: number }>(`${base(familyId, subjectUserId)}/forget`, { what }))!;
+}
+
+export async function restoreForgotten(familyId: string, subjectUserId: string, id: number) {
+  return (await send<{ restored: number }>(`${base(familyId, subjectUserId)}/forgotten/${id}/restore`, {}))!;
+}
+
 /* ── family tasks ────────────────────────────────────────────────────────── */
 
 export type FamilyTask = {
