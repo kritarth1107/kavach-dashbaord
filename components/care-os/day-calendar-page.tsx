@@ -25,7 +25,10 @@ import { possessive, usePerson } from "./person-context";
 import { Panel, PanelTitle, SmallButton, Tag } from "./ui";
 
 const IST = "Asia/Kolkata";
-const HOUR_PX = 64;
+const HOUR_PX = 88;
+const CARD_PX = 44; // a card is drawn this tall; cards closer than this in time sit side by side
+const MAX_COLS = 2;
+const GROUP_MIN = 30; // same kind in the same lane within this many minutes becomes one card
 const START_H = 5;
 const END_H = 24;
 
@@ -78,7 +81,61 @@ const shift = (day: string, n: number) => {
 };
 const top = (mins: number) => ((mins - START_H * 60) / 60) * HOUR_PX;
 
-type Block = { id: string; lane: LaneId; start: number; title: string; sub?: string; look: ReturnType<typeof eventLook>; planned?: boolean };
+type Block = {
+  id: string;
+  lane: LaneId;
+  start: number;
+  title: string;
+  sub?: string;
+  look: ReturnType<typeof eventLook>;
+  planned?: boolean;
+  reminders?: string[];
+  items?: Array<{ start: number; sub?: string }>;
+};
+type Placed = Block & { y: number; col: number; cols: number; more?: Block[] };
+
+/** "… at 1:00 PM" / "… at 13:00" in a reminder summary → minutes since midnight. */
+function reminderMinutes(text: string): number | null {
+  const m = text.match(/at (\d{1,2}):(\d{2})\s*(AM|PM)?/i);
+  if (!m) return null;
+  let h = Number(m[1]);
+  const ap = m[3]?.toUpperCase();
+  if (ap === "PM" && h < 12) h += 12;
+  if (ap === "AM" && h === 12) h = 0;
+  return h * 60 + Number(m[2]);
+}
+
+/** Lay out one lane: each card at its own time; cards that would overlap share the row in columns. */
+function layoutLane(items: Block[]): Placed[] {
+  const out: Placed[] = [];
+  let cluster: Array<Block & { y: number; col: number }> = [];
+  let clusterEnd = -Infinity;
+  const flush = () => {
+    if (!cluster.length) return;
+    const cols = Math.min(MAX_COLS, Math.max(...cluster.map((c) => c.col)) + 1);
+    const shown: Placed[] = cluster.filter((c) => c.col < MAX_COLS).map((c) => ({ ...c, cols }));
+    // Anything past the last column is folded into the nearest card there as "+N".
+    for (const h of cluster.filter((c) => c.col >= MAX_COLS)) {
+      const lastCol = shown.filter((c) => c.col === cols - 1);
+      const host = lastCol.reduce((best, c) => (Math.abs(c.y - h.y) < Math.abs(best.y - h.y) ? c : best), lastCol[0]);
+      host.more = [...(host.more ?? []), h];
+    }
+    out.push(...shown);
+    cluster = [];
+    clusterEnd = -Infinity;
+  };
+  for (const b of [...items].sort((a, c) => a.start - c.start)) {
+    const y = top(Math.max(b.start, START_H * 60));
+    if (y >= clusterEnd) flush();
+    const taken = new Set(cluster.filter((c) => c.y + CARD_PX > y).map((c) => c.col));
+    let col = 0;
+    while (taken.has(col)) col++;
+    cluster.push({ ...b, y, col });
+    clusterEnd = Math.max(clusterEnd, y + CARD_PX);
+  }
+  flush();
+  return out;
+}
 
 export function DayCalendarPage() {
   const router = useRouter();
@@ -97,7 +154,11 @@ export function DayCalendarPage() {
     const t = setInterval(() => setNowMins(istMinutes(new Date().toISOString())), 60_000);
     return () => clearInterval(t);
   }, []);
+  // Scroll to the right hour once per day shown, not on every clock tick.
+  const scrolledFor = useRef<string | null>(null);
   useEffect(() => {
+    if (loading || scrolledFor.current === day) return;
+    scrolledFor.current = day;
     const target = day === today ? Math.max(nowMins - 120, START_H * 60) : 7 * 60;
     scroller.current?.scrollTo({ top: top(target), behavior: "smooth" });
   }, [day, today, nowMins, loading]);
@@ -135,22 +196,40 @@ export function DayCalendarPage() {
         });
       }
     }
+    const plans = out.filter((b) => b.id.startsWith("plan:"));
     for (const e of events) {
       if (e.kind === "dose_taken") continue; // shown on the scheduled block
+      if (e.kind === "reminder_sent" || e.kind === "reminder_failed") {
+        // A reminder belongs on its dose: same medicine, same dose time.
+        const at = reminderMinutes(e.summary);
+        const text = e.summary.toLowerCase();
+        const host =
+          plans.find((p) => at !== null && p.start === at && text.includes(p.title.toLowerCase().split(" ")[0])) ??
+          plans.find((p) => at !== null && p.start === at);
+        if (host) {
+          const kind = (e.summary.split(":")[0] || "reminder").trim();
+          host.reminders = [...(host.reminders ?? []), `${hm(istMinutes(e.at))} ${kind}${e.kind === "reminder_failed" ? " (failed)" : ""}`];
+          continue;
+        }
+      }
       out.push({ id: `ev:${e.id}`, lane: lane(e.kind), start: istMinutes(e.at), title: eventLook(e.kind).label, sub: e.summary, look: eventLook(e.kind) });
     }
-    return out.sort((a, b) => a.start - b.start);
+    // A burst of the same kind (several chat messages, repeated reminders) becomes one card.
+    const grouped: Block[] = [];
+    for (const b of out.sort((x, y) => x.start - y.start)) {
+      const prev = [...grouped].reverse().find((g) => g.lane === b.lane);
+      const kindOf = (x: Block) => (x.id.startsWith("plan:") ? "plan" : x.title);
+      if (prev && !b.id.startsWith("plan:") && kindOf(prev) === kindOf(b) && b.start - prev.start <= GROUP_MIN) {
+        prev.items = [...(prev.items ?? [{ start: prev.start, sub: prev.sub }]), { start: b.start, sub: b.sub }];
+        prev.sub = `${prev.items.length} ${prev.title === "Chat" ? "messages" : "times"} · latest: ${b.sub ?? ""}`;
+        continue;
+      }
+      grouped.push({ ...b });
+    }
+    return grouped;
   }, [events, meds, day, today, nowMins]);
 
-  // Stack blocks that would overlap in the same lane.
-  const placed = useMemo(() => {
-    const lastEnd: Record<string, number> = {};
-    return blocks.map((b) => {
-      const y = Math.max(top(Math.max(b.start, START_H * 60)), lastEnd[b.lane] ?? -Infinity);
-      lastEnd[b.lane] = y + 58;
-      return { ...b, y };
-    });
-  }, [blocks]);
+  const placed = useMemo(() => LANES.flatMap((l) => layoutLane(blocks.filter((b) => b.lane === l.id))), [blocks]);
 
   const week = Array.from({ length: 7 }, (_, i) => shift(day, i - 3));
   const counts = {
@@ -239,21 +318,45 @@ export function DayCalendarPage() {
                       <div
                         key={b.id}
                         className={cn(
-                          "absolute inset-x-1.5 overflow-hidden rounded-[14px] px-3 py-2",
+                          "absolute overflow-hidden rounded-[12px] px-2.5 py-1.5",
                           b.look.tone === "dark" && "bg-[var(--c-ink)] text-white",
                           b.look.tone === "accent" && "bg-[var(--c-accent)] text-white",
                           b.look.tone === "soft" && "bg-[var(--c-accent-soft)] text-[var(--c-accent-soft-ink)]",
                           b.look.tone === "plain" && (b.planned ? "c-hatch border border-[var(--c-line)] bg-[var(--c-frame)]" : "bg-[var(--c-frame)] shadow-[0_1px_0_rgba(0,0,0,0.04)]"),
                         )}
-                        style={{ top: b.y + 2, minHeight: 54 }}
-                        title={b.sub}
+                        style={{
+                          top: b.y + 1,
+                          height: CARD_PX - 3,
+                          left: `calc(${(100 / b.cols) * b.col}% + 4px)`,
+                          width: `calc(${100 / b.cols}% - 8px)`,
+                        }}
+                        title={[
+                          `${hm(b.start)} ${b.title}`,
+                          b.sub,
+                          b.reminders?.length ? `Reminders: ${b.reminders.join(", ")}` : "",
+                          ...(b.items ?? []).map((it) => `${hm(it.start)} ${it.sub ?? ""}`),
+                          ...(b.more ?? []).map((m) => `${hm(m.start)} ${m.title}: ${m.sub ?? ""}`),
+                        ]
+                          .filter(Boolean)
+                          .join("\n")}
                       >
-                        <div className="flex items-center justify-between gap-2">
-                          <p className="truncate text-[12.5px] font-medium">{b.title}</p>
-                          <b.look.icon size={14} weight="fill" className="shrink-0 opacity-80" />
+                        <div className="flex items-center justify-between gap-1.5">
+                          <p className="truncate text-[12px] font-medium">
+                            <span className="tabular-nums opacity-70">{hm(b.start)}</span> {b.title}
+                          </p>
+                          <span className="flex shrink-0 items-center gap-1">
+                            {b.more?.length ? (
+                              <span className="rounded-full bg-[var(--c-ink)] px-1.5 text-[10px] font-medium leading-4 text-white">+{b.more.length}</span>
+                            ) : null}
+                            <b.look.icon size={13} weight="fill" className="opacity-80" />
+                          </span>
                         </div>
-                        <p className={cn("mt-0.5 truncate text-[11px]", b.look.tone === "plain" ? "text-[var(--c-ink-2)]" : "opacity-75")}>
-                          {b.id.startsWith("plan:") ? `${b.look.label} · ${b.sub}` : `${hm(b.start)} · ${b.sub}`}
+                        <p className={cn("truncate text-[10.5px]", b.look.tone === "plain" ? "text-[var(--c-ink-2)]" : "opacity-75")}>
+                          {b.id.startsWith("plan:")
+                            ? [b.look.label, b.sub?.split(" · ")[0], b.reminders?.length ? `${b.reminders.length} reminder${b.reminders.length > 1 ? "s" : ""} sent` : ""]
+                                .filter(Boolean)
+                                .join(" · ")
+                            : b.sub}
                         </p>
                       </div>
                     ))}
