@@ -25,7 +25,7 @@ import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { PersonPicker } from "./person-picker";
 
-export type NavKey = "home" | "today" | "care" | "health" | "orders" | "saheli" | "memory" | "family" | "settings";
+export type NavKey = "home" | "today" | "care" | "health" | "orders" | "saheli" | "memory" | "emergency" | "family" | "settings";
 
 const RAIL: Array<{ key: NavKey; label: string; href: string; icon?: PhosphorIcon; text?: string }> = [
   { key: "home", label: "Home", href: "/dashboard", icon: House },
@@ -34,6 +34,7 @@ const RAIL: Array<{ key: NavKey; label: string; href: string; icon?: PhosphorIco
   { key: "health", label: "Health records", href: "/dashboard/record", icon: FirstAidKit },
   { key: "orders", label: "Orders & rides", href: "/dashboard/saheli/tasks", icon: ShoppingBag },
   { key: "memory", label: "What Saheli knows", href: "/dashboard/saheli/memory", icon: Brain },
+  { key: "emergency", label: "Emergency card", href: "/dashboard/emergency", icon: Siren },
   { key: "family", label: "Family", href: "/dashboard/family", icon: UsersThree },
 ];
 

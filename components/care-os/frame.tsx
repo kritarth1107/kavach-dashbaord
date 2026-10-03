@@ -41,6 +41,7 @@ import { Avatar } from "./ui";
 
 function navFor(pathname: string): NavKey {
   if (pathname === "/dashboard") return "home";
+  if (pathname.startsWith("/dashboard/emergency")) return "emergency";
   if (pathname.startsWith("/dashboard/saheli/care")) return "care";
   if (pathname.startsWith("/dashboard/saheli/tasks") || pathname.startsWith("/dashboard/approvals")) return "orders";
   if (pathname.startsWith("/dashboard/saheli/memory")) return "memory";
@@ -49,7 +50,6 @@ function navFor(pathname: string): NavKey {
     pathname.startsWith("/dashboard/record") ||
     pathname.startsWith("/dashboard/reports") ||
     pathname.startsWith("/dashboard/report") ||
-    pathname.startsWith("/dashboard/emergency") ||
     pathname.startsWith("/dashboard/care-team") ||
     pathname.startsWith("/dashboard/wellbeing") ||
     /health-record/.test(pathname)
