@@ -1,6 +1,6 @@
 "use client";
 
-import { Brain, ChartLineUp, Clock, Wrench } from "@phosphor-icons/react";
+import { Brain, ChartLineUp, Clock, Gavel, Siren, Wrench } from "@phosphor-icons/react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { request } from "@/lib/activity-api";
 import { cn } from "@/lib/utils";
@@ -18,7 +18,10 @@ type Playbook = {
   canary: { n_canary?: number; n_live?: number; mean_canary?: number; mean_live?: number; decision?: string; z?: number };
   approvedBy: string | null;
   liveSince: string | null;
+  scope: string[];
 };
+type RuleProposal = { id: number; situation: string; rule: string; why: string; evidence: string[]; status: "proposed" | "approved" | "rejected" | "in_playbook"; at: string };
+type GapSpec = { category: string; what: string; why: string; tool: string; risks: string; size: string };
 type Overview = {
   messages: number;
   scored: number;
@@ -28,6 +31,10 @@ type Overview = {
   trend: Array<{ week: string; situation: string; n: number; avgScore: number }>;
   gaps: Array<{ category: string; asks: number; families: number; examples: string[] }>;
   timing: Array<{ situation: string; windows: Array<{ from: string; to: string; sent: number; replyRate: number | null }> }>;
+  ruleProposals: RuleProposal[];
+  calibration: { n?: number; agreement?: number | null; trusted?: boolean; at?: string; skipped?: string } | null;
+  drift: { alarms: string[]; at?: string } | null;
+  gapSpecs: { specs: GapSpec[]; at?: string } | null;
 };
 
 const STATUS_TONE: Record<Playbook["status"], "accent" | "dark" | "light" | "danger"> = {
@@ -44,7 +51,7 @@ const sc = (x: number | null | undefined) => (x == null ? "—" : x.toFixed(2));
 export function LearningPage() {
   const [data, setData] = useState<Overview | null>(null);
   const [error, setError] = useState("");
-  const [busy, setBusy] = useState<number | null>(null);
+  const [busy, setBusy] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -60,10 +67,10 @@ export function LearningPage() {
     return () => clearTimeout(t);
   }, [load]);
 
-  const act = async (version: number, action: "approve" | "block") => {
-    setBusy(version);
+  const act = async (path: string) => {
+    setBusy(path);
     try {
-      await request(`/api/admin/learning/playbooks/${version}/${action}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
+      await request(`/api/admin/learning/${path}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
       await load();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Couldn't update");
@@ -71,6 +78,8 @@ export function LearningPage() {
       setBusy(null);
     }
   };
+
+  const specFor = (category: string) => data?.gapSpecs?.specs?.find((x) => x.category === category);
 
   // Latest week vs the week before, per situation.
   const trend = useMemo(() => {
@@ -113,6 +122,23 @@ export function LearningPage() {
             ))}
           </div>
 
+          {(data.drift?.alarms?.length || data.calibration?.trusted === false) && (
+            <Panel>
+              <PanelTitle title="Needs a look" right={<Siren size={18} />} />
+              <ul className="mt-3 space-y-1.5 text-[13px]">
+                {data.calibration?.trusted === false && (
+                  <li className="text-[var(--c-accent)]">
+                    The everyday grader agrees with the strong judge only {pct(data.calibration.agreement)} of the time ({data.calibration.n} checked). Trials
+                    will not promote anything until this is fixed.
+                  </li>
+                )}
+                {(data.drift?.alarms ?? []).map((a) => (
+                  <li key={a}>{a.replaceAll("_", " ")}</li>
+                ))}
+              </ul>
+            </Panel>
+          )}
+
           <Panel>
             <PanelTitle title="Playbooks" right={<Brain size={18} />} />
             <p className="mt-1 text-[12px] text-[var(--c-ink-3)]">
@@ -133,12 +159,12 @@ export function LearningPage() {
                       </div>
                       <div className="flex gap-2">
                         {(p.status === "canary" || (p.status === "draft" && p.gate?.passed)) && (
-                          <SmallButton dark disabled={busy === p.version} onClick={() => void act(p.version, "approve")}>
+                          <SmallButton dark disabled={busy === `playbooks/${p.version}/approve`} onClick={() => void act(`playbooks/${p.version}/approve`)}>
                             Make live
                           </SmallButton>
                         )}
                         {["canary", "live", "draft"].includes(p.status) && (
-                          <SmallButton disabled={busy === p.version} onClick={() => void act(p.version, "block")}>
+                          <SmallButton disabled={busy === `playbooks/${p.version}/block`} onClick={() => void act(`playbooks/${p.version}/block`)}>
                             Block
                           </SmallButton>
                         )}
@@ -146,7 +172,7 @@ export function LearningPage() {
                     </div>
                     {p.canary?.decision && (
                       <p className="mt-2 text-[12px] text-[var(--c-ink-2)]">
-                        Trial: {p.canary.decision.replace("_", " ")} · score {sc(p.canary.mean_canary)} vs live {sc(p.canary.mean_live)} ({p.canary.n_canary ?? 0} vs{" "}
+                        Trial{p.scope?.length ? ` (${p.scope.map((x) => x.replace("_", " ")).join(", ")})` : ""}: {p.canary.decision.replaceAll("_", " ")} · score {sc(p.canary.mean_canary)} vs live {sc(p.canary.mean_live)} ({p.canary.n_canary ?? 0} vs{" "}
                         {p.canary.n_live ?? 0} messages)
                       </p>
                     )}
@@ -177,6 +203,50 @@ export function LearningPage() {
               </ul>
             )}
           </Panel>
+
+          {data.ruleProposals.length > 0 && (
+            <Panel>
+              <PanelTitle title="Suggested rules" right={<Gavel size={18} />} />
+              <p className="mt-1 text-[12px] text-[var(--c-ink-3)]">
+                Drafted every Sunday from replies the grader failed. Nothing changes unless you approve; approved rules join the next playbook and its 10%
+                trial.
+              </p>
+              <ul className="mt-4 space-y-3">
+                {data.ruleProposals.map((r) => (
+                  <li key={r.id} className="rounded-[18px] bg-[var(--c-frame)] p-4">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <Tag tone={r.status === "proposed" ? "accent" : r.status === "rejected" ? "light" : "dark"}>{r.status.replace("_", " ")}</Tag>
+                        <span className="text-[11px] text-[var(--c-ink-3)]">{r.situation.replace("_", " ")}</span>
+                      </div>
+                      {r.status === "proposed" && (
+                        <div className="flex gap-2">
+                          <SmallButton dark disabled={busy === `rules/${r.id}/approve`} onClick={() => void act(`rules/${r.id}/approve`)}>
+                            Approve
+                          </SmallButton>
+                          <SmallButton disabled={busy === `rules/${r.id}/reject`} onClick={() => void act(`rules/${r.id}/reject`)}>
+                            Reject
+                          </SmallButton>
+                        </div>
+                      )}
+                    </div>
+                    <p className="mt-2 text-[13.5px] font-medium">{r.rule}</p>
+                    {r.why && <p className="mt-1 text-[12px] text-[var(--c-ink-2)]">{r.why}</p>}
+                    {r.evidence.length > 0 && (
+                      <details className="mt-2">
+                        <summary className="cursor-pointer text-[12px] text-[var(--c-ink-2)]">{r.evidence.length} examples (anonymised)</summary>
+                        <ul className="mt-1.5 space-y-1 text-[12px] text-[var(--c-ink-2)]">
+                          {r.evidence.map((e) => (
+                            <li key={e}>{e}</li>
+                          ))}
+                        </ul>
+                      </details>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </Panel>
+          )}
 
           <div className="grid gap-4 xl:grid-cols-2">
             <Panel>
@@ -222,6 +292,12 @@ export function LearningPage() {
                         </span>
                       </div>
                       {g.examples[0] && <p className="mt-1 text-[12px] text-[var(--c-ink-2)]">“{g.examples[0]}”</p>}
+                      {specFor(g.category) && (
+                        <p className="mt-1.5 text-[12px]">
+                          <span className="font-medium">Draft ({specFor(g.category)!.size}):</span> {specFor(g.category)!.what}
+                          {specFor(g.category)!.tool ? ` · via ${specFor(g.category)!.tool}` : ""}
+                        </p>
+                      )}
                     </li>
                   ))}
                 </ul>
