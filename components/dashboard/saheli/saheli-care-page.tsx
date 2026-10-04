@@ -121,7 +121,10 @@ export function SaheliCarePage() {
 
   function openHistory(f: CareFact) {
     if (!familyId || !selectedId) return;
-    setHistoryOf({ kind: "fact", target: f.key, subjectId: selectedId, owner: selectedId, label: f.text });
+    const named = f.domain !== "naming" && typeof f.value?.name === "string" && f.value.name ? f.value.name : "";
+    const raw = named || (f.domain === "naming" ? DOMAIN_TITLE.naming ?? "Name to use" : f.name.replace(/_/g, " "));
+    const short = raw.length > 40 ? `${raw.slice(0, 39)}…` : raw.charAt(0).toUpperCase() + raw.slice(1);
+    setHistoryOf({ kind: "fact", target: f.key, subjectId: selectedId, owner: selectedId, label: short });
   }
 
   return (

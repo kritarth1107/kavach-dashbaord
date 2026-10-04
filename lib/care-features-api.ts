@@ -276,7 +276,7 @@ export type Skill = {
   title: string;
   body: string;
   steps: string[];
-  source: "auto" | "caregiver" | "dream";
+  source: "auto" | "caregiver" | "elder" | "dream";
   status: "proposed" | "active" | "stale" | "archived" | "blocked";
   uses: number;
   successes: number;

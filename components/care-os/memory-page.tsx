@@ -202,7 +202,7 @@ export function MemoryPage() {
 
           {familyId && selectedId && <MemoryHealthPanel familyId={familyId} subjectId={selectedId} name={name} />}
           {familyId && selectedId && <SkillsPanel familyId={familyId} subjectId={selectedId} name={name} />}
-          {familyId && selectedId && <RecentChangesPanel familyId={familyId} subjectId={selectedId} name={name} onChanged={reload} />}
+          {familyId && selectedId && <RecentChangesPanel familyId={familyId} subjectId={selectedId} name={name} onChanged={reload} refresh={data} />}
 
           {[
             { label: selected?.self ? "About you" : `About ${name || "them"}`, subject: selectedId ?? "", items: personNotes },

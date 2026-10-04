@@ -81,7 +81,7 @@ export function SkillsPanel({ familyId, subjectId, name }: { familyId: string; s
                       <p className="text-[13px] leading-snug">{s.body}</p>
                       <div className="mt-1 flex items-center gap-2 text-[11px] text-[var(--c-ink-3)]">
                         {s.status === "proposed" ? <Tag tone="accent">Saheli suggests</Tag> : s.status === "stale" ? <Tag tone="light">not used lately</Tag> : null}
-                        <span>{s.source === "dream" ? "learned from how they reply" : "from the family"}</span>
+                        <span>{s.source === "dream" ? "learned from how they reply" : s.source === "elder" ? `${name || "they"} asked for this` : "from the family"}</span>
                       </div>
                     </div>
                     <div className="flex shrink-0 gap-1.5">

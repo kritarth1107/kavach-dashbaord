@@ -14,9 +14,20 @@ import { useCallback, useEffect, useState } from "react";
 import { getMemoryHistory, undoMemoryChange, type MemoryChange, type UndoResult } from "@/lib/care-features-api";
 import { cn } from "@/lib/utils";
 import { INPUT, Notice, SideDrawer, WhatsAppHint } from "./care-kit";
-import { DarkButton, Panel, PanelTitle, SmallButton, Tag } from "./ui";
+import { Panel, PanelTitle, SmallButton, Tag } from "./ui";
 
 const HEALTH = new Set(["medicine", "allergy", "condition", "vital_target"]);
+const STATUS_WORD: Record<string, string> = {
+  active: "in use",
+  superseded: "replaced",
+  stopped: "stopped",
+  pending: "waiting for OK",
+  retracted: "taken back",
+  proposed: "suggested",
+  blocked: "removed",
+  archived: "set aside",
+  stale: "not used lately",
+};
 const KIND_ICON: Record<MemoryChange["kind"], PhosphorIcon> = { note: Notebook, fact: FirstAidKit, skill: HandHeart, style: ChatsCircle };
 const OP_WORD: Record<string, string> = {
   write: "Saved",
@@ -38,6 +49,17 @@ export type HistoryItem = { kind: MemoryChange["kind"]; target: string; subjectI
 
 function at(ts: string) {
   return new Date(ts).toLocaleString("en-IN", { timeZone: "Asia/Kolkata", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+}
+
+function day(iso: string) {
+  return new Date(`${iso}T12:00:00+05:30`).toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata", day: "numeric", month: "short" });
+}
+
+/** "- 2026-09-28: asked for poha" → "asked for poha · 28 Sept" (as on the note cards). */
+function lineText(l: string) {
+  const t = l.replace(/^[-*]\s*/, "");
+  const m = t.match(/^(\d{4}-\d{2}-\d{2}):\s*(.*)$/);
+  return m ? `${m[2]} · ${day(m[1])}` : t;
 }
 
 function isHealth(c: MemoryChange) {
@@ -86,7 +108,7 @@ function ActionRow({
     }
   };
   return (
-    <div className="mt-3 rounded-[16px] bg-[var(--c-card)] p-3">
+    <div className="mt-3 rounded-[16px] border border-[var(--c-line)] bg-[var(--c-frame)] p-3">
       <p className="text-[12.5px] font-medium">
         {mode === "undo" ? "Undo this change?" : "Put this version back?"}
         {isHealth(change) && (
@@ -95,13 +117,19 @@ function ActionRow({
           </span>
         )}
       </p>
-      <input className={cn(INPUT, "mt-2")} placeholder="Why (optional), e.g. dose was always 500 mg" value={reason} maxLength={300} onChange={(e) => setReason(e.target.value)} />
+      <input
+        className={cn(INPUT, "mt-2")}
+        placeholder={change.kind === "fact" ? "Why (optional), e.g. the dose was always 500 mg" : "Why (optional), e.g. that never happened"}
+        value={reason}
+        maxLength={300}
+        onChange={(e) => setReason(e.target.value)}
+      />
       {err && <p className="mt-2 text-[12px] text-[var(--c-accent-soft-ink)]">{err}</p>}
       <div className="mt-2 flex justify-end gap-2">
         <SmallButton onClick={onCancel}>Cancel</SmallButton>
-        <DarkButton className="h-9 px-4 text-[12.5px]" disabled={busy} onClick={() => void go()}>
+        <SmallButton dark disabled={busy} onClick={() => void go()}>
           {busy ? "Working…" : mode === "undo" ? "Yes, undo" : "Yes, put back"}
-        </DarkButton>
+        </SmallButton>
       </div>
     </div>
   );
@@ -115,13 +143,13 @@ function Lines({ c }: { c: MemoryChange }) {
       {(c.added ?? []).map((l, i) => (
         <li key={`a${i}`} className="flex gap-2">
           <span className="font-medium text-[var(--c-accent)]">+</span>
-          <span className="min-w-0 break-words">{l.replace(/^- /, "")}</span>
+          <span className="min-w-0 break-words">{lineText(l)}</span>
         </li>
       ))}
       {(c.removed ?? []).map((l, i) => (
         <li key={`r${i}`} className="flex gap-2 text-[var(--c-ink-3)]">
           <span>−</span>
-          <span className="min-w-0 break-words line-through">{l.replace(/^- /, "")}</span>
+          <span className="min-w-0 break-words line-through">{lineText(l)}</span>
         </li>
       ))}
       {(c.more ?? 0) > 0 && <li className="text-[11.5px] text-[var(--c-ink-3)]">+{c.more} more lines</li>}
@@ -186,7 +214,7 @@ export function MemoryHistoryDrawer({
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
                   <Tag tone={i === 0 ? "dark" : "light"}>{c.undoes ? "Undo" : OP_WORD[c.op] ?? c.op}</Tag>
-                  {c.status && c.kind !== "note" && <span className="text-[11px] text-[var(--c-ink-3)]">{c.status}</span>}
+                  {c.status && c.kind !== "note" && <span className="text-[11px] text-[var(--c-ink-3)]">{STATUS_WORD[c.status] ?? c.status}</span>}
                 </div>
                 <span className="text-[11px] text-[var(--c-ink-3)]">v{c.version}</span>
               </div>
@@ -240,11 +268,14 @@ export function RecentChangesPanel({
   subjectId,
   name,
   onChanged,
+  refresh,
 }: {
   familyId: string;
   subjectId: string;
   name: string;
   onChanged?: () => void;
+  /** Anything that changes when memory may have changed elsewhere on the page (e.g. the overview data): reloads the list. */
+  refresh?: unknown;
 }) {
   const [data, setData] = useState<{ id: string; v: MemoryChange[] } | null>(null);
   const [acting, setActing] = useState<number | null>(null);
@@ -262,7 +293,13 @@ export function RecentChangesPanel({
   useEffect(() => {
     const t = setTimeout(() => void load(), 0);
     return () => clearTimeout(t);
-  }, [load]);
+  }, [load, refresh]);
+
+  useEffect(() => {
+    if (!msg) return;
+    const t = setTimeout(() => setMsg(""), 8000);
+    return () => clearTimeout(t);
+  }, [msg]);
 
   const rows = data?.id === subjectId ? data.v : null;
   const changed = () => {
