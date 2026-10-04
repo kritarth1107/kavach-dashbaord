@@ -207,6 +207,65 @@ export async function restoreForgotten(familyId: string, subjectUserId: string, 
   return (await send<{ restored: number }>(`${base(familyId, subjectUserId)}/forgotten/${id}/restore`, {}))!;
 }
 
+/* ── memory history and undo ─────────────────────────────────────────────── */
+
+export type MemoryChange = {
+  id: number;
+  kind: "note" | "fact" | "skill" | "style";
+  subjectId: string;
+  target: string;
+  version: number;
+  op: string;
+  title: string;
+  label: string;
+  summary: string;
+  status: string | null;
+  actorId: string | null;
+  by: string;
+  source: string;
+  where: string;
+  reason: string;
+  undoes: number | null;
+  at: string;
+  deleted: boolean;
+  body?: string;
+  value?: Record<string, unknown> | null;
+  added?: string[];
+  removed?: string[];
+  more?: number;
+  canUndo: boolean;
+  canRestore: boolean;
+};
+
+export type UndoResult = { result: string; note?: string; why?: string; action?: string; restored?: number };
+
+export async function getMemoryHistory(
+  familyId: string,
+  subjectUserId: string,
+  q: { kind?: MemoryChange["kind"]; target?: string; what?: string; limit?: number } = {},
+) {
+  const p = new URLSearchParams();
+  if (q.kind) p.set("kind", q.kind);
+  if (q.target) p.set("target", q.target);
+  if (q.what) p.set("what", q.what);
+  if (q.limit) p.set("limit", String(q.limit));
+  const s = p.toString();
+  return (await request<{ changes: MemoryChange[] }>(`${base(familyId, subjectUserId)}/memory-history${s ? `?${s}` : ""}`))!.changes ?? [];
+}
+
+export async function undoMemoryChange(
+  familyId: string,
+  subjectUserId: string,
+  id: number,
+  opts: { mode?: "undo" | "restore"; reason?: string; confirm?: boolean } = {},
+) {
+  return (await send<UndoResult>(`${base(familyId, subjectUserId)}/memory-history/${id}`, {
+    mode: opts.mode ?? "undo",
+    reason: opts.reason ?? "",
+    confirm: opts.confirm === true,
+  }))!;
+}
+
 /* ── skills ──────────────────────────────────────────────────────────────── */
 
 export type Skill = {

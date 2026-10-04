@@ -6,7 +6,6 @@ import {
   DOMAIN_ORDER,
   DOMAIN_TITLE,
   SOURCE_LABEL,
-  getFactHistory,
   resolveFact,
   saveFact,
   stopFact,
@@ -14,6 +13,7 @@ import {
 } from "@/lib/care-memory-api";
 import { cn } from "@/lib/utils";
 import { RefillsPanel } from "@/components/care-os/refills-panel";
+import { MemoryHistoryDrawer, type HistoryItem } from "@/components/care-os/memory-history";
 import { AccessGate, CenteredState, PageSpinner, formatIstDateTime, useRecipientSelection } from "../activity/activity-shared";
 import { Banner, SaheliHeader, btnDanger, btnPrimary, btnSecondary, useAction, useCareOverview } from "./saheli-shared";
 
@@ -71,7 +71,7 @@ export function SaheliCarePage() {
   const { data, error, loading, reload } = useCareOverview(familyId, selectedId);
   const { busy, banner, run } = useAction();
   const [draft, setDraft] = useState<Draft | null>(null);
-  const [history, setHistory] = useState<{ key: string; versions: CareFact[] } | null>(null);
+  const [historyOf, setHistoryOf] = useState<HistoryItem | null>(null);
 
   const grouped = useMemo(() => {
     const g = new Map<string, CareFact[]>();
@@ -119,9 +119,9 @@ export function SaheliCarePage() {
     }
   }
 
-  async function openHistory(key: string) {
+  function openHistory(f: CareFact) {
     if (!familyId || !selectedId) return;
-    await run(`h:${key}`, async () => setHistory({ key, versions: await getFactHistory(familyId, selectedId, key) }));
+    setHistoryOf({ kind: "fact", target: f.key, subjectId: selectedId, owner: selectedId, label: f.text });
   }
 
   return (
@@ -323,7 +323,7 @@ export function SaheliCarePage() {
                             </p>
                           </div>
                           <div className="flex shrink-0 gap-1.5">
-                            <button className={btnSecondary} aria-label="History" disabled={busy === `h:${f.key}`} onClick={() => openHistory(f.key)}>
+                            <button className={btnSecondary} aria-label="History and undo" onClick={() => openHistory(f)}>
                               <History className="h-3.5 w-3.5" />
                             </button>
                             <button className={btnSecondary} aria-label="Change" onClick={() => setDraft(draftFrom(f))}>
@@ -355,43 +355,7 @@ export function SaheliCarePage() {
           </>
         ) : null}
 
-        {history && (
-          <div role="dialog" aria-modal="true" aria-label="History" className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setHistory(null)}>
-            <div className="theme-modal w-full max-w-lg rounded-3xl p-5" onClick={(e) => e.stopPropagation()}>
-              <div className="flex items-center justify-between">
-                <h2 className="flex items-center gap-2.5 text-[14px] font-medium text-[var(--text-primary)]"><span className="h-[14px] w-[14px] shrink-0 rounded-[4px] bg-[var(--c-accent)]" aria-hidden />History</h2>
-                <button type="button" aria-label="Close" onClick={() => setHistory(null)}>
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
-              <ol className="mt-4 space-y-3">
-                {history.versions
-                  .slice()
-                  .reverse()
-                  .map((v) => (
-                    <li key={v.id} className="rounded-2xl bg-[var(--surface)] p-3">
-                      <div className="flex items-center justify-between gap-2">
-                        <p className="text-[12px] font-bold text-[var(--text-primary)]">{v.text}</p>
-                        <span
-                          className={cn(
-                            "rounded-full px-2 py-0.5 text-[10px] font-bold",
-                            v.status === "active" ? "status-pill-success" : v.status === "pending" ? "status-pill-pending" : "status-pill-rejected",
-                          )}
-                        >
-                          {v.status}
-                        </span>
-                      </div>
-                      <p className="mt-1 text-[11px] text-[var(--text-tertiary)]">
-                        {SOURCE_LABEL[v.source] ?? v.source} · {formatIstDateTime(v.validFrom)}
-                        {v.validTo ? ` → ${formatIstDateTime(v.validTo)}` : " → now"}
-                        {v.note ? ` · ${v.note}` : ""}
-                      </p>
-                    </li>
-                  ))}
-              </ol>
-            </div>
-          </div>
-        )}
+        {familyId && <MemoryHistoryDrawer familyId={familyId} item={historyOf} onClose={() => setHistoryOf(null)} onChanged={reload} />}
       </div>
     </AccessGate>
   );

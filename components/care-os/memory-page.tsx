@@ -3,6 +3,7 @@
 import Link from "next/link";
 import {
   Brain,
+  ClockCounterClockwise,
   Heart,
   Leaf,
   MagnifyingGlass,
@@ -19,6 +20,7 @@ import { DOMAIN_TITLE, SOURCE_LABEL, getRecentLearning, saveNote, type CareEvent
 import { useCareOverview } from "@/components/dashboard/saheli/saheli-shared";
 import { cn } from "@/lib/utils";
 import { MemoryHealthPanel } from "./memory-health-panel";
+import { MemoryHistoryDrawer, RecentChangesPanel, type HistoryItem } from "./memory-history";
 import { SkillsPanel } from "./skills-panel";
 import { callName, possessive, usePerson } from "./person-context";
 import { DarkButton, Panel, PanelTitle, SmallButton, Tag } from "./ui";
@@ -54,6 +56,7 @@ export function MemoryPage() {
   const [learned, setLearned] = useState<CareEvent[]>([]);
   const [q, setQ] = useState("");
   const [editing, setEditing] = useState<Editing | null>(null);
+  const [historyOf, setHistoryOf] = useState<HistoryItem | null>(null);
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState("");
   const name = callName(selected);
@@ -199,6 +202,7 @@ export function MemoryPage() {
 
           {familyId && selectedId && <MemoryHealthPanel familyId={familyId} subjectId={selectedId} name={name} />}
           {familyId && selectedId && <SkillsPanel familyId={familyId} subjectId={selectedId} name={name} />}
+          {familyId && selectedId && <RecentChangesPanel familyId={familyId} subjectId={selectedId} name={name} onChanged={reload} />}
 
           {[
             { label: selected?.self ? "About you" : `About ${name || "them"}`, subject: selectedId ?? "", items: personNotes },
@@ -232,14 +236,24 @@ export function MemoryPage() {
                               </p>
                             </div>
                           </div>
-                          <button
-                            type="button"
-                            onClick={() => setEditing({ subjectId: n.subjectId, slug: n.slug, title: n.title, body: n.body, isNew: false })}
-                            className="flex h-9 w-9 items-center justify-center rounded-full border border-[var(--c-line)] bg-[var(--c-frame)] hover:bg-white"
-                            aria-label={`Edit ${n.title}`}
-                          >
-                            <NotePencil size={15} />
-                          </button>
+                          <div className="flex shrink-0 gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => setHistoryOf({ kind: "note", target: n.slug, subjectId: selectedId ?? "", owner: n.subjectId, label: n.title })}
+                              className="flex h-9 w-9 items-center justify-center rounded-full border border-[var(--c-line)] bg-[var(--c-frame)] hover:bg-white"
+                              aria-label={`History of ${n.title}`}
+                            >
+                              <ClockCounterClockwise size={15} />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setEditing({ subjectId: n.subjectId, slug: n.slug, title: n.title, body: n.body, isNew: false })}
+                              className="flex h-9 w-9 items-center justify-center rounded-full border border-[var(--c-line)] bg-[var(--c-frame)] hover:bg-white"
+                              aria-label={`Edit ${n.title}`}
+                            >
+                              <NotePencil size={15} />
+                            </button>
+                          </div>
                         </div>
                         <ul className="mt-4 space-y-2">
                           {lines.slice(0, 8).map((l, i) => {
@@ -268,6 +282,8 @@ export function MemoryPage() {
           ))}
         </>
       )}
+
+      {familyId && <MemoryHistoryDrawer familyId={familyId} item={historyOf} onClose={() => setHistoryOf(null)} onChanged={reload} />}
 
       {editing && (
         <div className="fixed inset-0 z-[60]">
