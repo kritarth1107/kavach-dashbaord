@@ -15,6 +15,7 @@ const STORE_NAME: Record<string, string> = {
 export function SkillsPanel({ familyId, subjectId, name, canEdit = true }: { familyId: string; subjectId: string; name: string; canEdit?: boolean }) {
   const [data, setData] = useState<{ id: string; skills: Skill[]; store: Skill[]; error?: boolean } | null>(null);
   const req = useRef(0);
+  const self = name === "You";
   const [text, setText] = useState("");
   const [editing, setEditing] = useState<{ id: number; text: string } | null>(null);
   const [busy, setBusy] = useState(false);
@@ -57,9 +58,9 @@ export function SkillsPanel({ familyId, subjectId, name, canEdit = true }: { fam
   return (
     <div className="grid gap-4 xl:grid-cols-[1.2fr_1fr]">
       <Panel>
-        <PanelTitle title={`How ${name || "they"} likes things`} right={<Sparkle size={18} />} />
+        <PanelTitle title={self ? "How you like things" : `How ${name || "they"} likes things`} right={<Sparkle size={18} />} />
         <p className="mt-1 text-[12px] text-[var(--c-ink-3)]">
-          Tone, timing and habits Saheli follows with {name || "them"}. Medicines, reminder times and safety stay in the care record.
+          Tone, timing and habits Saheli follows with {self ? "you" : name || "them"}. Medicines, reminder times and safety stay in the care record.
         </p>
         {v?.error ? (
           <div className="mt-4 flex items-center justify-between gap-3 rounded-[14px] bg-[var(--c-accent-soft)] px-4 py-2.5 text-[13px] text-[var(--c-accent-soft-ink)]" role="alert">
@@ -92,7 +93,7 @@ export function SkillsPanel({ familyId, subjectId, name, canEdit = true }: { fam
                       <p className="text-[13px] leading-snug">{s.body}</p>
                       <div className="mt-1 flex items-center gap-2 text-[11px] text-[var(--c-ink-3)]">
                         {s.status === "proposed" ? <Tag tone="accent">Saheli suggests</Tag> : s.status === "stale" ? <Tag tone="light">not used lately</Tag> : null}
-                        <span>{s.source === "dream" ? "learned from how they reply" : s.source === "elder" ? `${name || "they"} asked for this` : "from the family"}</span>
+                        <span>{s.source === "dream" ? "learned from how they reply" : s.source === "elder" ? self ? "you asked for this" : `${name || "they"} asked for this` : "from the family"}</span>
                       </div>
                     </div>
                     {canEdit && <div className="flex shrink-0 gap-1.5">

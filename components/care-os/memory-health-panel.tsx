@@ -44,7 +44,7 @@ export function MemoryHealthPanel({ familyId, subjectId, name, canEdit = true }:
   return (
     <div className="grid gap-4 xl:grid-cols-[1.2fr_1fr]">
       <Panel>
-        <PanelTitle title={`Saheli's card for ${name || "them"}`} right={<IdentificationCard size={18} />} />
+        <PanelTitle title={`Saheli's card for ${name === "You" ? "you" : name || "them"}`} right={<IdentificationCard size={18} />} />
         <p className="mt-1 text-[12px] text-[var(--c-ink-3)]">Rebuilt every night from the care record and notes. Every reply starts from this.</p>
         {!v ? (
           <div className="mt-4 h-20 animate-pulse rounded-[16px] bg-[var(--c-frame)]" />

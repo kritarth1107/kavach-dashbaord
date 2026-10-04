@@ -207,7 +207,12 @@ export function MemoryHistoryDrawer({
   const req = useRef(0);
   const [acting, setActing] = useState<{ id: number; mode: "undo" | "restore" } | null>(null);
   const [msg, setMsg] = useState("");
+  const notice = useRef<HTMLDivElement>(null);
   const key = item ? `${item.subjectId}/${item.owner}/${item.kind}/${item.target}` : "";
+
+  useEffect(() => {
+    if (msg) notice.current?.focus(); // after an undo the button is gone: keep focus in the drawer, on what happened
+  }, [msg]);
 
   const load = useCallback(async () => {
     if (!item) return;
@@ -236,7 +241,7 @@ export function MemoryHistoryDrawer({
   return (
     <SideDrawer open={!!item} onClose={close} top="History of" bottom={item?.label ?? ""} label="Memory history">
       {msg && (
-        <div className="mb-4">
+        <div className="mb-4 outline-none" ref={notice} tabIndex={-1}>
           <Notice>{msg}</Notice>
         </div>
       )}
@@ -356,7 +361,7 @@ export function RecentChangesPanel({
     <Panel>
       <PanelTitle title="Recent changes" right={<ClockCounterClockwise size={18} />} />
       <p className="mt-1 text-[12px] text-[var(--c-ink-3)]">
-        Everything Saheli or the family changed in what she knows about {name || "them"}. Undo any change; nothing is lost.
+        Everything Saheli or the family changed in what she knows about {name === "You" ? "you" : name || "them"}. Undo any change; nothing is lost.
       </p>
       {msg && (
         <div className="mt-3">

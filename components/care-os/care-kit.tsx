@@ -76,13 +76,24 @@ export function SideDrawer({
   footer?: React.ReactNode;
 }) {
   const panel = useRef<HTMLElement>(null);
+  const closeRef = useRef(onClose);
+  useEffect(() => {
+    closeRef.current = onClose;
+  }, [onClose]);
   useEffect(() => {
     if (!open) return;
-    // modal: focus moves into the drawer, Tab stays inside it, and focus goes back where it was on close
+    // modal: focus moves into the drawer, Tab stays inside it, and focus goes back where it was on close.
+    // The drawer slides in (visibility changes with the transition), so keep trying until it can take focus.
     const before = document.activeElement as HTMLElement | null;
-    const t = setTimeout(() => panel.current?.querySelector<HTMLElement>("button, [href], input, textarea, select")?.focus(), 0);
+    const tries = [0, 60, 160, 340].map((ms) =>
+      setTimeout(() => {
+        const p = panel.current;
+        if (!p || p.contains(document.activeElement)) return;
+        p.querySelector<HTMLElement>("button, [href], input, textarea, select")?.focus();
+      }, ms),
+    );
     const keys = (e: KeyboardEvent) => {
-      if (e.key === "Escape") return onClose();
+      if (e.key === "Escape") return closeRef.current();
       if (e.key !== "Tab" || !panel.current) return;
       const f = Array.from(panel.current.querySelectorAll<HTMLElement>("button:not([disabled]), [href], input:not([disabled]), textarea, select"));
       if (!f.length) return;
@@ -99,11 +110,11 @@ export function SideDrawer({
     };
     document.addEventListener("keydown", keys);
     return () => {
-      clearTimeout(t);
+      tries.forEach(clearTimeout);
       document.removeEventListener("keydown", keys);
       before?.focus?.();
     };
-  }, [open, onClose]);
+  }, [open]);
 
   return (
     <div className={cn("fixed inset-0 z-[60] print:hidden", !open && "pointer-events-none")} aria-hidden={!open}>

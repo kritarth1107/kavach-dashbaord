@@ -54,7 +54,10 @@ export function MemoryPage() {
   const { familyId, selectedId, selected, isCaregiver } = usePerson();
   const { data, loading, reload } = useCareOverview(familyId, selectedId);
   const [learned, setLearned] = useState<CareEvent[]>([]);
-  const [q, setQ] = useState("");
+  // search belongs to one person: switching person starts with an empty search
+  const [search, setSearch] = useState<{ id: string | null; q: string }>({ id: null, q: "" });
+  const q = search.id === selectedId ? search.q : "";
+  const setQ = (value: string) => setSearch({ id: selectedId, q: value });
   const [editing, setEditing] = useState<Editing | null>(null);
   const [historyOf, setHistoryOf] = useState<HistoryItem | null>(null);
   const [saving, setSaving] = useState(false);
@@ -75,7 +78,8 @@ export function MemoryPage() {
   const term = q.trim().toLowerCase();
   const facts = useMemo(() => (data?.facts ?? []).filter((f) => f.status === "active"), [data]);
   const match = (s: string) => !term || s.toLowerCase().includes(term);
-  const guards = facts.filter((f) => (f.domain === "allergy" || f.domain === "no_order") && match(f.text));
+  // allergies and never-order items are always shown in full: a search must never make them look absent
+  const guards = facts.filter((f) => f.domain === "allergy" || f.domain === "no_order");
   const identity = IDENTITY.flatMap((d) => facts.filter((f) => f.domain === d && match(f.text)));
   const notes = (data?.notes ?? []).filter((n) => match(`${n.title}\n${n.body}`));
   const personNotes = notes.filter((n) => n.subjectId === selectedId);
