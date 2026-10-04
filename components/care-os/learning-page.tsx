@@ -35,7 +35,16 @@ type Overview = {
   calibration: { n?: number; agreement?: number | null; trusted?: boolean; at?: string; skipped?: string } | null;
   drift: { alarms: string[]; at?: string } | null;
   gapSpecs: { specs: GapSpec[]; at?: string } | null;
-  backup?: { day: string; ok: boolean; finishedAt: string | null; bytes: number; error?: string | null; lastOkAt: string | null } | null;
+  backup?: {
+    day: string;
+    ok: boolean;
+    finishedAt: string | null;
+    bytes: number;
+    error?: string | null;
+    lastOkAt: string | null;
+    families?: { count: number; failed: number } | null;
+    familiesError?: string | null;
+  } | null;
 };
 
 const STATUS_TONE: Record<Playbook["status"], "accent" | "dark" | "light" | "danger"> = {
@@ -133,6 +142,8 @@ export function LearningPage() {
                   ? "No backup has finished yet. Backups run nightly at 03:30 to Cloudflare R2, encrypted."
                   : `Last backup ${h < 1 ? "under an hour" : `${Math.round(h)} h`} ago (encrypted, Cloudflare R2)${stale ? " — overdue, check the backup job." : "."}`}
                 {data.backup && !data.backup.ok && data.backup.error ? ` Last run failed: ${data.backup.error}` : ""}
+                {data.backup?.families ? ` ${data.backup.families.count} family snapshots${data.backup.families.failed ? `, ${data.backup.families.failed} failed` : ""}.` : ""}
+                {data.backup?.familiesError ? ` Family snapshots failed: ${data.backup.familiesError}` : ""}
               </p>
             );
           })()}
