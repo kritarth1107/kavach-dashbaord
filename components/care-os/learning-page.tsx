@@ -35,6 +35,7 @@ type Overview = {
   calibration: { n?: number; agreement?: number | null; trusted?: boolean; at?: string; skipped?: string } | null;
   drift: { alarms: string[]; at?: string } | null;
   gapSpecs: { specs: GapSpec[]; at?: string } | null;
+  backup?: { day: string; ok: boolean; finishedAt: string | null; bytes: number; error?: string | null; lastOkAt: string | null } | null;
 };
 
 const STATUS_TONE: Record<Playbook["status"], "accent" | "dark" | "light" | "danger"> = {
@@ -47,6 +48,7 @@ const STATUS_TONE: Record<Playbook["status"], "accent" | "dark" | "light" | "dan
 };
 const pct = (x: number | null | undefined) => (x == null ? "—" : `${Math.round(x * 100)}%`);
 const sc = (x: number | null | undefined) => (x == null ? "—" : x.toFixed(2));
+const hoursSince = (iso: string | null | undefined) => (iso ? (Date.now() - new Date(iso).getTime()) / 3_600_000 : null);
 
 export function LearningPage() {
   const [data, setData] = useState<Overview | null>(null);
@@ -121,6 +123,19 @@ export function LearningPage() {
               </Panel>
             ))}
           </div>
+
+          {(() => {
+            const h = hoursSince(data.backup?.lastOkAt);
+            const stale = h == null || h > 26;
+            return (
+              <p className={`text-[12px] ${stale ? "text-[var(--c-accent)]" : "text-[var(--c-ink-3)]"}`}>
+                {h == null
+                  ? "No backup has finished yet. Backups run nightly at 03:30 to Cloudflare R2, encrypted."
+                  : `Last backup ${h < 1 ? "under an hour" : `${Math.round(h)} h`} ago (encrypted, Cloudflare R2)${stale ? " — overdue, check the backup job." : "."}`}
+                {data.backup && !data.backup.ok && data.backup.error ? ` Last run failed: ${data.backup.error}` : ""}
+              </p>
+            );
+          })()}
 
           {(data.drift?.alarms?.length || data.calibration?.trusted === false) && (
             <Panel>
