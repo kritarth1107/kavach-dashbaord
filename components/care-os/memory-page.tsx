@@ -19,6 +19,7 @@ import { DOMAIN_TITLE, SOURCE_LABEL, getRecentLearning, saveNote, type CareEvent
 import { useCareOverview } from "@/components/dashboard/saheli/saheli-shared";
 import { cn } from "@/lib/utils";
 import { MemoryHealthPanel } from "./memory-health-panel";
+import { SkillsPanel } from "./skills-panel";
 import { callName, possessive, usePerson } from "./person-context";
 import { DarkButton, Panel, PanelTitle, SmallButton, Tag } from "./ui";
 
@@ -197,6 +198,7 @@ export function MemoryPage() {
           </Panel>
 
           {familyId && selectedId && <MemoryHealthPanel familyId={familyId} subjectId={selectedId} name={name} />}
+          {familyId && selectedId && <SkillsPanel familyId={familyId} subjectId={selectedId} name={name} />}
 
           {[
             { label: selected?.self ? "About you" : `About ${name || "them"}`, subject: selectedId ?? "", items: personNotes },

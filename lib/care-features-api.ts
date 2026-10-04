@@ -207,6 +207,39 @@ export async function restoreForgotten(familyId: string, subjectUserId: string, 
   return (await send<{ restored: number }>(`${base(familyId, subjectUserId)}/forgotten/${id}/restore`, {}))!;
 }
 
+/* ── skills ──────────────────────────────────────────────────────────────── */
+
+export type Skill = {
+  id: number;
+  scope: "store" | "family";
+  subjectId: string | null;
+  service: string;
+  title: string;
+  body: string;
+  steps: string[];
+  source: "auto" | "caregiver" | "dream";
+  status: "proposed" | "active" | "stale" | "archived" | "blocked";
+  uses: number;
+  successes: number;
+  failures: number;
+  successRate: number | null;
+  lastUsedAt: string | null;
+  updatedAt: string;
+  version: number;
+};
+
+export async function getSkills(familyId: string, subjectUserId: string) {
+  return (await request<{ skills: Skill[]; store: Skill[] }>(`${base(familyId, subjectUserId)}/skills`))!;
+}
+
+export async function addSkill(familyId: string, subjectUserId: string, text: string) {
+  return (await send<{ saved: boolean; id: number }>(`${base(familyId, subjectUserId)}/skills`, { text }))!;
+}
+
+export async function skillAction(familyId: string, subjectUserId: string, id: number, action: "approve" | "edit" | "remove" | "restore", text?: string) {
+  return (await send<{ ok: boolean }>(`${base(familyId, subjectUserId)}/skills/${id}`, { action, text }))!;
+}
+
 /* ── family tasks ────────────────────────────────────────────────────────── */
 
 export type FamilyTask = {
