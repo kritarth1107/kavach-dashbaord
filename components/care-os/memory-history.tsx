@@ -10,8 +10,15 @@ import {
   Notebook,
   type Icon as PhosphorIcon,
 } from "@phosphor-icons/react";
-import { useCallback, useEffect, useState } from "react";
-import { getMemoryHistory, undoMemoryChange, type MemoryChange, type UndoResult } from "@/lib/care-features-api";
+import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  getMemoryHistory,
+  getMemoryUndoPreview,
+  undoMemoryChange,
+  type MemoryChange,
+  type UndoPreview,
+  type UndoResult,
+} from "@/lib/care-features-api";
 import { cn } from "@/lib/utils";
 import { INPUT, Notice, SideDrawer, WhatsAppHint } from "./care-kit";
 import { Panel, PanelTitle, SmallButton, Tag } from "./ui";
@@ -76,7 +83,7 @@ function resultText(c: MemoryChange, r: UndoResult, mode: "undo" | "restore") {
   return `${did}.`;
 }
 
-/** Undo / put back with a short confirm step; health facts say plainly that reminders follow. */
+/** Undo / put back with a confirm step that first says exactly what will happen (from the engine's dry run). */
 function ActionRow({
   change,
   mode,
@@ -95,10 +102,23 @@ function ActionRow({
   const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
+  const [preview, setPreview] = useState<UndoPreview | null>(null);
+
+  useEffect(() => {
+    let live = true;
+    getMemoryUndoPreview(familyId, subjectId, change.id, mode)
+      .then((p) => live && setPreview(p))
+      .catch((e) => live && setPreview({ effect: "refused", text: e instanceof Error ? e.message : "Couldn't check what this would do.", button: "" }));
+    return () => {
+      live = false;
+    };
+  }, [familyId, subjectId, change.id, mode]);
+
   const go = async () => {
     setBusy(true);
     setErr("");
     try {
+      // confirm: the caregiver has just read exactly what happens to this medicine, allergy or condition
       const r = await undoMemoryChange(familyId, subjectId, change.id, { mode, reason: reason.trim(), confirm: isHealth(change) });
       onDone(resultText(change, r, mode));
     } catch (e) {
@@ -107,30 +127,42 @@ function ActionRow({
       setBusy(false);
     }
   };
+  const blocked = preview && (preview.effect === "refused" || preview.effect === "nothing");
   return (
-    <div className="mt-3 rounded-[16px] border border-[var(--c-line)] bg-[var(--c-frame)] p-3">
-      <p className="text-[12.5px] font-medium">
-        {mode === "undo" ? "Undo this change?" : "Put this version back?"}
-        {isHealth(change) && (
-          <span className="mt-1 block font-normal text-[var(--c-ink-2)]">
-            This changes the care record{change.title === "medicine" ? ", and the medicine's reminders change with it" : ""}.
-          </span>
-        )}
+    <div className="mt-3 rounded-[16px] border border-[var(--c-line)] bg-[var(--c-frame)] p-3" role="group" aria-label={mode === "undo" ? "Undo this change" : "Put this version back"}>
+      <p className="text-[12.5px] font-medium" aria-live="polite">
+        {!preview ? "Checking what this would do…" : preview.text}
       </p>
-      <input
-        className={cn(INPUT, "mt-2")}
-        placeholder={change.kind === "fact" ? "Why (optional), e.g. the dose was always 500 mg" : "Why (optional), e.g. that never happened"}
-        value={reason}
-        maxLength={300}
-        onChange={(e) => setReason(e.target.value)}
-      />
+      {preview && !blocked && (
+        <input
+          className={cn(INPUT, "mt-2")}
+          aria-label="Why (optional)"
+          placeholder={change.kind === "fact" ? "Why (optional), e.g. the dose was always 500 mg" : "Why (optional), e.g. that never happened"}
+          value={reason}
+          maxLength={300}
+          onChange={(e) => setReason(e.target.value)}
+        />
+      )}
       {err && <p className="mt-2 text-[12px] text-[var(--c-accent-soft-ink)]">{err}</p>}
       <div className="mt-2 flex justify-end gap-2">
-        <SmallButton onClick={onCancel}>Cancel</SmallButton>
-        <SmallButton dark disabled={busy} onClick={() => void go()}>
-          {busy ? "Working…" : mode === "undo" ? "Yes, undo" : "Yes, put back"}
+        <SmallButton disabled={busy} onClick={onCancel}>
+          {blocked ? "Close" : "Cancel"}
         </SmallButton>
+        {preview && !blocked && (
+          <SmallButton dark disabled={busy} onClick={() => void go()}>
+            {busy ? "Working…" : preview.button || (mode === "undo" ? "Yes, undo" : "Yes, put back")}
+          </SmallButton>
+        )}
       </div>
+    </div>
+  );
+}
+
+function LoadError({ onRetry }: { onRetry: () => void }) {
+  return (
+    <div className="flex items-center justify-between gap-3 rounded-[14px] bg-[var(--c-accent-soft)] px-4 py-2.5 text-[13px] text-[var(--c-accent-soft-ink)]" role="alert">
+      <span>Couldn&apos;t load the history right now. Nothing has changed.</span>
+      <SmallButton onClick={onRetry}>Try again</SmallButton>
     </div>
   );
 }
@@ -163,24 +195,28 @@ export function MemoryHistoryDrawer({
   item,
   onClose,
   onChanged,
+  canEdit = true,
 }: {
   familyId: string;
   item: HistoryItem | null;
   onClose: () => void;
   onChanged?: () => void;
+  canEdit?: boolean;
 }) {
-  const [rows, setRows] = useState<{ key: string; v: MemoryChange[] } | null>(null);
+  const [rows, setRows] = useState<{ key: string; v: MemoryChange[]; error?: boolean } | null>(null);
+  const req = useRef(0);
   const [acting, setActing] = useState<{ id: number; mode: "undo" | "restore" } | null>(null);
   const [msg, setMsg] = useState("");
   const key = item ? `${item.subjectId}/${item.owner}/${item.kind}/${item.target}` : "";
 
   const load = useCallback(async () => {
     if (!item) return;
+    const mine = ++req.current; // a slower answer for an item opened earlier never overwrites this one
     try {
       const all = await getMemoryHistory(familyId, item.subjectId, { kind: item.kind, target: item.target, limit: 100 });
-      setRows({ key, v: all.filter((c) => c.subjectId === item.owner) });
+      if (mine === req.current) setRows({ key, v: all.filter((c) => c.subjectId === item.owner) });
     } catch {
-      setRows({ key, v: [] });
+      if (mine === req.current) setRows({ key, v: [], error: true });
     }
   }, [familyId, item, key]);
 
@@ -196,6 +232,7 @@ export function MemoryHistoryDrawer({
   }, [onClose]);
 
   const list = rows?.key === key ? rows.v : null;
+  const failed = rows?.key === key && rows.error;
   return (
     <SideDrawer open={!!item} onClose={close} top="History of" bottom={item?.label ?? ""} label="Memory history">
       {msg && (
@@ -203,7 +240,9 @@ export function MemoryHistoryDrawer({
           <Notice>{msg}</Notice>
         </div>
       )}
-      {!list ? (
+      {failed ? (
+        <LoadError onRetry={() => void load()} />
+      ) : !list ? (
         <div className="h-24 animate-pulse rounded-[18px] bg-[var(--c-card)]" />
       ) : list.length === 0 ? (
         <p className="text-[13px] text-[var(--c-ink-2)]">No history yet. Changes show here from now on.</p>
@@ -238,7 +277,7 @@ export function MemoryHistoryDrawer({
                   }}
                 />
               ) : (
-                (c.canUndo || (c.canRestore && i > 0)) && (
+                canEdit && (c.canUndo || (c.canRestore && i > 0)) && (
                   <div className="mt-3 flex flex-wrap gap-2">
                     {c.canUndo && (
                       <SmallButton icon={ArrowUUpLeft} onClick={() => setActing({ id: c.id, mode: "undo" })}>
@@ -269,6 +308,7 @@ export function RecentChangesPanel({
   name,
   onChanged,
   refresh,
+  canEdit = true,
 }: {
   familyId: string;
   subjectId: string;
@@ -276,17 +316,22 @@ export function RecentChangesPanel({
   onChanged?: () => void;
   /** Anything that changes when memory may have changed elsewhere on the page (e.g. the overview data): reloads the list. */
   refresh?: unknown;
+  /** Undo and put back are for caregivers; others only read. */
+  canEdit?: boolean;
 }) {
-  const [data, setData] = useState<{ id: string; v: MemoryChange[] } | null>(null);
+  const [data, setData] = useState<{ id: string; v: MemoryChange[]; error?: boolean } | null>(null);
+  const req = useRef(0);
   const [acting, setActing] = useState<number | null>(null);
   const [msg, setMsg] = useState("");
   const [open, setOpen] = useState<HistoryItem | null>(null);
 
   const load = useCallback(async () => {
+    const mine = ++req.current; // drop answers that arrive after a newer load (e.g. after switching person)
     try {
-      setData({ id: subjectId, v: await getMemoryHistory(familyId, subjectId, { limit: 8 }) });
+      const v = await getMemoryHistory(familyId, subjectId, { limit: 8 });
+      if (mine === req.current) setData({ id: subjectId, v });
     } catch {
-      setData({ id: subjectId, v: [] });
+      if (mine === req.current) setData({ id: subjectId, v: [], error: true });
     }
   }, [familyId, subjectId]);
 
@@ -318,7 +363,11 @@ export function RecentChangesPanel({
           <Notice>{msg}</Notice>
         </div>
       )}
-      {!rows ? (
+      {data?.id === subjectId && data.error ? (
+        <div className="mt-4">
+          <LoadError onRetry={() => void load()} />
+        </div>
+      ) : !rows ? (
         <div className="mt-4 h-20 animate-pulse rounded-[16px] bg-[var(--c-frame)]" />
       ) : rows.length === 0 ? (
         <p className="mt-4 text-[13px] text-[var(--c-ink-2)]">No changes yet.</p>
@@ -347,7 +396,7 @@ export function RecentChangesPanel({
                     >
                       History
                     </SmallButton>
-                    {c.canUndo && acting !== c.id && (
+                    {canEdit && c.canUndo && acting !== c.id && (
                       <SmallButton icon={ArrowUUpLeft} onClick={() => setActing(c.id)}>
                         Undo
                       </SmallButton>
@@ -374,7 +423,7 @@ export function RecentChangesPanel({
         </ul>
       )}
       <WhatsAppHint className="mt-3">tell Saheli “galat hai, pehle wala sahi tha” or “undo that”.</WhatsAppHint>
-      <MemoryHistoryDrawer familyId={familyId} item={open} onClose={() => setOpen(null)} onChanged={changed} />
+      <MemoryHistoryDrawer familyId={familyId} item={open} onClose={() => setOpen(null)} onChanged={changed} canEdit={canEdit} />
     </Panel>
   );
 }

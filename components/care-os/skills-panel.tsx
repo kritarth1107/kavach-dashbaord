@@ -1,7 +1,7 @@
 "use client";
 
 import { Check, PencilSimple, Plus, Sparkle, Storefront, Trash } from "@phosphor-icons/react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { addSkill, getSkills, skillAction, type Skill } from "@/lib/care-features-api";
 import { INPUT } from "./feature-kit";
 import { Panel, PanelTitle, SmallButton, Tag } from "./ui";
@@ -12,19 +12,21 @@ const STORE_NAME: Record<string, string> = {
 };
 
 /** How this person likes things (family skills, editable), plus what the store agents learned (read-only). */
-export function SkillsPanel({ familyId, subjectId, name }: { familyId: string; subjectId: string; name: string }) {
-  const [data, setData] = useState<{ id: string; skills: Skill[]; store: Skill[] } | null>(null);
+export function SkillsPanel({ familyId, subjectId, name, canEdit = true }: { familyId: string; subjectId: string; name: string; canEdit?: boolean }) {
+  const [data, setData] = useState<{ id: string; skills: Skill[]; store: Skill[]; error?: boolean } | null>(null);
+  const req = useRef(0);
   const [text, setText] = useState("");
   const [editing, setEditing] = useState<{ id: number; text: string } | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
   const load = useCallback(async () => {
+    const mine = ++req.current; // a late answer for the previous person never lands on this one
     try {
       const v = await getSkills(familyId, subjectId);
-      setData({ id: subjectId, ...v });
+      if (mine === req.current) setData({ id: subjectId, ...v });
     } catch {
-      setData({ id: subjectId, skills: [], store: [] });
+      if (mine === req.current) setData({ id: subjectId, skills: [], store: [], error: true });
     }
   }, [familyId, subjectId]);
 
@@ -59,7 +61,12 @@ export function SkillsPanel({ familyId, subjectId, name }: { familyId: string; s
         <p className="mt-1 text-[12px] text-[var(--c-ink-3)]">
           Tone, timing and habits Saheli follows with {name || "them"}. Medicines, reminder times and safety stay in the care record.
         </p>
-        {!v ? (
+        {v?.error ? (
+          <div className="mt-4 flex items-center justify-between gap-3 rounded-[14px] bg-[var(--c-accent-soft)] px-4 py-2.5 text-[13px] text-[var(--c-accent-soft-ink)]" role="alert">
+            <span>Couldn&apos;t load these right now.</span>
+            <SmallButton onClick={() => void load()}>Try again</SmallButton>
+          </div>
+        ) : !v ? (
           <div className="mt-4 h-16 animate-pulse rounded-[16px] bg-[var(--c-frame)]" />
         ) : live.length === 0 ? (
           <p className="mt-4 text-[13px] text-[var(--c-ink-2)]">Nothing yet. Add one below, or tell Saheli on WhatsApp, e.g. “Maa ko puja ke baad yaad dilana”.</p>
@@ -69,10 +76,14 @@ export function SkillsPanel({ familyId, subjectId, name }: { familyId: string; s
               <li key={s.id} className="rounded-[14px] bg-[var(--c-frame)] px-3 py-2.5">
                 {editing?.id === s.id ? (
                   <div className="flex gap-2">
-                    <input className={INPUT} value={editing.text} maxLength={600} onChange={(e) => setEditing({ id: s.id, text: e.target.value })} />
+                    <input className={INPUT} aria-label="Edit how they like things" value={editing.text} maxLength={240}
+                      onKeyDown={(e) => e.key === "Escape" && setEditing(null)} onChange={(e) => setEditing({ id: s.id, text: e.target.value })} />
+                    <SmallButton className="h-11 shrink-0 px-4" disabled={busy} onClick={() => setEditing(null)}>
+                      Cancel
+                    </SmallButton>
                     <SmallButton dark className="h-11 shrink-0 px-4" disabled={busy || editing.text.trim().length < 3}
                       onClick={() => void run(() => skillAction(familyId, subjectId, s.id, "edit", editing.text.trim())).then((ok) => ok && setEditing(null))}>
-                      Save
+                      {s.status === "proposed" ? "Save and use" : "Save"}
                     </SmallButton>
                   </div>
                 ) : (
@@ -84,7 +95,7 @@ export function SkillsPanel({ familyId, subjectId, name }: { familyId: string; s
                         <span>{s.source === "dream" ? "learned from how they reply" : s.source === "elder" ? `${name || "they"} asked for this` : "from the family"}</span>
                       </div>
                     </div>
-                    <div className="flex shrink-0 gap-1.5">
+                    {canEdit && <div className="flex shrink-0 gap-1.5">
                       {s.status === "proposed" && (
                         <SmallButton dark icon={Check} disabled={busy} onClick={() => void run(() => skillAction(familyId, subjectId, s.id, "approve"))}>
                           Use it
@@ -92,28 +103,29 @@ export function SkillsPanel({ familyId, subjectId, name }: { familyId: string; s
                       )}
                       <SmallButton icon={PencilSimple} aria-label="Edit" disabled={busy} onClick={() => setEditing({ id: s.id, text: s.body })} />
                       <SmallButton icon={Trash} aria-label="Remove" disabled={busy} onClick={() => void run(() => skillAction(familyId, subjectId, s.id, "remove"))} />
-                    </div>
+                    </div>}
                   </div>
                 )}
               </li>
             ))}
           </ul>
         )}
-        <div className="mt-4 flex gap-2">
-          <input className={INPUT} placeholder="e.g. Short Hinglish, no emoji" value={text} maxLength={600} onChange={(e) => setText(e.target.value)} />
+        {canEdit && <div className="mt-4 flex gap-2">
+          <input className={INPUT} aria-label="Add how they like things" placeholder="e.g. Short Hinglish, no emoji" value={text} maxLength={240}
+            onChange={(e) => setText(e.target.value)} />
           <SmallButton dark icon={Plus} className="h-11 shrink-0 px-5" disabled={busy || text.trim().length < 3}
             onClick={() => void run(() => addSkill(familyId, subjectId, text.trim())).then((ok) => ok && setText(""))}>
             Add
           </SmallButton>
-        </div>
+        </div>}
         {error && <p className="mt-2 text-[12px] text-[var(--c-accent)]">{error}</p>}
-        {removed.length > 0 && (
+        {canEdit && removed.length > 0 && (
           <p className="mt-3 text-[11.5px] text-[var(--c-ink-3)]">
             Removed:{" "}
             {removed.map((s, i) => (
               <span key={s.id}>
                 {i > 0 && " · "}“{s.body}”{" "}
-                <button type="button" className="underline" onClick={() => void run(() => skillAction(familyId, subjectId, s.id, "restore"))}>
+                <button type="button" className="underline disabled:opacity-50" disabled={busy} onClick={() => void run(() => skillAction(familyId, subjectId, s.id, "restore"))}>
                   restore
                 </button>
               </span>

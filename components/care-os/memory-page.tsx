@@ -51,7 +51,7 @@ function noteLines(body: string) {
 }
 
 export function MemoryPage() {
-  const { familyId, selectedId, selected } = usePerson();
+  const { familyId, selectedId, selected, isCaregiver } = usePerson();
   const { data, loading, reload } = useCareOverview(familyId, selectedId);
   const [learned, setLearned] = useState<CareEvent[]>([]);
   const [q, setQ] = useState("");
@@ -200,9 +200,12 @@ export function MemoryPage() {
             )}
           </Panel>
 
-          {familyId && selectedId && <MemoryHealthPanel familyId={familyId} subjectId={selectedId} name={name} />}
-          {familyId && selectedId && <SkillsPanel familyId={familyId} subjectId={selectedId} name={name} />}
-          {familyId && selectedId && <RecentChangesPanel familyId={familyId} subjectId={selectedId} name={name} onChanged={reload} refresh={data} />}
+          {/* keyed by person: nothing typed, opened or shown for one person carries over to the next */}
+          {familyId && selectedId && <MemoryHealthPanel key={`h-${selectedId}`} familyId={familyId} subjectId={selectedId} name={name} canEdit={isCaregiver} />}
+          {familyId && selectedId && <SkillsPanel key={`s-${selectedId}`} familyId={familyId} subjectId={selectedId} name={name} canEdit={isCaregiver} />}
+          {familyId && selectedId && (
+            <RecentChangesPanel key={`r-${selectedId}`} familyId={familyId} subjectId={selectedId} name={name} onChanged={reload} refresh={data} canEdit={isCaregiver} />
+          )}
 
           {[
             { label: selected?.self ? "About you" : `About ${name || "them"}`, subject: selectedId ?? "", items: personNotes },
@@ -283,7 +286,7 @@ export function MemoryPage() {
         </>
       )}
 
-      {familyId && <MemoryHistoryDrawer familyId={familyId} item={historyOf} onClose={() => setHistoryOf(null)} onChanged={reload} />}
+      {familyId && <MemoryHistoryDrawer familyId={familyId} item={historyOf} onClose={() => setHistoryOf(null)} onChanged={reload} canEdit={isCaregiver} />}
 
       {editing && (
         <div className="fixed inset-0 z-[60]">

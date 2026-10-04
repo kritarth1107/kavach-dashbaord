@@ -6,7 +6,7 @@
  * that prints only its own content (no shell) on A4.
  */
 import { WhatsappLogo, X } from "@phosphor-icons/react";
-import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { cn } from "@/lib/utils";
 
@@ -75,11 +75,34 @@ export function SideDrawer({
   children: React.ReactNode;
   footer?: React.ReactNode;
 }) {
+  const panel = useRef<HTMLElement>(null);
   useEffect(() => {
     if (!open) return;
-    const esc = (e: KeyboardEvent) => e.key === "Escape" && onClose();
-    document.addEventListener("keydown", esc);
-    return () => document.removeEventListener("keydown", esc);
+    // modal: focus moves into the drawer, Tab stays inside it, and focus goes back where it was on close
+    const before = document.activeElement as HTMLElement | null;
+    const t = setTimeout(() => panel.current?.querySelector<HTMLElement>("button, [href], input, textarea, select")?.focus(), 0);
+    const keys = (e: KeyboardEvent) => {
+      if (e.key === "Escape") return onClose();
+      if (e.key !== "Tab" || !panel.current) return;
+      const f = Array.from(panel.current.querySelectorAll<HTMLElement>("button:not([disabled]), [href], input:not([disabled]), textarea, select"));
+      if (!f.length) return;
+      if (e.shiftKey && document.activeElement === f[0]) {
+        e.preventDefault();
+        f[f.length - 1].focus();
+      } else if (!e.shiftKey && document.activeElement === f[f.length - 1]) {
+        e.preventDefault();
+        f[0].focus();
+      } else if (!panel.current.contains(document.activeElement)) {
+        e.preventDefault();
+        f[0].focus();
+      }
+    };
+    document.addEventListener("keydown", keys);
+    return () => {
+      clearTimeout(t);
+      document.removeEventListener("keydown", keys);
+      before?.focus?.();
+    };
   }, [open, onClose]);
 
   return (
@@ -92,6 +115,7 @@ export function SideDrawer({
         className={cn("absolute inset-0 bg-[rgba(20,42,34,0.28)] transition-opacity duration-300", open ? "opacity-100" : "opacity-0")}
       />
       <aside
+        ref={panel}
         role="dialog"
         aria-modal="true"
         aria-label={label}

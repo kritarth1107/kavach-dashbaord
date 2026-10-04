@@ -41,19 +41,30 @@ const LOGIN_TAG: Record<ServiceLogin["state"], { label: string; tone: "dark" | "
 
 function WebsiteLogins() {
   const { familyId, selectedId, isCaregiver } = usePerson();
-  const [rows, setRows] = useState<ServiceLogin[] | null>(null);
+  // keyed by family + person, so the previous family's login states never show while the next ones load
+  const [data, setData] = useState<{ key: string; rows: ServiceLogin[] | null; error?: boolean } | null>(null);
+  const key = `${familyId}/${selectedId}`;
 
   useEffect(() => {
     if (!familyId || !selectedId || !isCaregiver) return;
     let live = true;
     getLogins(familyId, selectedId)
-      .then((r) => live && setRows(r.logins))
-      .catch(() => live && setRows([]));
+      .then((r) => live && setData({ key, rows: r.logins }))
+      .catch(() => live && setData({ key, rows: null, error: true }));
     return () => {
       live = false;
     };
-  }, [familyId, selectedId, isCaregiver]);
+  }, [familyId, selectedId, isCaregiver, key]);
 
+  const rows = data?.key === key ? data.rows : null;
+  if (isCaregiver && data?.key === key && data.error) {
+    return (
+      <Panel>
+        <PanelTitle title="Website logins" />
+        <p className="mt-2 text-[13px] text-[var(--c-ink-2)]">Couldn&apos;t check the website logins right now. Try again in a minute.</p>
+      </Panel>
+    );
+  }
   if (!isCaregiver || !rows) return null;
   return (
     <Panel>

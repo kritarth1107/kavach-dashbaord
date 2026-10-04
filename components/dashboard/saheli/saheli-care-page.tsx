@@ -358,7 +358,9 @@ export function SaheliCarePage() {
           </>
         ) : null}
 
-        {familyId && <MemoryHistoryDrawer familyId={familyId} item={historyOf} onClose={() => setHistoryOf(null)} onChanged={reload} />}
+        {familyId && (
+          <MemoryHistoryDrawer familyId={familyId} item={historyOf} onClose={() => setHistoryOf(null)} onChanged={reload} canEdit={sel.isCaregiver} />
+        )}
       </div>
     </AccessGate>
   );

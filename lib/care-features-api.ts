@@ -253,6 +253,12 @@ export async function getMemoryHistory(
   return (await request<{ changes: MemoryChange[] }>(`${base(familyId, subjectUserId)}/memory-history${s ? `?${s}` : ""}`))!.changes ?? [];
 }
 
+export type UndoPreview = { effect: "change" | "stop" | "restart" | "retract" | "remove" | "pending" | "nothing" | "refused"; text: string; button: string };
+
+export async function getMemoryUndoPreview(familyId: string, subjectUserId: string, id: number, mode: "undo" | "restore" = "undo") {
+  return (await request<UndoPreview>(`${base(familyId, subjectUserId)}/memory-history/${id}/preview?mode=${mode}`))!;
+}
+
 export async function undoMemoryChange(
   familyId: string,
   subjectUserId: string,

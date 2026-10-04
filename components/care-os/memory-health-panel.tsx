@@ -7,7 +7,7 @@ import { INPUT } from "./feature-kit";
 import { Panel, PanelTitle, SmallButton } from "./ui";
 
 /** Saheli's profile card of this person, record problems she will ask about, and forget / restore. */
-export function MemoryHealthPanel({ familyId, subjectId, name }: { familyId: string; subjectId: string; name: string }) {
+export function MemoryHealthPanel({ familyId, subjectId, name, canEdit = true }: { familyId: string; subjectId: string; name: string; canEdit?: boolean }) {
   const [data, setData] = useState<{ id: string; v: MemoryHealth } | null>(null);
   const [what, setWhat] = useState("");
   const [busy, setBusy] = useState(false);
@@ -80,7 +80,7 @@ export function MemoryHealthPanel({ familyId, subjectId, name }: { familyId: str
           )}
           {v && v.issues.length > 0 && <p className="mt-2 text-[11px] text-[var(--c-ink-3)]">Saheli asks about each one once on WhatsApp; fix it there or in the care record.</p>}
         </Panel>
-        <Panel>
+        {canEdit && <Panel>
           <PanelTitle title="Forget something" right={<Eraser size={18} />} />
           <div className="mt-3 flex gap-2">
             <input className={INPUT} placeholder="A few words, e.g. argument with Rahul" value={what} maxLength={200} onChange={(e) => setWhat(e.target.value)} />
@@ -106,7 +106,7 @@ export function MemoryHealthPanel({ familyId, subjectId, name }: { familyId: str
             </ul>
           )}
           <p className="mt-2 text-[11px] text-[var(--c-ink-3)]">On WhatsApp: tell Saheli “forget that” or “remove what I said about …”.</p>
-        </Panel>
+        </Panel>}
       </div>
     </div>
   );
