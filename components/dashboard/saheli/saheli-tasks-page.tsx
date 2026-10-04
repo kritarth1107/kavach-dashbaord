@@ -285,6 +285,16 @@ function TaskCard({
           </ol>
         </details>
       )}
+      {(t.audit?.length ?? 0) > 0 && (
+        <details className="mt-2">
+          <summary className="cursor-pointer text-[11px] font-bold text-[var(--text-tertiary)]">What the browser did ({t.audit!.length})</summary>
+          <ul className="mt-2 space-y-1">
+            {t.audit!.map((line, i) => (
+              <li key={i} className="text-[11px] text-[var(--text-secondary)]">{line}</li>
+            ))}
+          </ul>
+        </details>
+      )}
     </section>
   );
 }

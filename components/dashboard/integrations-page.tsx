@@ -8,6 +8,8 @@ import { Panel, PanelTitle, Tag } from "@/components/care-os/ui";
 import { useFamily } from "@/components/dashboard/family-context";
 import { canApproveOrders } from "@/components/dashboard/family/family-data";
 import { INTEGRATION_PARTNERS } from "@/components/dashboard/integrations-data";
+import { usePerson } from "@/components/care-os/person-context";
+import { getLogins, type ServiceLogin } from "@/lib/care-features-api";
 import {
   disconnectMcp,
   getFamilyIntegrations,
@@ -25,6 +27,58 @@ function partnerInfo(data: FamilyIntegrations, key: McpIntegrationPartner) {
 
 const shortDate = (iso: string | null) =>
   iso ? new Date(iso).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : null;
+
+const APP_NAMES: Record<string, string> = {
+  instamart: "Swiggy Instamart", zepto: "Zepto", blinkit: "Blinkit", bigbasket: "BigBasket", pharmeasy: "PharmEasy",
+  uber: "Uber", ola: "Ola", rapido: "Rapido",
+};
+
+const LOGIN_TAG: Record<ServiceLogin["state"], { label: string; tone: "dark" | "light" | "accent" }> = {
+  ok: { label: "Logged in", tone: "dark" },
+  expired: { label: "Needs login", tone: "accent" },
+  unknown: { label: "Not sure", tone: "light" },
+};
+
+function WebsiteLogins() {
+  const { familyId, selectedId, isCaregiver } = usePerson();
+  const [rows, setRows] = useState<ServiceLogin[] | null>(null);
+
+  useEffect(() => {
+    if (!familyId || !selectedId || !isCaregiver) return;
+    let live = true;
+    getLogins(familyId, selectedId)
+      .then((r) => live && setRows(r.logins))
+      .catch(() => live && setRows([]));
+    return () => {
+      live = false;
+    };
+  }, [familyId, selectedId, isCaregiver]);
+
+  if (!isCaregiver || !rows) return null;
+  return (
+    <Panel>
+      <PanelTitle title="Website logins" />
+      <p className="mt-1 text-[12px] text-[var(--c-ink-3)]">What Saheli saw the last time it used each website. A login that ran out asks for an OTP on the next order.</p>
+      {rows.length === 0 ? (
+        <p className="mt-3 text-[12.5px] text-[var(--c-ink-2)]">Saheli has not used any website for this family yet.</p>
+      ) : (
+        <ul className="mt-3 divide-y divide-[var(--c-line)]">
+          {rows.map((r) => (
+            <li key={r.service} className="flex items-center justify-between gap-3 py-2.5">
+              <div className="min-w-0">
+                <p className="text-[13.5px] font-medium">{APP_NAMES[r.service] ?? r.service}</p>
+                <p className="text-[11.5px] text-[var(--c-ink-3)]">
+                  {[r.lastLoginOkAt && `Last worked ${shortDate(r.lastLoginOkAt)}`, r.state !== "ok" && r.problem].filter(Boolean).join(" · ") || "No successful login yet"}
+                </p>
+              </div>
+              <Tag tone={LOGIN_TAG[r.state].tone}>{LOGIN_TAG[r.state].label}</Tag>
+            </li>
+          ))}
+        </ul>
+      )}
+    </Panel>
+  );
+}
 
 const RULES = [
   { icon: Money, title: "Cash on delivery", body: "Saheli never pays online. Every order is COD." },
@@ -166,6 +220,8 @@ export function IntegrationsPage() {
                   })}
             </div>
           </Panel>
+
+          <WebsiteLogins />
 
           <Panel>
             <PanelTitle title="How ordering works" />

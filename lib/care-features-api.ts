@@ -240,6 +240,18 @@ export async function skillAction(familyId: string, subjectUserId: string, id: n
   return (await send<{ ok: boolean }>(`${base(familyId, subjectUserId)}/skills/${id}`, { action, text }))!;
 }
 
+export type ServiceLogin = {
+  service: string;
+  state: "ok" | "expired" | "unknown";
+  lastLoginOkAt: string | null;
+  lastSeenAt: string | null;
+  problem: string | null;
+};
+
+export async function getLogins(familyId: string, subjectUserId: string) {
+  return (await request<{ logins: ServiceLogin[] }>(`${base(familyId, subjectUserId)}/logins`))!;
+}
+
 /* ── family tasks ────────────────────────────────────────────────────────── */
 
 export type FamilyTask = {

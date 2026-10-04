@@ -77,6 +77,7 @@ export type CareTask = {
     payment_method?: string;
   };
   history: Array<{ at: string; phase: string; status: string; note: string }>;
+  audit?: string[];
   requestedBy: string;
   hasLiveView: boolean;
   createdAt: string;
