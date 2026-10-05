@@ -272,6 +272,18 @@ export async function undoMemoryChange(
   }))!;
 }
 
+/* ── voice replies ───────────────────────────────────────────────────────── */
+
+export type VoiceMode = "auto" | "always" | "never";
+
+export async function getVoicePreference(familyId: string, subjectUserId: string) {
+  return (await request<{ mode: VoiceMode; means: string }>(`${base(familyId, subjectUserId)}/voice`))!;
+}
+
+export async function setVoicePreference(familyId: string, subjectUserId: string, mode: VoiceMode) {
+  return (await send<{ mode: VoiceMode; means: string }>(`${base(familyId, subjectUserId)}/voice`, { mode }))!;
+}
+
 /* ── skills ──────────────────────────────────────────────────────────────── */
 
 export type Skill = {

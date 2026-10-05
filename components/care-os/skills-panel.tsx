@@ -1,10 +1,69 @@
 "use client";
 
-import { Check, PencilSimple, Plus, Sparkle, Storefront, Trash } from "@phosphor-icons/react";
+import { Check, PencilSimple, Plus, Sparkle, SpeakerHigh, Storefront, Trash } from "@phosphor-icons/react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { addSkill, getSkills, skillAction, type Skill } from "@/lib/care-features-api";
+import { addSkill, getSkills, getVoicePreference, setVoicePreference, skillAction, type Skill, type VoiceMode } from "@/lib/care-features-api";
 import { INPUT } from "./feature-kit";
-import { Panel, PanelTitle, SmallButton, Tag } from "./ui";
+import { Panel, PanelTitle, PillTabs, SmallButton, Tag } from "./ui";
+
+/** Voice notes from Saheli: when they send one (default), always, or text only. Same setting as "awaaz mein jawab do" on WhatsApp. */
+function VoiceSetting({ familyId, subjectId, self, name, canEdit }: { familyId: string; subjectId: string; self: boolean; name: string; canEdit: boolean }) {
+  const [mode, setMode] = useState<{ id: string; v: VoiceMode } | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+  useEffect(() => {
+    let live = true;
+    getVoicePreference(familyId, subjectId)
+      .then((r) => live && setMode({ id: subjectId, v: r.mode }))
+      .catch(() => live && setMode({ id: subjectId, v: "auto" }));
+    return () => {
+      live = false;
+    };
+  }, [familyId, subjectId]);
+  const v = mode?.id === subjectId ? mode.v : null;
+  const choose = async (next: VoiceMode) => {
+    if (!canEdit || next === v || busy) return;
+    setBusy(true);
+    setErr("");
+    try {
+      setMode({ id: subjectId, v: (await setVoicePreference(familyId, subjectId, next)).mode });
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Couldn't save");
+    } finally {
+      setBusy(false);
+    }
+  };
+  const who = self ? "you" : name || "them";
+  return (
+    <div className="mt-5 border-t border-[var(--c-line)] pt-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="flex items-center gap-2 text-[13px] font-medium">
+          <SpeakerHigh size={16} /> Voice notes from Saheli
+        </p>
+        {v && (
+          <PillTabs
+            tabs={[
+              { id: "auto", label: self ? "When I send one" : "When they send one" },
+              { id: "always", label: "Always" },
+              { id: "never", label: "Text only" },
+            ]}
+            value={v}
+            onChange={(id) => void choose(id as VoiceMode)}
+          />
+        )}
+      </div>
+      <p className="mt-1 text-[11.5px] text-[var(--c-ink-3)]">
+        {v === "always"
+          ? `Every reply and reminder to ${who} also comes as a voice note. The text always comes too.`
+          : v === "never"
+            ? `Saheli writes to ${who} in text only.`
+            : `If ${who} send${self ? "" : "s"} a voice note, Saheli answers with one too (and the text).`}
+        {!canEdit && " Only caregivers can change this."}
+      </p>
+      {err && <p className="mt-1 text-[12px] text-[var(--c-accent)]">{err}</p>}
+    </div>
+  );
+}
 
 const STORE_NAME: Record<string, string> = {
   swiggy: "Swiggy", instamart: "Instamart", zepto: "Zepto", blinkit: "Blinkit", zomato: "Zomato",
@@ -120,6 +179,7 @@ export function SkillsPanel({ familyId, subjectId, name, canEdit = true }: { fam
           </SmallButton>
         </div>}
         {error && <p className="mt-2 text-[12px] text-[var(--c-accent)]">{error}</p>}
+        <VoiceSetting familyId={familyId} subjectId={subjectId} self={self} name={name} canEdit={canEdit} />
         {canEdit && removed.length > 0 && (
           <p className="mt-3 text-[11.5px] text-[var(--c-ink-3)]">
             Removed:{" "}
