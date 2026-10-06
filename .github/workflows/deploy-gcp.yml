@@ -33,6 +33,7 @@ jobs:
       - name: Typecheck and lint (deploy stops here on errors)
         run: |
           npm ci
+          npx next typegen   # route types (LayoutProps, PageProps) live in .next/, not in git
           npx tsc --noEmit -p .
           npx eslint . --max-warnings=200
 
