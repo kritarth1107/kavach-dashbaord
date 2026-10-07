@@ -9,6 +9,8 @@ export type Person = {
   gender?: "female" | "male" | "other";
   age?: number;
   city?: string;
+  /** State, when Saheli worked it out from the city (to suggest the local bhasha first). */
+  state?: string;
   livesWith?: "alone" | "spouse" | "me" | "family" | "care_home";
   language?: string;
   dialect?: string | null;

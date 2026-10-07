@@ -320,7 +320,7 @@ const FOOD = [
   { id: "empty_stomach", label: "Empty stomach" },
 ] as const;
 
-function MedCard({ m, person, onChange, onRemove }: { m: Med; person: Person; onChange: (m: Med) => void; onRemove: () => void }) {
+export function MedCard({ m, person, onChange, onRemove }: { m: Med; person: Person; onChange: (m: Med) => void; onRemove: () => void }) {
   const at = slotTimes(person);
   const toggleSlot = (t: string) => onChange({ ...m, times: m.times.includes(t) ? m.times.filter((x) => x !== t) : [...m.times, t].sort() });
   return (
