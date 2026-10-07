@@ -19,7 +19,7 @@ import { Preview } from "./preview";
 type Step = { id: string; section: string; person?: number };
 const SECTIONS = ["You", "Who", "About them", "Health", "Day & medicines", "Finish"];
 
-const blank = (name = ""): Answers => ({ you: { name }, persons: [], helpWith: ["reminders", "checkins", "company"], followups: [] });
+const blank = (name = "", phone?: string): Answers => ({ you: { name, ...(phone ? { phone } : {}) }, persons: [], helpWith: ["reminders", "checkins", "company"], followups: [] });
 
 function buildSteps(a: Answers): Step[] {
   const s: Step[] = [{ id: "welcome", section: "You" }, { id: "you_name", section: "You" }, { id: "care_for", section: "Who" }];
@@ -75,9 +75,9 @@ export function OnboardingFlow() {
           router.replace("/dashboard");
           return;
         }
-        const base = blank(st.name);
+        const base = blank(st.name, st.myPhone || undefined); // signed in with their mobile: already proven on WhatsApp
         const draft = st.draft?.answers as Partial<Answers> | undefined;
-        setAnswers(draft ? { ...base, ...draft, you: { ...base.you, ...(draft.you || {}) }, persons: draft.persons || [], followups: draft.followups || [] } : base);
+        setAnswers(draft ? { ...base, ...draft, you: { ...base.you, ...(draft.you || {}), ...(!draft.you?.phone && base.you.phone ? { phone: base.you.phone } : {}) }, persons: draft.persons || [], followups: draft.followups || [] } : base);
         if (st.draft?.step) setStepId(st.draft.step);
         setVerified(Object.fromEntries(Object.keys(st.verified || {}).map((k) => [k, true])));
         setSaheliNumber(st.saheliNumber || "");
@@ -286,7 +286,7 @@ function renderStep(c: Ctx): Rendered {
                   const existing = a.persons[k];
                   if (existing && existing.relation === r) return existing;
                   const fresh = emptyPerson(r);
-                  if (r === "Self") Object.assign(fresh, { name: a.you.name, addressAs: a.you.callMe || a.you.name.split(" ")[0] });
+                  if (r === "Self") Object.assign(fresh, { name: a.you.name, addressAs: a.you.callMe || a.you.name.split(" ")[0], ...(a.you.phone ? { phone: a.you.phone } : {}) });
                   return { ...fresh, gender: GENDER_OF[r] };
                 });
                 setAnswers({ ...a, careFor: id, persons });

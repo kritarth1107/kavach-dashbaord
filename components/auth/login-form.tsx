@@ -38,8 +38,8 @@ function GoogleIcon() {
 
 type LoginMethod = OtpChannel;
 
-/** Mobile codes need an SMS provider; until then only email and Google sign in. */
-const PHONE_LOGIN_ENABLED = false;
+/** Mobile sign-in: the code comes on WhatsApp (no SMS). */
+const PHONE_LOGIN_ENABLED = true;
 
 const LOGIN_ERRORS: Record<string, string> = {
   care_recipient:
@@ -212,8 +212,8 @@ export function LoginForm() {
           }
         : { channel: "email", email: email.trim().toLowerCase() };
 
-    if (payload.channel === "phone" && payload.phone.length < 6) {
-      setError("Enter a valid mobile number");
+    if (payload.channel === "phone" && (phoneCountryCode === "+91" ? payload.phone.length !== 10 : payload.phone.length < 7 || payload.phone.length > 12)) {
+      setError(phoneCountryCode === "+91" ? "Enter your 10-digit mobile number" : "Enter a valid mobile number");
       setLoading(false);
       return;
     }
@@ -303,12 +303,14 @@ export function LoginForm() {
               {step === "identifier" ? "Welcome to" : step === "register" ? "Almost" : "Check your"}
             </span>
             <span className="block font-medium">
-              {step === "identifier" ? "Kavach" : step === "register" ? "there" : channel === "phone" ? "phone" : "email"}
+              {step === "identifier" ? "Kavach" : step === "register" ? "there" : channel === "phone" ? "WhatsApp" : "email"}
             </span>
           </h1>
           {step === "identifier" && (
             <p className="mt-3 text-[13px] text-[var(--c-ink-2)]">
-              Sign in with your email. We&apos;ll send a one-time code.
+              {loginMethod === "phone"
+                ? "Sign in with your mobile number. We'll send a one-time code on WhatsApp."
+                : "Sign in with your email. We'll send a one-time code."}
             </p>
           )}
           {step === "register" && (
@@ -326,10 +328,12 @@ export function LoginForm() {
           )}
           {step === "otp" && channel === "phone" && (
             <p className="mt-1.5 text-[13px] leading-relaxed text-[var(--text-secondary)]">
-              Enter the code sent to{" "}
+              Enter the code we sent on WhatsApp to{" "}
               <span className="font-semibold text-[var(--text-primary)]">
                 {formatPhoneDisplay(phoneCountryCode, phone)}
               </span>
+              {" · "}
+              <span className="text-[var(--text-tertiary)]">from Kavach, with a Copy code button</span>
             </p>
           )}
         </div>
@@ -403,7 +407,7 @@ export function LoginForm() {
 
             <SubmitButton
               loading={loading}
-              label={loginMethod === "phone" ? "Send code to mobile" : "Continue with email"}
+              label={loginMethod === "phone" ? "Send code on WhatsApp" : "Continue with email"}
               loadingLabel="Signing in"
             />
           </form>

@@ -16,6 +16,8 @@ export type OnboardingState = {
   name: string;
   draft: { answers: Partial<Answers>; step: string } | null;
   verified: Record<string, { phone: string; at: string }>;
+  /** Their own number when they signed in with it (proven by the WhatsApp code). */
+  myPhone?: string | null;
   saheliNumber: string;
 };
 
