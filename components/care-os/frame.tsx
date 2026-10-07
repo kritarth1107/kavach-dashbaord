@@ -221,7 +221,7 @@ function Drawer({ open, onClose }: { open: boolean; onClose: () => void }) {
 function Inner({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { people, selectedId, select, me, unread, loading } = usePerson();
-  const { familyAccessAlert, dismissFamilyAccessAlert } = useFamily();
+  const { familyAccessAlert, dismissFamilyAccessAlert, setupUnfinished } = useFamily();
   const [menu, setMenu] = useState(false);
   const closeMenu = useCallback(() => setMenu(false), []);
   const isRecipientView = /^\/dashboard\/family\/[^/]+$/.test(pathname);
@@ -232,6 +232,12 @@ function Inner({ children }: { children: React.ReactNode }) {
     <div className={cn(isRecipientView && "grid gap-5 xl:grid-cols-[1fr_340px]", fullBleed && "h-full")}>
       <div className={cn("min-w-0", fullBleed && "flex h-full flex-col")}>
         {familyAccessAlert && <FamilyAccessBanner alert={familyAccessAlert} onDismiss={dismissFamilyAccessAlert} />}
+        {setupUnfinished && (
+          <Link href="/onboarding" className="mb-4 flex items-center justify-between gap-3 rounded-[18px] bg-[var(--c-accent-soft)] px-4 py-3 text-[13.5px] text-[var(--c-accent-soft-ink)]">
+            <span><b className="font-medium">Finish setting up Saheli.</b> A few questions so she knows your family before she starts.</span>
+            <span className="shrink-0 font-medium">Continue →</span>
+          </Link>
+        )}
         {children}
       </div>
       {isRecipientView && (

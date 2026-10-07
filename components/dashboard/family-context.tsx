@@ -41,6 +41,8 @@ type FamilyContextValue = {
   error: string | null;
   familyAccessAlert: FamilyAccessAlert | null;
   dismissFamilyAccessAlert: () => void;
+  /** Skipped the first questions: offer to finish setting up Saheli. */
+  setupUnfinished: boolean;
   selectFamily: (familyId: string) => Promise<void>;
   setAsPrimaryFamily: (familyId: string) => Promise<void>;
   createNewFamily: (name: string) => Promise<void>;
@@ -90,6 +92,7 @@ export function FamilyProvider({ children }: { children: React.ReactNode }) {
   const [error, setError] = useState<string | null>(null);
   const [pendingInvitations, setPendingInvitations] = useState<PendingInvitation[]>([]);
   const [familyAccessAlert, setFamilyAccessAlert] = useState<FamilyAccessAlert | null>(null);
+  const [setupUnfinished, setSetupUnfinished] = useState(false);
 
   const commitSwitcher = useCallback(
     (payload: FamilySwitcherPayload, nextActiveId: string | null, uid: string) => {
@@ -162,9 +165,15 @@ export function FamilyProvider({ children }: { children: React.ReactNode }) {
           router.replace("/auth/pending-invite");
           return;
         }
+        if (data.user.onboardingRequired) {
+          // Opened /dashboard directly before finishing the first questions: finish them first.
+          router.replace("/onboarding");
+          return;
+        }
 
         setPendingInvitations(data.pendingInvitations ?? []);
         setFamilyAccessAlert(data.familyAccessAlert ?? null);
+        setSetupUnfinished(Boolean(data.user.onboardingSkipped));
 
         const uid = data.user.userId;
         setUserId(uid);
@@ -284,6 +293,7 @@ export function FamilyProvider({ children }: { children: React.ReactNode }) {
       error,
       familyAccessAlert,
       dismissFamilyAccessAlert: () => setFamilyAccessAlert(null),
+      setupUnfinished,
       selectFamily,
       setAsPrimaryFamily,
       createNewFamily,
@@ -299,6 +309,7 @@ export function FamilyProvider({ children }: { children: React.ReactNode }) {
       switching,
       error,
       familyAccessAlert,
+      setupUnfinished,
       selectFamily,
       setAsPrimaryFamily,
       createNewFamily,

@@ -357,6 +357,10 @@ export type AuthUser = {
   emailVerified: boolean;
   primaryAuthProvider: string;
   activeFamilyId?: string | null;
+  /** A new caregiver who has not answered the onboarding questions yet. */
+  onboardingRequired?: boolean;
+  /** Chose "I'll finish later": the dashboard offers to finish setting up Saheli. */
+  onboardingSkipped?: boolean;
   createdAt?: string;
 };
 

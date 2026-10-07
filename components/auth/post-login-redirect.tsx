@@ -53,7 +53,8 @@ export function PostLoginRedirect() {
           setStoredFamilyId(data.activeFamilyId, data.user.userId);
         }
 
-        router.replace("/dashboard");
+        // A new caregiver tells Saheli about their family first; everyone else goes straight in.
+        router.replace(data.user.onboardingRequired ? "/onboarding" : "/dashboard");
       } catch (err) {
         router.replace(err instanceof CareRecipientLogin ? "/auth/login?error=care_recipient" : "/auth/login");
       }

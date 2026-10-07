@@ -5,7 +5,7 @@ export function proxy(request: NextRequest) {
   const isLoggedIn = Boolean(request.cookies.get(SESSION_COOKIE)?.value);
   const { pathname } = request.nextUrl;
 
-  if (pathname.startsWith("/dashboard") && !isLoggedIn) {
+  if ((pathname.startsWith("/dashboard") || pathname.startsWith("/onboarding")) && !isLoggedIn) {
     return NextResponse.redirect(new URL("/auth/login", request.url));
   }
 
@@ -22,5 +22,5 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/auth/:path*"],
+  matcher: ["/dashboard/:path*", "/auth/:path*", "/onboarding/:path*", "/onboarding"],
 };
