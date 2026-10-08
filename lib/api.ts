@@ -8,7 +8,16 @@ type ApiResponse<T> = {
   success: boolean;
   message?: string;
   data?: T;
+  /** Machine-readable reason on errors ("care_recipient"). */
+  code?: string;
 };
+
+/** An API error that keeps the server's reason and details, so a screen can show more than the message. */
+export class ApiError extends Error {
+  constructor(message: string, readonly status: number, readonly code?: string, readonly data?: Record<string, unknown>) {
+    super(message);
+  }
+}
 
 const GET_TIMEOUT_MS = 12_000;
 const WRITE_TIMEOUT_MS = 25_000;
@@ -55,7 +64,7 @@ async function parseResponse<T>(res: Response): Promise<ApiResponse<T>> {
   }
 
   if (!res.ok) {
-    throw new Error(json.message ?? "Request failed");
+    throw new ApiError(json.message ?? "Request failed", res.status, json.code, json.data as Record<string, unknown> | undefined);
   }
 
   return json;

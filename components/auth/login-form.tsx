@@ -7,6 +7,7 @@ import { signIn } from "next-auth/react";
 import { useEffect, useMemo, useState } from "react";
 import { countryCodeOptions } from "@/components/dashboard/family/form-options";
 import {
+  ApiError,
   registerWithOtp,
   sendOtp,
   verifyOtp,
@@ -154,6 +155,16 @@ export function LoginForm() {
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
+  /** The number belongs to someone Saheli looks after: point them to WhatsApp instead of signing up. */
+  const [cared, setCared] = useState<{ saheliNumber: string } | null>(null);
+  const caredFrom = (err: unknown) => {
+    if (err instanceof ApiError && err.code === "care_recipient") {
+      setCared({ saheliNumber: String(err.data?.saheliNumber || "") });
+      setError("");
+      return true;
+    }
+    return false;
+  };
 
   const identifier = useMemo<OtpIdentifier>(() => {
     if (channel === "phone") {
@@ -185,6 +196,7 @@ export function LoginForm() {
   }
 
   function resetToIdentifier() {
+    setCared(null);
     setStep("identifier");
     setOtp("");
     setOtpToken("");
@@ -227,7 +239,7 @@ export function LoginForm() {
       setStep("otp");
       setResendCooldown(30);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to send code");
+      if (!caredFrom(err)) setError(err instanceof Error ? err.message : "Failed to send code");
     } finally {
       setLoading(false);
     }
@@ -248,7 +260,7 @@ export function LoginForm() {
 
       setStep("register");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Verification failed");
+      if (!caredFrom(err)) setError(err instanceof Error ? err.message : "Verification failed");
     } finally {
       setLoading(false);
     }
@@ -281,7 +293,7 @@ export function LoginForm() {
 
       router.push(routeAfterLogin());
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Registration failed");
+      if (!caredFrom(err)) setError(err instanceof Error ? err.message : "Registration failed");
     } finally {
       setLoading(false);
     }
@@ -350,7 +362,28 @@ export function LoginForm() {
           </p>
         )}
 
-        {step === "identifier" && (
+        {cared && (
+          <div className="mb-5 rounded-[24px] bg-[var(--c-card)] p-5">
+            <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--c-accent)] text-[17px] font-medium text-white">स</span>
+            <p className="mt-3 text-[17px] font-medium leading-snug">Saheli already looks after this number 🙏</p>
+            <p className="mt-1.5 text-[13.5px] leading-relaxed text-[var(--c-ink-2)]">
+              There&apos;s nothing to sign in to. Just message Saheli on WhatsApp — she talks to you there, in your language, and reminds you of your medicines.
+            </p>
+            {cared.saheliNumber && (
+              <a href={`https://wa.me/${cared.saheliNumber.replace(/\D/g, "")}?text=${encodeURIComponent("Namaste Saheli 🙏")}`} target="_blank" rel="noreferrer"
+                className="mt-4 inline-flex h-11 items-center gap-2 rounded-full bg-[#1f7a4d] px-5 text-[14px] font-medium text-white">
+                Message Saheli on WhatsApp
+              </a>
+            )}
+            <p className="mt-4 text-[12.5px] text-[var(--c-ink-2)]">
+              Are you a family member?{" "}
+              <button type="button" onClick={() => { setCared(null); setPhone(""); resetToIdentifier(); }} className="font-medium text-[var(--c-ink)] underline underline-offset-4">Sign in with your own number</button>{" "}
+              or with email.
+            </p>
+          </div>
+        )}
+
+        {step === "identifier" && !cared && (
           <form onSubmit={handleSendOtp} className="space-y-4">
             <MethodToggle value={loginMethod} onChange={switchLoginMethod} />
 
