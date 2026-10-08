@@ -57,8 +57,8 @@ export type CareTask = {
   goal: string;
   details: { items?: TaskItem[]; pickup?: string; drop?: string; vehicle?: string; area?: string; confirmed_by?: string; choice?: string };
   status: "queued" | "running" | "needs_input" | "awaiting_confirm" | "done" | "failed" | "cancelled";
-  phase: "prepare" | "otp" | "place" | "cancel";
-  inputNeeded: "otp" | "confirm" | "fee" | "choice" | null;
+  phase: "browse" | "prepare" | "otp" | "place" | "cancel";
+  inputNeeded: "go" | "otp" | "confirm" | "fee" | "choice" | "swap" | null;
   cancelRequested: boolean;
   result: {
     items?: TaskItem[];
@@ -141,7 +141,7 @@ export function saveNote(familyId: string, subjectUserId: string, note: { subjec
   return post<{ saved: boolean; version: number }>(`${base(familyId, subjectUserId)}/notes`, note, "PUT");
 }
 
-export function taskInput(familyId: string, subjectUserId: string, taskId: string, kind: "otp" | "confirm" | "fee" | "choice", value: string) {
+export function taskInput(familyId: string, subjectUserId: string, taskId: string, kind: "go" | "otp" | "confirm" | "fee" | "choice", value: string) {
   return post<{ result: string; task: CareTask }>(`${base(familyId, subjectUserId)}/tasks/${taskId}/input`, { kind, value });
 }
 

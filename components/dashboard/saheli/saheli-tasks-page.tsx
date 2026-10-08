@@ -20,6 +20,7 @@ const STATUS: Record<CareTask["status"], { label: string; pill: string }> = {
 };
 
 const PHASE: Record<CareTask["phase"], string> = {
+  browse: "looking it up (no login yet)",
   prepare: "building the cart / finding fares",
   otp: "logging in",
   place: "placing",
@@ -224,6 +225,23 @@ function TaskCard({
             </button>
             <button className={btnSecondary} disabled={isBusy("fee")} onClick={() => act("fee", () => taskInput(familyId, subjectId, t.id, "fee", "no"), "Kept the order.")}>
               Keep it
+            </button>
+          </div>
+        </div>
+      )}
+
+      {t.inputNeeded === "go" && (
+        <div className="mt-4 rounded-2xl bg-[var(--surface)] p-3">
+          <p className="text-[12px] font-semibold text-[var(--text-primary)]">
+            Nothing is {t.kind === "ride" ? "booked" : "ordered"} yet. To go ahead, {t.serviceLabel} needs a login: a code will come to the
+            phone of the person who asked.
+          </p>
+          <div className="mt-2 flex gap-2">
+            <button className={btnPrimary} disabled={isBusy("go")} onClick={() => act("go", () => taskInput(familyId, subjectId, t.id, "go", "yes"), "Going ahead. Logging in.")}>
+              {isBusy("go") && <Loader2 className="h-3 w-3 animate-spin" />} Go ahead
+            </button>
+            <button className={btnSecondary} disabled={isBusy("go")} onClick={() => act("go", () => taskInput(familyId, subjectId, t.id, "go", "no"), "Dropped. Nothing was ordered.")}>
+              Not now
             </button>
           </div>
         </div>

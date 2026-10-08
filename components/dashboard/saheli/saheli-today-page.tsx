@@ -172,7 +172,7 @@ export function SaheliTodayPage() {
                     {liveTasks.map((t) => (
                       <li key={t.id} className="text-[12px] text-[var(--text-secondary)]">
                         <span className="font-bold text-[var(--text-primary)]">{t.serviceLabel}</span> · {t.goal}
-                        {t.inputNeeded && <span className="status-pill-pending ml-2 rounded-full px-2 py-0.5 text-[10px] font-bold">needs {t.inputNeeded}</span>}
+                        {t.inputNeeded && <span className="status-pill-pending ml-2 rounded-full px-2 py-0.5 text-[10px] font-bold">needs {t.inputNeeded === "go" ? "go-ahead" : t.inputNeeded}</span>}
                       </li>
                     ))}
                   </ul>
