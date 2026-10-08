@@ -889,15 +889,151 @@ export type LabDocument = {
   patient_name?: string | null;
   provider?: string | null;
   medicines?: Array<{ name: string; dose?: string | null }>;
-  lab_values?: Array<{ name: string; value: string; unit?: string | null }>;
+  lab_values?: LabValue[];
   unread?: string[];
   extraction_status?: "ready" | "partial" | "failed" | null;
   already_on_file?: boolean;
+  /** Records from before the review step come back as "saved". */
+  review_status?: LabReviewStatus;
+  /** Only on the list: whether the signed-in person uploaded it, and the uploader's first name. */
+  uploaded_by_you?: boolean;
+  uploaded_by_name?: string | null;
+  via?: "dashboard" | "whatsapp";
+  /** What Saheli read, only while the record waits for review. */
+  reading?: DraftReading | null;
+  person_check?: LabPersonCheck | null;
+  decision?: LabDecisionRecord | null;
+  /** Why a read failed. For logs only: never show it to people. */
+  read_error?: string | null;
+  recipient_user_id?: string | null;
 };
 
 export type LabDocumentDetail = LabDocument & {
   raw_text: string;
 };
+
+/* ── health records: review before save ─────────────────────────────────── */
+
+export type LabReviewStatus = "needs_review" | "saved" | "file_only";
+export type LabFlag = "low" | "high" | "normal";
+export type RecordKind = "lab" | "prescription" | "discharge" | "scan" | "other";
+export type MedicineSlot = "morning" | "afternoon" | "evening" | "night";
+export type MedicineFood = "before_food" | "after_food" | "with_food" | "empty_stomach";
+
+export type LabValue = {
+  name: string;
+  value: string;
+  unit?: string | null;
+  range?: string | null;
+  flag?: LabFlag | null;
+  /** YYYY-MM-DD */
+  date?: string | null;
+};
+
+export type DraftValue = { name: string; value: string; unit: string | null; range: string | null; flag: LabFlag | null };
+
+export type DraftMedicine = {
+  name: string;
+  strength: string | null;
+  dose: string | null;
+  frequency: string | null;
+  slots: MedicineSlot[];
+  /** "HH:MM" */
+  times: string[];
+  food: MedicineFood | null;
+  durationDays: number | null;
+  instructions: string | null;
+  alreadyOnSchedule: boolean;
+  add: boolean;
+};
+
+export type DraftReading = {
+  patientName: string | null;
+  patientAge: string | null;
+  patientSex: string | null;
+  /** YYYY-MM-DD */
+  recordDate: string | null;
+  recordDateText: string | null;
+  provider: string | null;
+  doctor: string | null;
+  kind: RecordKind;
+  title: string;
+  tests: string | null;
+  values: DraftValue[];
+  medicines: DraftMedicine[];
+  nextVisit: { text: string; date: string | null } | null;
+  followUps: string[];
+  summary: string;
+  /** e.g. ["patient name", "date"]; ["the page"] means nothing was read. */
+  unread: string[];
+  /** What Saheli would remember (each one can be edited or removed). */
+  memoryPoints: string[];
+};
+
+export type LabPersonCheck = {
+  status: "match" | "mismatch" | "unknown";
+  nameOnReport?: string;
+  suggestedUserId?: string;
+  suggestedName?: string;
+  confirmedBy?: string;
+};
+
+export type LabDecisionRecord = {
+  action: "save" | "file_only" | "discard";
+  by: string;
+  at: string;
+  remembered?: number;
+  scheduled?: string[];
+  reminder?: boolean;
+  notified?: boolean;
+};
+
+export type LabStatCard = {
+  key: string;
+  name: string;
+  value: string;
+  unit: string | null;
+  range: string | null;
+  flag: LabFlag | null;
+  /** YYYY-MM-DD */
+  date: string | null;
+  count: number;
+  /** Up to 6 points, oldest first. */
+  trend: Array<{ date: string | null; value: number }>;
+  delta: number | null;
+  prevDate: string | null;
+};
+
+export type LabHighlights = {
+  cards: LabStatCard[];
+  all: LabStatCard[];
+  reports: number;
+  latestDate: string | null;
+  noticed: { key: string; text: string } | null;
+};
+
+export type LabDecisionInput = {
+  action: "save" | "file_only" | "discard";
+  reading?: DraftReading;
+  saveValues?: boolean;
+  remember?: boolean;
+  addMedicines?: boolean;
+  nextVisitReminder?: boolean;
+  notifyFamily?: boolean;
+};
+
+export type LabDecisionResult = {
+  deleted?: boolean;
+  reviewStatus?: LabReviewStatus;
+  scheduled: string[];
+  scheduleProblems: string[];
+  remembered: number;
+  reminder: boolean;
+  notified: boolean;
+  document: LabDocument | null;
+};
+
+export type LabPersonInput = { action: "theirs" } | { action: "move"; toUserId: string };
 
 export type FamilyOverview = {
   careRecipientCount: number;
@@ -1597,6 +1733,10 @@ export async function getRecipientLabs(familyId: string, recipientUserId: string
   return parseResponse<{ documents: LabDocument[] }>(res);
 }
 
+/** Saheli reads a report before it comes back: 15 to 40 seconds, sometimes a little more. */
+const READ_TIMEOUT_MS = 100_000;
+
+/** Pasted report text. Comes back as a draft that waits for review. */
 export async function uploadRecipientLab(
   familyId: string,
   recipientUserId: string,
@@ -1609,9 +1749,9 @@ export async function uploadRecipientLab(
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     },
-    WRITE_TIMEOUT_MS,
+    READ_TIMEOUT_MS,
   );
-  return parseResponse<{ document_id: string; title: string; kind: string }>(res);
+  return parseResponse<LabDocument>(res);
 }
 
 export async function uploadRecipientLabFiles(
@@ -1668,56 +1808,20 @@ export async function uploadRecipientLabFile(
       method: "POST",
       body: formData,
     },
-    90_000,
+    READ_TIMEOUT_MS,
   );
   return parseResponse<LabDocument & { already_on_file?: boolean }>(res);
 }
 
+/** The original file through the dashboard proxy. `inline` opens it in the page (previews) instead of downloading. */
 export function getRecipientLabDownloadPath(
   familyId: string,
   recipientUserId: string,
   documentId: string,
+  options: { inline?: boolean } = {},
 ) {
-  return `/api/families/${familyId}/recipients/${recipientUserId}/labs/${documentId}/download`;
-}
-
-export async function downloadRecipientLabFile(
-  familyId: string,
-  recipientUserId: string,
-  documentId: string,
-  fileName?: string | null,
-) {
-  const res = await timedFetch(
-    getRecipientLabDownloadPath(familyId, recipientUserId, documentId),
-    { method: "GET" },
-    60_000,
-  );
-
-  if (!res.ok) {
-    let message = "Could not download file";
-    try {
-      const json = (await res.json()) as { message?: string };
-      message = json.message || message;
-    } catch {
-      /* binary error body */
-    }
-    throw new Error(message);
-  }
-
-  const blob = await res.blob();
-  const disposition = res.headers.get("content-disposition") || "";
-  const match = disposition.match(/filename=\"?([^\";\n]+)\"?/i);
-  const name = fileName || (match ? decodeURIComponent(match[1]) : "report");
-
-  const url = URL.createObjectURL(blob);
-  const anchor = document.createElement("a");
-  anchor.href = url;
-  anchor.download = name;
-  anchor.rel = "noopener";
-  document.body.appendChild(anchor);
-  anchor.click();
-  anchor.remove();
-  URL.revokeObjectURL(url);
+  const path = `/api/families/${familyId}/recipients/${recipientUserId}/labs/${documentId}/download`;
+  return options.inline ? `${path}?inline=1` : path;
 }
 
 export async function getRecipientLabDetail(
@@ -1742,6 +1846,69 @@ export async function deleteRecipientLab(
     WRITE_TIMEOUT_MS,
   );
   return parseResponse<{ deleted: boolean }>(res);
+}
+
+/** The important numbers from this person's saved reports (cards chosen by the backend). */
+export async function getRecipientLabHighlights(familyId: string, recipientUserId: string) {
+  const res = await timedFetch(
+    `/api/families/${familyId}/recipients/${recipientUserId}/labs/highlights`,
+  );
+  return parseResponse<LabHighlights>(res);
+}
+
+/**
+ * Save, keep only the file, or discard a record that waits for review.
+ * 409 with code "person_mismatch" when the name did not match and nobody confirmed whose it is.
+ */
+export async function decideRecipientLab(
+  familyId: string,
+  recipientUserId: string,
+  documentId: string,
+  input: LabDecisionInput,
+) {
+  const res = await timedFetch(
+    `/api/families/${familyId}/recipients/${recipientUserId}/labs/${documentId}/decision`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(input),
+    },
+    READ_TIMEOUT_MS,
+  );
+  return parseResponse<LabDecisionResult>(res);
+}
+
+/** "It is theirs" or "move it to someone else in the family". After a move the record belongs to the other person. */
+export async function setRecipientLabPerson(
+  familyId: string,
+  recipientUserId: string,
+  documentId: string,
+  input: LabPersonInput,
+) {
+  const res = await timedFetch(
+    `/api/families/${familyId}/recipients/${recipientUserId}/labs/${documentId}/person`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(input),
+    },
+    45_000,
+  );
+  return parseResponse<{ recipient_user_id: string; document: LabDocument | null }>(res);
+}
+
+/** Read a record again (after a failed read). Comes back as a fresh draft. */
+export async function rereadRecipientLab(familyId: string, recipientUserId: string, documentId: string) {
+  const res = await timedFetch(
+    `/api/families/${familyId}/recipients/${recipientUserId}/labs/${documentId}/reread`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: "{}",
+    },
+    READ_TIMEOUT_MS,
+  );
+  return parseResponse<LabDocument>(res);
 }
 
 export type CareRecordEventItem = {

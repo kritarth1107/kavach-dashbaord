@@ -6,12 +6,14 @@ type RouteParams = {
   params: Promise<{ familyId: string; recipientUserId: string; documentId: string }>;
 };
 
+/** `?inline=1` opens the file in the page (previews) instead of downloading it. */
 export async function GET(req: NextRequest, { params }: RouteParams) {
   const { familyId, recipientUserId, documentId } = await params;
   const token = req.cookies.get(SESSION_COOKIE)?.value;
+  const inline = req.nextUrl.searchParams.get("inline") === "1" ? "?inline=1" : "";
 
   const res = await fetch(
-    `${getBackendUrl()}/api/families/${familyId}/recipients/${recipientUserId}/labs/${documentId}/download`,
+    `${getBackendUrl()}/api/families/${familyId}/recipients/${recipientUserId}/labs/${documentId}/download${inline}`,
     {
       headers: {
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -41,6 +43,8 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
     headers: {
       "Content-Type": contentType,
       ...(disposition ? { "Content-Disposition": disposition } : {}),
+      // A health file: the browser may keep it briefly for this person, never in a shared cache.
+      "Cache-Control": "private, max-age=300",
     },
   });
 }

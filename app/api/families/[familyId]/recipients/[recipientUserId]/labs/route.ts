@@ -13,10 +13,12 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
   );
 }
 
+/** Pasted text is read by Saheli before it comes back (15 to 40 seconds). */
 export async function POST(req: NextRequest, { params }: RouteParams) {
   const { familyId, recipientUserId } = await params;
   return proxyAuthPost(
     req,
     `/api/families/${familyId}/recipients/${recipientUserId}/labs`,
+    110_000,
   );
 }

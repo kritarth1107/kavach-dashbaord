@@ -56,7 +56,7 @@ export function RecordAddForms({
           onDragLeave={onDragLeave}
           onDrop={onDrop}
           className={cn(
-            "relative flex cursor-pointer flex-col items-center justify-center rounded-[20px] border border-dashed px-4 text-center transition-colors",
+            "relative flex cursor-pointer flex-col items-center justify-center rounded-[20px] border border-dashed px-4 text-center transition-colors focus-within:ring-2 focus-within:ring-[var(--c-accent)]",
             dragOver
               ? "border-[var(--c-accent)] bg-[var(--c-accent-soft)]"
               : "border-[var(--c-ink-3)] bg-[var(--c-frame)] hover:border-[var(--c-ink)]",
@@ -80,11 +80,11 @@ export function RecordAddForms({
                 : "Choose files or drag here"}
           </p>
           <p className="mt-1 max-w-sm text-[12px] text-[var(--c-ink-2)]">
-            PDF or a photo (JPG, PNG, HEIC), including a tilted or dim phone photo · up to 15 MB
+            A PDF or a photo (JPG, PNG, HEIC), up to 15 MB. A tilted or dim phone photo is fine.
           </p>
           <p className="mt-2 flex items-center gap-1.5 text-[11.5px] font-medium text-[var(--c-accent)]">
             <span className="h-1.5 w-1.5 rounded-full bg-[var(--c-accent)]" />
-            Title, type, and date are detected automatically
+            Nothing is saved until you check what Saheli read
           </p>
           <input
             type="file"
@@ -122,7 +122,7 @@ export function RecordAddForms({
         )}
         <div className="flex flex-wrap items-center gap-2">
           <DarkButton type="submit" disabled={uploadButtonDisabled({ saving, fileCount: files.length, elderId })}>
-            {saving ? "Uploading & analyzing…" : files.length > 1 ? `Upload ${files.length} files` : "Upload"}
+            {saving ? "Reading…" : files.length > 1 ? `Upload ${files.length} files` : "Upload"}
           </DarkButton>
           {showCancel && (
             <button type="button" onClick={onCancel} className={CANCEL}>
@@ -140,14 +140,14 @@ export function RecordAddForms({
         value={text}
         aria-label="Pasted medical record"
         onChange={(e) => onText(e.target.value)}
-        placeholder={"Paste report text — Saheli will detect title, type, and date:\nTSH 4.2 mIU/L (8 Aug 2026)\nFree T4 1.1 ng/dL"}
+        placeholder={"Paste the report text, for example:\nTSH 4.2 mIU/L (8 Aug 2026)\nFree T4 1.1 ng/dL"}
         rows={6}
         className="w-full rounded-[20px] border border-[var(--c-line)] bg-[var(--c-frame)] px-4 py-3 text-[13px] leading-relaxed outline-none transition-colors placeholder:text-[var(--c-ink-3)] focus:border-[var(--c-ink)]"
       />
-      <p className="px-1 text-[12px] text-[var(--c-ink-2)]">No need to enter title or date — AI fills those in from the text.</p>
+      <p className="px-1 text-[12px] text-[var(--c-ink-2)]">Saheli reads it and shows you what she found. Nothing is saved until you check it.</p>
       <div className="flex flex-wrap items-center gap-2">
         <DarkButton type="submit" disabled={submitButtonDisabled({ saving, text, elderId })}>
-          {saving ? "Analyzing…" : "Submit"}
+          {saving ? "Reading…" : "Read it"}
         </DarkButton>
         {showCancel && (
           <button type="button" onClick={onCancel} className={CANCEL}>

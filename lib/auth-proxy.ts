@@ -87,19 +87,25 @@ function stripToken<T extends AuthPayload>(data: T): Omit<T, "token"> {
   return rest;
 }
 
-export async function proxyAuthPost(req: NextRequest, backendPath: string) {
+/** `timeoutMs` for slow writes (a report read takes 15 to 40 seconds); defaults to the normal write timeout. */
+export async function proxyAuthPost(req: NextRequest, backendPath: string, timeoutMs?: number) {
   const token = req.cookies.get(SESSION_COOKIE)?.value;
-  const body = await req.json();
+  // An empty body (a POST that only triggers an action) is sent on as {}.
+  const body = await req.json().catch(() => ({}));
 
-  const { ok, status, json } = await fetchBackend(backendPath, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-fingerprint": "N/A",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  const { ok, status, json } = await fetchBackend(
+    backendPath,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-fingerprint": "N/A",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify(body),
     },
-    body: JSON.stringify(body),
-  });
+    timeoutMs,
+  );
 
   const payload = json.data;
   const response = NextResponse.json(

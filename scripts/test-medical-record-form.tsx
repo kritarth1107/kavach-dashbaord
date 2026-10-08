@@ -215,28 +215,28 @@ async function main() {
   assert.equal(button("Upload 2 files").disabled, false, "a failed upload must leave Upload enabled");
 
   await user(() => button("switch").click());
-  assert.equal(button("Submit").disabled, true);
+  assert.equal(button("Read it").disabled, true);
 
   const area = document.querySelector("textarea") as HTMLTextAreaElement;
   assert.ok(area, "paste box");
   await user(() => setTextarea(area, "TSH 4.2 mIU/L"));
-  assert.equal(button("Submit").disabled, false, "pasted text must enable Submit");
+  assert.equal(button("Read it").disabled, false, "pasted text must enable Submit");
 
   await user(() => setTextarea(area, "   "));
-  assert.equal(button("Submit").disabled, true, "blank paste must keep Submit disabled");
+  assert.equal(button("Read it").disabled, true, "blank paste must keep Submit disabled");
 
   await user(() => setTextarea(area, "HbA1c 6.4%"));
   await act(async () => {
     root.render(createElement(Harness, { elderId: hiddenElder, failSave: true }));
   });
-  assert.equal(button("Submit").disabled, false);
+  assert.equal(button("Read it").disabled, false);
   await act(async () => {
-    button("Submit").click();
+    button("Read it").click();
     await Promise.resolve();
     await Promise.resolve();
   });
   assert.match(document.getElementById("msg")?.textContent || "", /refused the text/);
-  assert.equal(button("Submit").disabled, false, "a failed save must leave Submit enabled");
+  assert.equal(button("Read it").disabled, false, "a failed save must leave Submit enabled");
 
   await act(async () => {
     root.unmount();

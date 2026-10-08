@@ -28,7 +28,7 @@ export function PanelTitle({ title, right, marker = true }: { title: string; rig
   );
 }
 
-export function Tag({ children, tone = "accent", trend, className }: { children: React.ReactNode; tone?: "accent" | "dark" | "light" | "danger"; trend?: "up" | "down"; className?: string }) {
+export function Tag({ children, tone = "accent", trend, className }: { children: React.ReactNode; tone?: "accent" | "dark" | "light" | "danger" | "ok" | "warn"; trend?: "up" | "down"; className?: string }) {
   const Icon = trend === "up" ? ArrowUpRight : trend === "down" ? ArrowDownRight : null;
   return (
     <span
@@ -38,6 +38,8 @@ export function Tag({ children, tone = "accent", trend, className }: { children:
         tone === "dark" && "bg-[var(--c-ink)] text-[var(--c-frame)]",
         tone === "light" && "bg-[var(--c-chip)] text-[var(--c-ink-2)]",
         tone === "danger" && "bg-[#ffe1e1] text-[#b4232a]",
+        tone === "ok" && "bg-[#dff3e8] text-[#1f7a4d] dark:bg-[rgba(31,122,77,0.22)] dark:text-[#7fd3a6]",
+        tone === "warn" && "bg-[#fff1cc] text-[#9a6700] dark:bg-[rgba(154,103,0,0.25)] dark:text-[#f5c862]",
         className,
       )}
     >
