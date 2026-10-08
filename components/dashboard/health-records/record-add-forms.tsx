@@ -1,7 +1,7 @@
 "use client";
 
 import { type DragEvent, type FormEvent } from "react";
-import { FileArrowUp, Paperclip, X } from "@phosphor-icons/react";
+import { FileArrowUp, FilePdf, FileText, X } from "@phosphor-icons/react";
 import { cn } from "@/lib/utils";
 import { submitButtonDisabled, uploadButtonDisabled } from "@/lib/medical-record-form";
 import { DarkButton } from "@/components/care-os/ui";
@@ -98,24 +98,22 @@ export function RecordAddForms({
             }}
           />
         </div>
-        {files.length > 0 && (
-          <ul className="c-scroll max-h-40 space-y-1.5 overflow-y-auto">
+        {files.length === 1 && <SinglePreview file={files[0]} onRemove={() => onRemoveFile(files[0])} />}
+        {files.length > 1 && (
+          <ul className="grid grid-cols-3 gap-2 sm:grid-cols-4">
             {files.map((file) => (
-              <li
-                key={`${file.name}-${file.size}-${file.lastModified}`}
-                className="flex items-center gap-2.5 rounded-[14px] bg-[var(--c-frame)] py-1.5 pl-3 pr-1.5 text-[12.5px]"
-              >
-                <Paperclip size={14} className="shrink-0 text-[var(--c-ink-3)]" />
-                <span className="min-w-0 flex-1 truncate">{file.name}</span>
+              <li key={`${file.name}-${file.size}-${file.lastModified}`} className="relative">
+                <Thumb file={file} className="aspect-square w-full" />
                 <button
                   type="button"
                   aria-label={`Remove ${file.name}`}
-                  className="inline-flex h-7 shrink-0 items-center gap-1 rounded-full px-2.5 text-[12px] text-[var(--c-ink-2)] hover:bg-[var(--c-card)] hover:text-[#d92d20]"
+                  title={`Remove ${file.name}`}
+                  className="absolute right-1.5 top-1.5 flex h-7 w-7 items-center justify-center rounded-full bg-[var(--c-frame)] text-[var(--c-ink-2)] shadow-sm hover:text-[#d92d20]"
                   onClick={() => onRemoveFile(file)}
                 >
-                  <X size={12} />
-                  Remove
+                  <X size={12} weight="bold" />
                 </button>
+                <p className="mt-1 truncate px-0.5 text-[11px] text-[var(--c-ink-2)]">{file.name}</p>
               </li>
             ))}
           </ul>
@@ -156,5 +154,70 @@ export function RecordAddForms({
         )}
       </div>
     </form>
+  );
+}
+
+/** Browsers can show these; HEIC and documents get an icon instead. */
+const SHOWABLE = /^image\/(jpeg|jpg|png|webp|gif|avif)$/i;
+
+// One object URL per selected file for the life of the page (a handful of files; freed when the page closes).
+const previewUrls = new WeakMap<File, string>();
+function previewUrl(file: File): string | null {
+  if (!SHOWABLE.test(file.type)) return null;
+  let url = previewUrls.get(file);
+  if (!url) {
+    try {
+      url = URL.createObjectURL(file);
+    } catch {
+      return null; // no preview possible here (old browser, test runner): the icon is shown instead
+    }
+    previewUrls.set(file, url);
+  }
+  return url;
+}
+
+function sizeLabel(bytes: number): string {
+  return bytes >= 1024 * 1024 ? `${(bytes / (1024 * 1024)).toFixed(1)} MB` : `${Math.max(1, Math.round(bytes / 1024))} KB`;
+}
+
+function Thumb({ file, className }: { file: File; className?: string }) {
+  const url = previewUrl(file);
+  const pdf = file.type === "application/pdf" || /\.pdf$/i.test(file.name);
+  if (url) {
+    // eslint-disable-next-line @next/next/no-img-element
+    return <img src={url} alt={`Preview of ${file.name}`} className={cn("rounded-[14px] bg-[var(--c-card)] object-cover", className)} />;
+  }
+  return (
+    <span className={cn("flex flex-col items-center justify-center gap-1 rounded-[14px] bg-[var(--c-card)] text-[var(--c-ink-2)]", className)}>
+      {pdf ? <FilePdf size={28} /> : <FileText size={28} />}
+      <span className="text-[10.5px] uppercase tracking-wide">{pdf ? "PDF" : (file.name.split(".").pop() || "file").slice(0, 5)}</span>
+    </span>
+  );
+}
+
+function SinglePreview({ file, onRemove }: { file: File; onRemove: () => void }) {
+  const url = previewUrl(file);
+  return (
+    <div className="overflow-hidden rounded-[20px] bg-[var(--c-card)]">
+      {url ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={url} alt={`Preview of ${file.name}`} className="max-h-[340px] w-full bg-[var(--c-card)] object-contain" />
+      ) : (
+        <Thumb file={file} className="h-40 w-full rounded-none" />
+      )}
+      <div className="flex items-center gap-2.5 bg-[var(--c-frame)] py-2 pl-3 pr-1.5 text-[12.5px]">
+        <span className="min-w-0 flex-1 truncate">{file.name}</span>
+        <span className="shrink-0 text-[11.5px] text-[var(--c-ink-3)]">{sizeLabel(file.size)}</span>
+        <button
+          type="button"
+          aria-label={`Remove ${file.name}`}
+          className="inline-flex h-7 shrink-0 items-center gap-1 rounded-full px-2.5 text-[12px] text-[var(--c-ink-2)] hover:bg-[var(--c-card)] hover:text-[#d92d20]"
+          onClick={onRemove}
+        >
+          <X size={12} />
+          Remove
+        </button>
+      </div>
+    </div>
   );
 }

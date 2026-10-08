@@ -16,7 +16,10 @@ import {
 } from "../lib/medical-record-form";
 
 function button(name: string): HTMLButtonElement {
-  const found = [...document.querySelectorAll("button")].find((b) => b.textContent?.trim() === name);
+  // By visible text, or by the start of its label (thumbnail remove buttons are icon-only: "Remove photo.jpg").
+  const found = [...document.querySelectorAll("button")].find(
+    (b) => b.textContent?.trim() === name || (b.getAttribute("aria-label") ?? "").startsWith(`${name} `),
+  );
   assert.ok(found, `missing button ${name}`);
   return found as HTMLButtonElement;
 }
