@@ -269,7 +269,7 @@ export function DayCalendarPage() {
                   onClick={() => go(d)}
                   className={cn(
                     "flex h-11 w-11 flex-col items-center justify-center rounded-full text-[11px] leading-tight transition-colors disabled:opacity-30 sm:w-12",
-                    on ? "bg-[var(--c-ink)] text-white" : "hover:bg-[var(--c-frame)]",
+                    on ? "bg-[var(--c-solid)] text-white" : "hover:bg-[var(--c-frame)]",
                   )}
                 >
                   <span className={cn(on ? "text-white/70" : "text-[var(--c-ink-3)]")}>{dt.toLocaleDateString("en-IN", { weekday: "narrow", timeZone: IST })}</span>
@@ -319,7 +319,7 @@ export function DayCalendarPage() {
                         key={b.id}
                         className={cn(
                           "absolute overflow-hidden rounded-[12px] px-2.5 py-1.5",
-                          b.look.tone === "dark" && "bg-[var(--c-ink)] text-white",
+                          b.look.tone === "dark" && "bg-[var(--c-solid)] text-white",
                           b.look.tone === "accent" && "bg-[var(--c-accent)] text-white",
                           b.look.tone === "soft" && "bg-[var(--c-accent-soft)] text-[var(--c-accent-soft-ink)]",
                           b.look.tone === "plain" && (b.planned ? "c-hatch border border-[var(--c-line)] bg-[var(--c-frame)]" : "bg-[var(--c-frame)] shadow-[0_1px_0_rgba(0,0,0,0.04)]"),
@@ -346,7 +346,7 @@ export function DayCalendarPage() {
                           </p>
                           <span className="flex shrink-0 items-center gap-1">
                             {b.more?.length ? (
-                              <span className="rounded-full bg-[var(--c-ink)] px-1.5 text-[10px] font-medium leading-4 text-white">+{b.more.length}</span>
+                              <span className="rounded-full bg-[var(--c-solid)] px-1.5 text-[10px] font-medium leading-4 text-white">+{b.more.length}</span>
                             ) : null}
                             <b.look.icon size={13} weight="fill" className="opacity-80" />
                           </span>
@@ -463,7 +463,7 @@ export function DayCalendarPage() {
             <PanelTitle title="Legend" />
             <ul className="mt-3 space-y-2 text-[12px] text-[var(--c-ink-2)]">
               <li className="flex items-center gap-2">
-                <span className="h-4 w-6 rounded-[6px] bg-[var(--c-ink)]" /> Dose taken
+                <span className="h-4 w-6 rounded-[6px] bg-[var(--c-solid)]" /> Dose taken
               </li>
               <li className="flex items-center gap-2">
                 <span className="c-hatch h-4 w-6 rounded-[6px] border border-[var(--c-line)] bg-[var(--c-frame)]" /> Scheduled

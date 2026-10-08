@@ -1,10 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 import {
-  ArrowDownLeft,
-  ArrowsOut,
   Bell,
   Brain,
   CalendarDots,
@@ -13,17 +10,22 @@ import {
   Heart,
   House,
   List,
+  Moon,
   Pill,
   ShoppingBag,
   Siren,
   Sparkle,
   Stethoscope,
+  Sun,
   UsersThree,
   type Icon as PhosphorIcon,
 } from "@phosphor-icons/react";
+import { useTheme } from "@/components/providers/theme-provider";
+import { ThemeIcon, useThemeLabel } from "@/components/providers/theme-icon";
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { PersonPicker } from "./person-picker";
+import { Avatar } from "./ui";
 
 export type NavKey = "home" | "today" | "care" | "health" | "orders" | "saheli" | "memory" | "emergency" | "family" | "settings";
 
@@ -91,13 +93,12 @@ export function CareShell({
   loadingPeople?: boolean;
   selectedId: string | null;
   onSelectPerson?: (id: string) => void;
-  me: { name: string };
+  me: { name: string; avatar?: string | null };
   alerts?: number;
   onMenu?: () => void;
   children: React.ReactNode;
 }) {
   const now = useClock();
-  const pathname = usePathname();
   const time = now.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Asia/Kolkata" });
   const date = now.toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short", timeZone: "Asia/Kolkata" });
 
@@ -135,15 +136,14 @@ export function CareShell({
           </div>
           <div className="flex flex-col items-center gap-3">
             <span className="rounded-full bg-[var(--c-card)] px-2.5 py-1.5 text-[12px] font-medium tabular-nums">{time}</span>
+            <ThemeSwitch />
             <Link
-              href={pathname === "/dashboard" ? "/dashboard/saheli" : "/dashboard"}
-              aria-label="Switch view"
-              className="flex h-11 w-11 items-center justify-center rounded-full text-[var(--c-ink-2)] hover:text-[var(--c-ink)]"
+              href="/dashboard/settings"
+              aria-label={`Your profile and settings (${me.name})`}
+              title={me.name}
+              className="rounded-full ring-2 ring-[var(--c-frame)] ring-offset-0 outline outline-[1.5px] outline-offset-[2px] outline-[var(--c-line)] transition-[outline-color] hover:outline-[var(--c-accent)]"
             >
-              <ArrowsOut size={18} />
-            </Link>
-            <Link href="/dashboard/settings" aria-label="Settings" className="flex h-11 w-11 items-center justify-center rounded-full bg-[var(--c-ink)] text-[var(--c-frame)]">
-              <ArrowDownLeft size={18} weight="bold" />
+              <Avatar name={me.name} src={me.avatar} size={40} />
             </Link>
           </div>
         </aside>
@@ -202,7 +202,7 @@ export function CareShell({
                 <span className="hidden sm:inline">{date}</span>
                 <span
                   className={cn(
-                    "flex h-6 min-w-6 items-center justify-center rounded-full bg-[var(--c-ink)] px-1.5 text-[11px] text-[var(--c-frame)]",
+                    "flex h-6 min-w-6 items-center justify-center rounded-full bg-[var(--c-solid)] px-1.5 text-[11px] text-[var(--c-on-solid)]",
                     "max-sm:absolute max-sm:-right-1 max-sm:-top-1 max-sm:h-5 max-sm:min-w-5 max-sm:border-2 max-sm:border-[var(--c-frame)] max-sm:bg-[var(--c-accent)] max-sm:px-1 max-sm:text-[10px]",
                     !alerts && "max-sm:hidden",
                   )}
@@ -229,7 +229,7 @@ export function CareShell({
 
       <nav
         aria-label="Main"
-        className="fixed inset-x-3 bottom-[max(12px,env(safe-area-inset-bottom))] z-30 grid grid-cols-5 gap-1 rounded-[26px] bg-[var(--c-ink)] p-1.5 shadow-[0_18px_40px_-18px_rgba(20,42,34,0.6)] md:hidden"
+        className="fixed inset-x-3 bottom-[max(12px,env(safe-area-inset-bottom))] z-30 grid grid-cols-5 gap-1 rounded-[26px] bg-[var(--c-solid)] p-1.5 shadow-[0_18px_40px_-18px_rgba(20,42,34,0.6)] md:hidden"
       >
         {TABS.map((n) => {
           const on = n.key === active;
@@ -249,5 +249,22 @@ export function CareShell({
         })}
       </nav>
     </div>
+  );
+}
+
+/** Light / dark switch for the rail (the choice is remembered on this device). */
+function ThemeSwitch() {
+  const { toggleTheme } = useTheme();
+  const { dark, label } = useThemeLabel();
+  return (
+    <button
+      type="button"
+      onClick={toggleTheme}
+      aria-label={label}
+      title={dark ? "Light mode" : "Dark mode"}
+      className="flex h-11 w-11 items-center justify-center rounded-full border border-[var(--c-line)] text-[var(--c-ink-2)] transition-colors hover:text-[var(--c-ink)]"
+    >
+      <ThemeIcon size={18} sun={<Sun size={18} weight="bold" />} moon={<Moon size={18} weight="bold" />} />
+    </button>
   );
 }

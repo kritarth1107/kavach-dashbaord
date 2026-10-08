@@ -107,7 +107,7 @@ function RowActions({ label, onEdit, onRemove, busy }: { label: string; onEdit?:
         <button type="button" className="text-[var(--c-ink-2)] hover:text-[var(--c-ink)]" onClick={() => setConfirm(false)}>
           Keep
         </button>
-        <button type="button" disabled={busy} className="font-medium text-[#d92d20] disabled:opacity-50" onClick={onRemove}>
+        <button type="button" disabled={busy} className="font-medium text-[var(--c-danger-ink)] disabled:opacity-50" onClick={onRemove}>
           {busy ? "Removing…" : "Remove"}
         </button>
       </span>
@@ -123,7 +123,7 @@ function RowActions({ label, onEdit, onRemove, busy }: { label: string; onEdit?:
         type="button"
         aria-label={`Remove ${label}`}
         onClick={() => setConfirm(true)}
-        className="flex h-9 w-9 items-center justify-center rounded-full text-[var(--c-ink-3)] hover:bg-[var(--c-card)] hover:text-[#d92d20]"
+        className="flex h-9 w-9 items-center justify-center rounded-full text-[var(--c-ink-3)] hover:bg-[var(--c-card)] hover:text-[var(--c-danger-ink)]"
       >
         <Trash size={15} />
       </button>
@@ -138,7 +138,7 @@ function DateChip({ when, dark }: { when: string | null; dark?: boolean }) {
     <span
       className={cn(
         "flex w-[64px] shrink-0 flex-col items-center justify-center rounded-[18px] py-2 leading-none",
-        dark ? "bg-[var(--c-ink)] text-[var(--c-frame)]" : "bg-[var(--c-card)]",
+        dark ? "bg-[var(--c-solid)] text-[var(--c-on-solid)]" : "bg-[var(--c-card)]",
       )}
     >
       <span className="text-[11px] uppercase tracking-[0.06em] opacity-70">{fmtDay(d, { month: "short" })}</span>

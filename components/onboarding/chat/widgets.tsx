@@ -17,9 +17,9 @@ const ICONS: Record<string, typeof User> = {
 };
 
 export const LABEL = "mb-2.5 flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-[0.07em] text-[var(--c-ink-3)]";
-const CARD = "rounded-[24px] border border-[var(--c-line)] bg-white p-4";
-const PRIMARY = "inline-flex h-11 items-center gap-2 rounded-full bg-[var(--c-ink)] px-5 text-[14px] font-medium text-white transition hover:opacity-90 disabled:opacity-40";
-const GHOST = "inline-flex h-11 items-center gap-1.5 rounded-full border border-[var(--c-line)] bg-white px-4 text-[14px] transition hover:border-[var(--c-ink)]";
+const CARD = "rounded-[24px] border border-[var(--c-line)] bg-[var(--c-frame)] p-4";
+const PRIMARY = "inline-flex h-11 items-center gap-2 rounded-full bg-[var(--c-solid)] px-5 text-[14px] font-medium text-white transition hover:opacity-90 disabled:opacity-40";
+const GHOST = "inline-flex h-11 items-center gap-1.5 rounded-full border border-[var(--c-line)] bg-[var(--c-frame)] px-4 text-[14px] transition hover:border-[var(--c-ink)]";
 
 export function Chips({ options, multi, selected = [], exclusive = [], skip, onPick, onSkip }: {
   options: Option[]; multi?: boolean; selected?: string[]; exclusive?: string[]; skip?: string; onPick: (ids: string[]) => void; onSkip?: () => void;
@@ -37,7 +37,7 @@ export function Chips({ options, multi, selected = [], exclusive = [], skip, onP
         return (
           <button key={o.id} type="button" onClick={() => toggle(o.id)} aria-pressed={multi ? sel : undefined} title={o.hint}
             className={cn("inline-flex min-h-10 items-center gap-2 rounded-full px-4 py-2 text-left text-[14px] transition",
-              sel ? "bg-[var(--c-ink)] text-white" : "border border-[var(--c-line)] bg-white hover:border-[var(--c-ink)]")}>
+              sel ? "bg-[var(--c-solid)] text-white" : "border border-[var(--c-line)] bg-[var(--c-frame)] hover:border-[var(--c-ink)]")}>
             {Icon && <Icon size={16} className={sel ? "" : "text-[var(--c-ink-2)]"} />}
             <span>{o.label}{o.hint && !multi && <span className={cn("ml-1.5 text-[12px]", sel ? "text-white/60" : "text-[var(--c-ink-3)]")}>· {o.hint}</span>}</span>
           </button>
@@ -108,7 +108,7 @@ export function LanguageCard({ person, self, onPick }: { person: Person; self: b
       {q && (
         <div className="mt-2 flex flex-wrap gap-1.5 text-[13px]">
           {found.length ? found.map((o) => (
-            <button key={o.code} type="button" onClick={() => onPick(o)} className="rounded-full bg-[var(--c-ink)] px-3 py-1.5 text-white">{o.native} {o.name}</button>
+            <button key={o.code} type="button" onClick={() => onPick(o)} className="rounded-full bg-[var(--c-solid)] px-3 py-1.5 text-white">{o.native} {o.name}</button>
           )) : <span className="px-1 text-[var(--c-ink-3)]">Not in my list yet — type it below and send, I&apos;ll note it.</span>}
         </div>
       )}
@@ -190,7 +190,7 @@ export function NumberWidget({ placeholder, skip, onValue, onSkip }: { placehold
   return (
     <div className="flex flex-wrap items-center gap-2">
       <input inputMode="numeric" value={v} onChange={(e) => setV(e.target.value.replace(/\D/g, "").slice(0, 3))} onKeyDown={(e) => e.key === "Enter" && n >= 1 && n <= 120 && onValue(n)}
-        placeholder={placeholder} aria-label={placeholder} className="c-num h-11 w-28 rounded-full border border-[var(--c-line)] bg-white px-4 text-center text-[16px] outline-none focus:border-[var(--c-ink)]" />
+        placeholder={placeholder} aria-label={placeholder} className="c-num h-11 w-28 rounded-full border border-[var(--c-line)] bg-[var(--c-frame)] px-4 text-center text-[16px] outline-none focus:border-[var(--c-ink)]" />
       <button type="button" disabled={!(n >= 1 && n <= 120)} onClick={() => onValue(n)} className={PRIMARY}>Send</button>
       {skip && <button type="button" onClick={onSkip} className="h-11 rounded-full px-3 text-[13.5px] text-[var(--c-ink-2)] hover:text-[var(--c-ink)]">{skip}</button>}
     </div>
@@ -224,7 +224,7 @@ export function SummaryCard({ person, call, rows, onEdit }: { person: Person; ca
   return (
     <div className={cn(CARD, "max-w-[600px] p-5")}>
       <div className="flex items-center gap-3">
-        <span className="flex h-11 w-11 items-center justify-center rounded-full bg-[var(--c-ink)] text-[15px] font-medium text-white">{initials(person.name)}</span>
+        <span className="flex h-11 w-11 items-center justify-center rounded-full bg-[var(--c-solid)] text-[15px] font-medium text-white">{initials(person.name)}</span>
         <div className="min-w-0">
           <p className="text-[16px] font-medium">{person.name}{call !== "you" && <span className="font-normal text-[var(--c-ink-2)]"> · {call}</span>}</p>
           {facts && <p className="text-[12.5px] text-[var(--c-ink-3)]">{facts}</p>}
@@ -255,7 +255,7 @@ export function SetupProgress({ steps, finished }: { steps: string[]; finished: 
     <div className={cn(CARD, "max-w-[480px] p-3")}>
       {steps.map((s, k) => (
         <div key={s} className={cn("flex items-center gap-3 rounded-[14px] px-3 py-2.5 text-[14px]", k === upto && "bg-[var(--c-card)]")}>
-          {k < upto ? <CheckCircle size={19} weight="fill" className="text-[#1f7a4d]" /> : k === upto ? <CircleNotch size={19} className="animate-spin text-[var(--c-accent)]" /> : <span className="h-[19px] w-[19px] rounded-full border border-[var(--c-line)]" />}
+          {k < upto ? <CheckCircle size={19} weight="fill" className="text-[var(--c-ok-ink)]" /> : k === upto ? <CircleNotch size={19} className="animate-spin text-[var(--c-accent)]" /> : <span className="h-[19px] w-[19px] rounded-full border border-[var(--c-line)]" />}
           <span className={k > upto ? "text-[var(--c-ink-3)]" : ""}>{s}</span>
         </div>
       ))}
@@ -267,12 +267,12 @@ export function WelcomePreview({ text, voice }: { text: string; voice: boolean }
   const bars = [4, 9, 14, 8, 18, 12, 6, 16, 10, 20, 8, 13, 5, 15, 9, 11, 6, 14, 8, 4];
   return (
     <div className="max-w-[440px] rounded-[24px] bg-[#efeae2] p-3">
-      <div className="rounded-[16px] rounded-tl-[4px] bg-white px-3.5 py-2.5 text-[14.5px] leading-[1.55] shadow-sm">
+      <div className="rounded-[16px] rounded-tl-[4px] bg-[var(--c-frame)] px-3.5 py-2.5 text-[14.5px] leading-[1.55] shadow-sm">
         {text}
         <p className="c-num mt-1 text-right text-[10.5px] text-[var(--c-ink-3)]">{new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })} ✓✓</p>
       </div>
       {voice && (
-        <div className="mt-1.5 flex w-[250px] items-center gap-2.5 rounded-[16px] bg-white px-3 py-2 shadow-sm" aria-hidden>
+        <div className="mt-1.5 flex w-[250px] items-center gap-2.5 rounded-[16px] bg-[var(--c-frame)] px-3 py-2 shadow-sm" aria-hidden>
           <span className="h-0 w-0 border-y-[7px] border-l-[11px] border-y-transparent border-l-[var(--c-ink-2)]" />
           <div className="flex h-6 flex-1 items-center gap-[2px]">{bars.map((h, k) => <span key={k} className="w-[3px] rounded-full bg-[var(--c-ink-3)]" style={{ height: h }} />)}</div>
         </div>

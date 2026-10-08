@@ -238,7 +238,7 @@ export function FamilyTasksPage() {
                         <span className="c-num">{x.n}</span>
                       </div>
                       <div className="mt-1.5 h-1.5 rounded-full bg-[var(--c-frame)]">
-                        <div className={cn("h-full rounded-full", x.id === myId ? "bg-[var(--c-accent)]" : "bg-[var(--c-ink)]")} style={{ width: `${(x.n / allOpen.length) * 100}%` }} />
+                        <div className={cn("h-full rounded-full", x.id === myId ? "bg-[var(--c-accent)]" : "bg-[var(--c-solid)]")} style={{ width: `${(x.n / allOpen.length) * 100}%` }} />
                       </div>
                     </div>
                   </li>

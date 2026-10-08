@@ -70,7 +70,7 @@ export function CareHome({
             <span className="flex h-[68px] w-[68px] items-center justify-center rounded-full bg-[var(--c-accent)] text-white">
               <Asterisk size={34} weight="bold" />
             </span>
-            <span className="absolute -bottom-1 -right-2 flex h-7 w-7 items-center justify-center rounded-full bg-[var(--c-ink)] text-[var(--c-frame)]">
+            <span className="absolute -bottom-1 -right-2 flex h-7 w-7 items-center justify-center rounded-full bg-[var(--c-solid)] text-[var(--c-on-solid)]">
               <ArrowDownRight size={13} weight="bold" />
             </span>
           </div>
@@ -104,7 +104,7 @@ export function CareHome({
             title="Medicines"
             right={
               <span className="flex items-center gap-1.5 text-[11px]">
-                <span className="h-3.5 w-3.5 rounded-full bg-[var(--c-ink)]" /> Today
+                <span className="h-3.5 w-3.5 rounded-full bg-[var(--c-solid)]" /> Today
               </span>
             }
           />

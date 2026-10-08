@@ -170,11 +170,11 @@ export function TickBox({
           "peer h-[18px] w-[18px] cursor-pointer appearance-none rounded-[5px] border transition-colors outline-none",
           "focus-visible:ring-2 focus-visible:ring-[var(--c-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--c-frame)]",
           "disabled:cursor-not-allowed disabled:opacity-50",
-          checked ? "border-[var(--c-ink)] bg-[var(--c-ink)]" : "border-[var(--c-ink-3)] bg-[var(--c-frame)]",
+          checked ? "border-[var(--c-solid)] bg-[var(--c-solid)]" : "border-[var(--c-ink-3)] bg-[var(--c-frame)]",
         )}
       />
       {checked && (
-        <svg viewBox="0 0 12 12" aria-hidden className="pointer-events-none absolute left-1/2 top-1/2 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 text-[var(--c-frame)]">
+        <svg viewBox="0 0 12 12" aria-hidden className="pointer-events-none absolute left-1/2 top-1/2 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 text-[var(--c-on-solid)]">
           <path d="M2 6.5 4.8 9 10 3" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       )}
@@ -188,7 +188,7 @@ export const PILL_BUTTON =
   "inline-flex h-9 items-center gap-1.5 rounded-full border border-[var(--c-line)] bg-[var(--c-frame)] px-4 text-[13px] font-medium text-[var(--c-ink)] transition-colors hover:bg-[var(--c-card)] disabled:opacity-40 outline-none focus-visible:ring-2 focus-visible:ring-[var(--c-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--c-frame)]";
 
 export const DARK_PILL_BUTTON =
-  "inline-flex h-9 items-center gap-1.5 rounded-full bg-[var(--c-ink)] px-4 text-[13px] font-medium text-[var(--c-frame)] transition-opacity hover:opacity-90 disabled:opacity-40 outline-none focus-visible:ring-2 focus-visible:ring-[var(--c-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--c-frame)]";
+  "inline-flex h-9 items-center gap-1.5 rounded-full bg-[var(--c-solid)] px-4 text-[13px] font-medium text-[var(--c-on-solid)] transition-opacity hover:opacity-90 disabled:opacity-40 outline-none focus-visible:ring-2 focus-visible:ring-[var(--c-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--c-frame)]";
 
 /** "Are you sure?" in place of the buttons, with the consequence spelled out. */
 export function ConfirmBar({
@@ -217,7 +217,7 @@ export function ConfirmBar({
     <div
       role="alertdialog"
       aria-live="polite"
-      className={cn("flex flex-col gap-3 rounded-[16px] bg-[#fff6f6] p-3.5 dark:bg-[rgba(180,35,42,0.14)]", !stack && "sm:flex-row sm:items-center sm:justify-between", className)}
+      className={cn("flex flex-col gap-3 rounded-[16px] bg-[var(--c-danger-wash)] p-3.5 dark:bg-[rgba(180,35,42,0.14)]", !stack && "sm:flex-row sm:items-center sm:justify-between", className)}
     >
       <p className="text-[13px] leading-relaxed text-[var(--c-ink)]">{text}</p>
       <div className="flex shrink-0 items-center gap-2">
@@ -228,7 +228,7 @@ export function ConfirmBar({
           type="button"
           onClick={onConfirm}
           disabled={busy}
-          className="inline-flex h-9 items-center gap-1.5 rounded-full bg-[#b4232a] px-4 text-[13px] font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-60 outline-none focus-visible:ring-2 focus-visible:ring-[#b4232a] focus-visible:ring-offset-2"
+          className="inline-flex h-9 items-center gap-1.5 rounded-full bg-[#b4232a] px-4 text-[13px] font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-60 outline-none focus-visible:ring-2 focus-visible:ring-[var(--c-danger-ink)] focus-visible:ring-offset-2"
         >
           {busy ? (busyLabel ?? `${confirmLabel}…`) : confirmLabel}
         </button>
@@ -312,7 +312,7 @@ export function RecordFile({
   } else {
     body = (
       <div className="flex flex-col items-center justify-center gap-2 rounded-[14px] bg-[var(--c-frame)] px-4 py-10 text-center shadow-sm">
-        <span className="flex h-12 w-12 items-center justify-center rounded-[14px] bg-[var(--c-ink)] text-[var(--c-frame)]">
+        <span className="flex h-12 w-12 items-center justify-center rounded-[14px] bg-[var(--c-solid)] text-[var(--c-on-solid)]">
           <FileText size={22} />
         </span>
         <p className="max-w-full truncate text-[13px] font-medium">{doc.file_name || "Original file"}</p>

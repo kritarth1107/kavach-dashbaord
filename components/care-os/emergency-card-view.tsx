@@ -21,7 +21,7 @@ export function CallLink({ phone, label, dark }: { phone: string; label?: string
       href={telHref(phone)}
       className={cn(
         "inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full px-3.5 text-[12.5px] font-medium tabular-nums transition-opacity hover:opacity-90",
-        dark ? "bg-[var(--c-ink)] text-[var(--c-frame)]" : "border border-[var(--c-line)] bg-[var(--c-frame)]",
+        dark ? "bg-[var(--c-solid)] text-[var(--c-on-solid)]" : "border border-[var(--c-line)] bg-[var(--c-frame)]",
       )}
     >
       <Phone size={14} weight="fill" />
@@ -73,7 +73,7 @@ export function EmergencyCardView({
             {relation && relation !== "self care" && <p className="text-[13px] capitalize text-[var(--c-ink-2)]">{relation}</p>}
           </div>
         </div>
-        <div className="flex shrink-0 items-center gap-3 self-start rounded-[18px] bg-[var(--c-ink)] px-5 py-3 text-[var(--c-frame)] sm:self-auto">
+        <div className="flex shrink-0 items-center gap-3 self-start rounded-[18px] bg-[var(--c-solid)] px-5 py-3 text-[var(--c-on-solid)] sm:self-auto">
           <span className="text-[11px] font-medium uppercase leading-tight tracking-[0.06em] opacity-70">
             Blood
             <br />

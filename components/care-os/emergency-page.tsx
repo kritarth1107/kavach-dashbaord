@@ -174,7 +174,7 @@ function Editor({
                   aria-label={`Remove ${c.name}`}
                   disabled={busy !== null}
                   onClick={() => void remove(c)}
-                  className="flex h-9 w-9 items-center justify-center rounded-full text-[var(--c-ink-3)] hover:bg-[var(--c-frame)] hover:text-[#d92d20] disabled:opacity-40"
+                  className="flex h-9 w-9 items-center justify-center rounded-full text-[var(--c-ink-3)] hover:bg-[var(--c-frame)] hover:text-[var(--c-danger-ink)] disabled:opacity-40"
                 >
                   <Trash size={15} />
                 </button>
@@ -369,7 +369,7 @@ export function EmergencyPage() {
                     type="button"
                     disabled={busy}
                     onClick={() => void turnOff()}
-                    className="mt-3 inline-flex items-center gap-1.5 text-[12.5px] font-medium text-[#d92d20] hover:underline disabled:opacity-50"
+                    className="mt-3 inline-flex items-center gap-1.5 text-[12.5px] font-medium text-[var(--c-danger-ink)] hover:underline disabled:opacity-50"
                   >
                     <LinkBreak size={14} /> Turn off link
                   </button>

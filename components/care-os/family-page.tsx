@@ -111,7 +111,7 @@ function RecipientCard({ m, canManage, onRemove, onBlock }: { m: FamilyMember; c
       {m.userId && (
         <Link
           href={`/dashboard?recipient=${m.userId}`}
-          className="mt-6 inline-flex h-10 items-center justify-center rounded-full bg-[var(--c-ink)] px-4 text-[13px] font-medium text-white hover:opacity-90"
+          className="mt-6 inline-flex h-10 items-center justify-center rounded-full bg-[var(--c-solid)] px-4 text-[13px] font-medium text-white hover:opacity-90"
         >
           Open {m.name.split(" ")[0]}&apos;s care
         </Link>

@@ -370,11 +370,11 @@ function ReviewBanner({ docs, href }: { docs: LabDocument[]; href: string }) {
 
 function FlashBanner({ flash, onClose }: { flash: RecordsFlash; onClose: () => void }) {
   return (
-    <div role="status" className="flex items-start gap-3 rounded-[18px] bg-[#dff3e8] px-4 py-3 text-[13px] text-[#14532d] dark:bg-[rgba(31,122,77,0.2)] dark:text-[#bfe8d0]">
+    <div role="status" className="flex items-start gap-3 rounded-[18px] bg-[var(--c-ok-soft)] px-4 py-3 text-[13px] text-[#14532d] dark:bg-[rgba(31,122,77,0.2)] ">
       <div className="min-w-0 flex-1 space-y-1">
         <p>{flash.text}</p>
         {flash.warn && (
-          <p className="flex items-start gap-1.5 text-[#9a6700] dark:text-[#f5c862]">
+          <p className="flex items-start gap-1.5 text-[var(--c-warn-ink)] ">
             <Warning size={15} weight="fill" className="mt-[1px] shrink-0" aria-hidden />
             {flash.warn}
           </p>

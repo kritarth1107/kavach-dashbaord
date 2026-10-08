@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRight, Loader2, Mail, Smartphone } from "lucide-react";
+import { ArrowRight, Loader2, Mail, Moon, Smartphone, Sun } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
@@ -20,6 +20,8 @@ import {
   normalizePhoneDigits,
 } from "@/lib/phone";
 import { cn } from "@/lib/utils";
+import { useTheme } from "@/components/providers/theme-provider";
+import { ThemeIcon, useThemeLabel } from "@/components/providers/theme-icon";
 import { OtpInput } from "./otp-input";
 
 function routeAfterLogin() {
@@ -64,12 +66,12 @@ function SubmitButton({
       disabled={loading || disabled}
       aria-busy={loading}
       className={cn(
-        "flex h-12 w-full items-center justify-between gap-2 rounded-full bg-[var(--c-ink)] pl-6 pr-1.5 text-[14px] font-medium text-white transition-opacity hover:opacity-90",
+        "flex h-12 w-full items-center justify-between gap-2 rounded-full bg-[var(--c-solid)] pl-6 pr-1.5 text-[14px] font-medium text-white transition-opacity hover:opacity-90",
         loading ? "cursor-wait" : "disabled:opacity-50",
       )}
     >
       <span>{loading ? loadingLabel : label}</span>
-      <span className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-[var(--c-ink)]">
+      <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--c-frame)] text-[var(--c-ink)]">
         {loading ? (
           <Loader2 className="h-4 w-4 animate-spin" strokeWidth={2.5} />
         ) : (
@@ -93,7 +95,7 @@ function MethodToggle({
       <span
         aria-hidden
         className={cn(
-          "absolute inset-y-1 w-[calc(50%-4px)] rounded-full bg-[var(--c-ink)] transition-transform duration-200 ease-out",
+          "absolute inset-y-1 w-[calc(50%-4px)] rounded-full bg-[var(--c-solid)] transition-transform duration-200 ease-out",
           value === "phone" ? "translate-x-[calc(100%+4px)]" : "translate-x-1",
         )}
       />
@@ -302,11 +304,14 @@ export function LoginForm() {
   return (
     <div className="flex min-h-screen w-full">
       <div className="flex w-full flex-col bg-[var(--c-frame)] px-6 py-8 sm:px-12 lg:w-[46%] lg:px-16">
-        <div className="mx-auto w-full max-w-[400px]">
+        <div className="mx-auto flex w-full max-w-[400px] items-center justify-between">
           <Link href="/" className="inline-flex" aria-label="Kavach CareOS">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/kavach-careos-logo.png" alt="Kavach CareOS" className="h-11 w-auto" />
+            <img src="/kavach-careos-logo.png" alt="Kavach CareOS" className="h-11 w-auto dark:hidden" />
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/kavach-careos-logo-dark.png" alt="" aria-hidden className="hidden h-11 w-auto dark:block" />
           </Link>
+          <LoginThemeSwitch />
         </div>
         <div className="mx-auto flex w-full max-w-[400px] flex-1 flex-col justify-center py-10">
         <div className="mb-8">
@@ -569,7 +574,7 @@ function LoginShowcase() {
           <div className="mt-6 space-y-2 text-[12px]">
             {["BP tablet · 08:00", "Vitamin D3 · 10:00", "Folvite · 13:00"].map((t) => (
               <p key={t} className="flex items-center gap-2">
-                <span className="flex h-4 w-4 items-center justify-center rounded-[5px] bg-[var(--c-ink)] text-[9px] text-white">✓</span>
+                <span className="flex h-4 w-4 items-center justify-center rounded-[5px] bg-[var(--c-solid)] text-[9px] text-white">✓</span>
                 {t}
               </p>
             ))}
@@ -581,7 +586,7 @@ function LoginShowcase() {
           </p>
           <div className="mt-6 flex h-[150px] items-end gap-[6px]">
             {BARS.map((v, i) => (
-              <span key={i} className={i === BARS.length - 1 ? "flex-1 rounded-full bg-[var(--c-accent)]" : "flex-1 rounded-full bg-[var(--c-ink)]"} style={{ height: `${v}%` }} />
+              <span key={i} className={i === BARS.length - 1 ? "flex-1 rounded-full bg-[var(--c-accent)]" : "flex-1 rounded-full bg-[var(--c-solid)]"} style={{ height: `${v}%` }} />
             ))}
           </div>
           <p className="mt-4 text-[12px] text-[var(--c-ink-2)]">14 days of doses, reminded on WhatsApp</p>
@@ -594,5 +599,21 @@ function LoginShowcase() {
         <span className="rounded-full bg-[var(--c-frame)] px-4 py-2 text-[12px] text-[var(--c-ink-2)]">Kavach CareOS</span>
       </div>
     </aside>
+  );
+}
+
+function LoginThemeSwitch() {
+  const { toggleTheme } = useTheme();
+  const { dark, label } = useThemeLabel();
+  return (
+    <button
+      type="button"
+      onClick={toggleTheme}
+      aria-label={label}
+      title={dark ? "Light mode" : "Dark mode"}
+      className="flex h-10 w-10 items-center justify-center rounded-full border border-[var(--c-line)] text-[var(--c-ink-2)] transition-colors hover:text-[var(--c-ink)]"
+    >
+      <ThemeIcon size={16} sun={<Sun className="h-4 w-4" strokeWidth={2.25} />} moon={<Moon className="h-4 w-4" strokeWidth={2.25} />} />
+    </button>
   );
 }

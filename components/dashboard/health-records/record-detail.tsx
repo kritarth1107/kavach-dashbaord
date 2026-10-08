@@ -174,7 +174,7 @@ function DetailBody({
           <button
             type="button"
             onClick={() => setConfirming(true)}
-            className="inline-flex h-9 items-center gap-1.5 rounded-full px-3 text-[13px] text-[#b4232a] outline-none transition-colors hover:bg-[#fff6f6] focus-visible:ring-2 focus-visible:ring-[#b4232a]"
+            className="inline-flex h-9 items-center gap-1.5 rounded-full px-3 text-[13px] text-[var(--c-danger-ink)] outline-none transition-colors hover:bg-[var(--c-danger-wash)] focus-visible:ring-2 focus-visible:ring-[var(--c-danger-ink)]"
           >
             <Trash size={15} aria-hidden />
             Delete this record

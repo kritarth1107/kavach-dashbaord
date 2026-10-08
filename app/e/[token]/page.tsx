@@ -29,7 +29,7 @@ function CallRow({ name, meta, phone, primary }: { name: string; meta?: string |
       href={telHref(phone)}
       className={cn(
         "flex min-h-[64px] items-center gap-3 rounded-[18px] px-4 py-3 transition-opacity active:opacity-80",
-        primary ? "bg-[var(--c-ink)] text-[var(--c-frame)]" : "bg-[var(--c-frame)]",
+        primary ? "bg-[var(--c-solid)] text-[var(--c-on-solid)]" : "bg-[var(--c-frame)]",
       )}
     >
       <span className="min-w-0 flex-1">
@@ -37,7 +37,7 @@ function CallRow({ name, meta, phone, primary }: { name: string; meta?: string |
         {meta && <span className={cn("block truncate text-[12.5px] first-letter:uppercase", primary ? "opacity-75" : "text-[var(--c-ink-2)]")}>{meta}</span>}
         <span className={cn("block text-[13px] tabular-nums", primary ? "opacity-90" : "text-[var(--c-ink-2)]")}>{phone}</span>
       </span>
-      <span className={cn("flex h-11 shrink-0 items-center gap-1.5 rounded-full px-4 text-[14px] font-medium", primary ? "bg-[var(--c-accent)] text-white" : "bg-[var(--c-ink)] text-[var(--c-frame)]")}>
+      <span className={cn("flex h-11 shrink-0 items-center gap-1.5 rounded-full px-4 text-[14px] font-medium", primary ? "bg-[var(--c-accent)] text-white" : "bg-[var(--c-solid)] text-[var(--c-on-solid)]")}>
         <Phone size={16} weight="fill" /> Call
       </span>
     </a>
@@ -82,7 +82,7 @@ export default function PublicEmergencyPage() {
             <p className="mt-2 max-w-sm text-[14px] text-[var(--c-ink-2)]">
               The family may have turned it off or made a new one. Ask them for the latest link.
             </p>
-            <a href="tel:112" className="mt-6 inline-flex h-12 items-center gap-2 rounded-full bg-[var(--c-ink)] px-6 text-[15px] font-medium text-[var(--c-frame)]">
+            <a href="tel:112" className="mt-6 inline-flex h-12 items-center gap-2 rounded-full bg-[var(--c-solid)] px-6 text-[15px] font-medium text-[var(--c-on-solid)]">
               <Phone size={18} weight="fill" /> Emergency: call 112
             </a>
           </div>
@@ -118,7 +118,7 @@ function Card({ data }: { data: PublicEmergency }) {
       </header>
 
       <div className="grid grid-cols-[auto_1fr] gap-3">
-        <div className="flex flex-col justify-center rounded-[22px] bg-[var(--c-ink)] px-5 py-4 text-[var(--c-frame)]">
+        <div className="flex flex-col justify-center rounded-[22px] bg-[var(--c-solid)] px-5 py-4 text-[var(--c-on-solid)]">
           <span className="text-[11px] font-medium uppercase tracking-[0.07em] opacity-70">Blood group</span>
           <span className="c-num mt-1 text-[44px] leading-none">{blood || "—"}</span>
         </div>

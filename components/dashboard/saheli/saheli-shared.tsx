@@ -138,14 +138,14 @@ export function useAction() {
 export function Banner({ banner }: { banner: { tone: "ok" | "error"; text: string } | null }) {
   if (!banner) return null;
   return (
-    <div role="status" className={banner.tone === "ok" ? "rounded-[14px] bg-[#e6f2ec] px-4 py-2.5 text-[13px] text-[var(--c-forest)]" : "rounded-[14px] bg-[var(--c-accent-soft)] px-4 py-2.5 text-[13px] text-[var(--c-accent-soft-ink)]"}>
+    <div role="status" className={banner.tone === "ok" ? "rounded-[14px] bg-[var(--c-ok-soft)] px-4 py-2.5 text-[13px] text-[var(--c-forest)]" : "rounded-[14px] bg-[var(--c-accent-soft)] px-4 py-2.5 text-[13px] text-[var(--c-accent-soft-ink)]"}>
       {banner.text}
     </div>
   );
 }
 
 export const btnPrimary =
-  "inline-flex h-9 items-center gap-1.5 rounded-full bg-[var(--c-ink)] px-4 text-[12px] font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-40";
+  "inline-flex h-9 items-center gap-1.5 rounded-full bg-[var(--c-solid)] px-4 text-[12px] font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-40";
 export const btnSecondary =
   "inline-flex h-9 items-center gap-1.5 rounded-full border border-[var(--c-line)] bg-[var(--c-frame)] px-4 text-[12px] font-medium text-[var(--c-ink)] hover:bg-[var(--c-card)] disabled:opacity-40";
 export const btnDanger =

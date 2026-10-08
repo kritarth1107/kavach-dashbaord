@@ -35,11 +35,11 @@ export function Tag({ children, tone = "accent", trend, className }: { children:
       className={cn(
         "inline-flex items-center gap-0.5 whitespace-nowrap rounded-full px-2 py-[3px] text-[11px] font-medium",
         tone === "accent" && "bg-[var(--c-accent-soft)] text-[var(--c-accent-soft-ink)]",
-        tone === "dark" && "bg-[var(--c-ink)] text-[var(--c-frame)]",
+        tone === "dark" && "bg-[var(--c-solid)] text-[var(--c-on-solid)]",
         tone === "light" && "bg-[var(--c-chip)] text-[var(--c-ink-2)]",
-        tone === "danger" && "bg-[#ffe1e1] text-[#b4232a]",
-        tone === "ok" && "bg-[#dff3e8] text-[#1f7a4d] dark:bg-[rgba(31,122,77,0.22)] dark:text-[#7fd3a6]",
-        tone === "warn" && "bg-[#fff1cc] text-[#9a6700] dark:bg-[rgba(154,103,0,0.25)] dark:text-[#f5c862]",
+        tone === "danger" && "bg-[var(--c-danger-soft)] text-[var(--c-danger-ink)]",
+        tone === "ok" && "bg-[var(--c-ok-soft)] text-[var(--c-ok-ink)] dark:bg-[rgba(31,122,77,0.22)] ",
+        tone === "warn" && "bg-[var(--c-warn-soft)] text-[var(--c-warn-ink)] dark:bg-[rgba(154,103,0,0.25)] ",
         className,
       )}
     >
@@ -82,7 +82,7 @@ export function DarkButton({ children, className, ...rest }: React.ButtonHTMLAtt
       type="button"
       {...rest}
       className={cn(
-        "inline-flex h-12 items-center gap-4 rounded-full bg-[var(--c-ink)] pl-6 pr-1.5 text-[14px] font-medium text-[var(--c-frame)] transition-opacity hover:opacity-90 disabled:opacity-40",
+        "inline-flex h-12 items-center gap-4 rounded-full bg-[var(--c-solid)] pl-6 pr-1.5 text-[14px] font-medium text-[var(--c-on-solid)] transition-opacity hover:opacity-90 disabled:opacity-40",
         className,
       )}
     >
@@ -101,7 +101,7 @@ export function SmallButton({ children, dark, className, icon: Icon, ...rest }: 
       {...rest}
       className={cn(
         "inline-flex h-8 items-center gap-1.5 rounded-full px-3.5 text-[12px] font-medium transition-colors disabled:opacity-40",
-        dark ? "bg-[var(--c-ink)] text-[var(--c-frame)] hover:opacity-90" : "border border-[var(--c-line)] bg-[var(--c-frame)] hover:bg-[var(--c-card)]",
+        dark ? "bg-[var(--c-solid)] text-[var(--c-on-solid)] hover:opacity-90" : "border border-[var(--c-line)] bg-[var(--c-frame)] hover:bg-[var(--c-card)]",
         className,
       )}
     >
@@ -147,7 +147,7 @@ export function Avatar({ name, src, size = 36, className }: { name: string; src?
   return (
     <span
       aria-hidden
-      className={cn("inline-flex shrink-0 items-center justify-center rounded-full bg-[var(--c-ink)] font-medium text-[var(--c-accent)]", className)}
+      className={cn("inline-flex shrink-0 items-center justify-center rounded-full bg-[var(--c-solid)] font-medium text-[var(--c-accent)]", className)}
       style={{ width: size, height: size, fontSize: Math.round(size * 0.36) }}
     >
       {initials || "•"}
@@ -184,7 +184,7 @@ export function Bars({
                 <span className="absolute -top-1 z-10 -translate-y-full whitespace-nowrap rounded-full bg-[var(--c-frame)] px-2 py-0.5 text-[11px] shadow-sm">{callout.text}</span>
               )}
               <div
-                className={cn("absolute bottom-0 w-full max-w-[26px] rounded-full", hi ? "bg-[var(--c-accent)]" : "bg-[var(--c-ink)]")}
+                className={cn("absolute bottom-0 w-full max-w-[26px] rounded-full", hi ? "bg-[var(--c-accent)]" : "bg-[var(--c-solid)]")}
                 style={{ height: h }}
               >
                 {hi && <span className="absolute left-1/2 top-1.5 h-2.5 w-2.5 -translate-x-1/2 rounded-full border-2 border-white bg-[var(--c-accent)]" />}
@@ -212,7 +212,7 @@ export function Check({ checked, label, meta, tag }: { checked?: boolean; label:
       <span
         className={cn(
           "flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-[5px] border",
-          checked ? "border-[var(--c-ink)] bg-[var(--c-ink)] text-[var(--c-frame)]" : "border-[var(--c-ink-3)]",
+          checked ? "border-[var(--c-solid)] bg-[var(--c-solid)] text-[var(--c-on-solid)]" : "border-[var(--c-ink-3)]",
         )}
         aria-hidden
       >

@@ -212,7 +212,7 @@ export function IntegrationsPage() {
                               onClick={() => void (on ? disconnect(p.key, p.title) : connect(p.key))}
                               className={cn(
                                 "h-9 flex-1 rounded-full text-[12.5px] font-medium transition-colors disabled:opacity-50",
-                                on ? "border border-[var(--c-line)] text-[var(--c-ink-2)] hover:border-[#d92d20] hover:text-[#d92d20]" : "bg-[var(--c-ink)] text-white hover:opacity-90",
+                                on ? "border border-[var(--c-line)] text-[var(--c-ink-2)] hover:border-[var(--c-danger-ink)] hover:text-[var(--c-danger-ink)]" : "bg-[var(--c-solid)] text-white hover:opacity-90",
                               )}
                             >
                               {busyKey === p.key ? "…" : on ? "Disconnect" : "Connect"}
@@ -273,7 +273,7 @@ export function IntegrationsPage() {
             </p>
             <ul className="mt-3 space-y-2 text-[12.5px] text-[var(--c-ink-2)]">
               <li className="flex gap-2">
-                <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--c-ink)]" /> Linked: Saheli orders straight from the app with live prices.
+                <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--c-solid)]" /> Linked: Saheli orders straight from the app with live prices.
               </li>
               <li className="flex gap-2">
                 <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--c-ink-3)]" /> Not linked: Saheli uses the website and asks for a login OTP.

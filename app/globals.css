@@ -364,6 +364,21 @@ input[type="checkbox"] {
   --c-saffron: #d3541e;
   --c-danger: #e5484d;
   --c-warn: #f5a524;
+  /* Filled elements (dark buttons, selected pills, avatars, badges, bars) and the text on them. In light mode they
+     are the forest ink; in dark mode they stay a lifted forest green instead of turning white. */
+  --c-solid: #142a22;
+  --c-on-solid: #ffffff;
+  /* Status tints: soft backgrounds and the ink that reads on them. */
+  --c-ok-ink: #1f7a4d;
+  --c-ok-soft: #dff3e8;
+  --c-ok-band: #e7efe9;
+  --c-danger-ink: #b4232a;
+  --c-danger-soft: #ffe1e1;
+  --c-danger-wash: #fff6f6;
+  --c-danger-line: #f3c4c4;
+  --c-warn-ink: #9a6700;
+  --c-warn-soft: #fff1cc;
+  --c-accent-wash: #fffaf5;
   color: var(--c-ink);
   font-family: var(--font-geist), ui-sans-serif, system-ui;
   background: var(--c-frame);
@@ -371,18 +386,32 @@ input[type="checkbox"] {
 }
 
 .dark .care-os {
-  --c-page: #0c0d0d;
-  --c-frame: #151716;
-  --c-card: #1d1f1e;
-  --c-chip: #262928;
-  --c-line: #2a2d2c;
-  --c-ink: #f2f3f2;
-  --c-ink-2: #a3a8a6;
-  --c-ink-3: #6e7371;
-  --c-accent: #e2672f;
-  --c-accent-soft: rgba(226, 103, 47, 0.18);
-  --c-accent-soft-ink: #f6a678;
-  background: #0c0d0d;
+  /* Near-black with a hint of the brand forest, so panels read as one family with the green fills. */
+  --c-page: #090c0b;
+  --c-frame: #111513;
+  --c-card: #181d1b;
+  --c-chip: #1f2523;
+  --c-line: #262d2a;
+  --c-ink: #eef1ef;
+  --c-ink-2: #a3aca7;
+  --c-ink-3: #6d7672;
+  --c-accent: #e5652c;
+  --c-accent-soft: rgba(229, 101, 44, 0.16);
+  --c-accent-soft-ink: #f4a274;
+  --c-solid: #1f4536;
+  --c-on-solid: #f4f7f5;
+  --c-ok-ink: #6fd39d;
+  --c-ok-soft: rgba(52, 168, 108, 0.16);
+  --c-ok-band: rgba(52, 168, 108, 0.12);
+  --c-danger-ink: #ff8d8f;
+  --c-danger-soft: rgba(229, 72, 77, 0.16);
+  --c-danger-wash: rgba(229, 72, 77, 0.08);
+  --c-danger-line: rgba(229, 72, 77, 0.35);
+  --c-warn-ink: #f5c862;
+  --c-warn-soft: rgba(245, 165, 36, 0.16);
+  --c-accent-wash: rgba(229, 101, 44, 0.06);
+  background: #090c0b;
+  color-scheme: dark;
 }
 
 .care-os .c-num {
@@ -487,4 +516,8 @@ input[type="checkbox"] {
 
 .care-os .font-extrabold {
   font-weight: 600;
+}
+
+.dark .care-os .c-hatch {
+  background-image: repeating-linear-gradient(135deg, transparent 0 6px, rgba(255, 255, 255, 0.04) 6px 7px);
 }

@@ -122,7 +122,7 @@ export function RefillsPanel() {
               <li key={r.key} className="rounded-[18px] bg-[var(--c-frame)] p-4">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
                   <div className="flex min-w-0 flex-1 items-center gap-3">
-                    <span className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-full", r.low ? "bg-[var(--c-accent)] text-white" : "bg-[var(--c-ink)] text-white")}>
+                    <span className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-full", r.low ? "bg-[var(--c-accent)] text-white" : "bg-[var(--c-solid)] text-white")}>
                       <Pill size={18} weight={r.low ? "fill" : "regular"} />
                     </span>
                     <div className="min-w-0">
@@ -150,7 +150,7 @@ export function RefillsPanel() {
                         <span className="text-[var(--c-ink-3)]">{r.daysLeft === 1 ? "day left" : "days left"}</span>
                       </div>
                       <div className="mt-1.5 h-1.5 rounded-full bg-[var(--c-card)]">
-                        <div className={cn("h-full rounded-full", r.low ? "bg-[var(--c-accent)]" : "bg-[var(--c-ink)]")} style={{ width: `${pct}%` }} />
+                        <div className={cn("h-full rounded-full", r.low ? "bg-[var(--c-accent)]" : "bg-[var(--c-solid)]")} style={{ width: `${pct}%` }} />
                       </div>
                     </div>
                   )}
@@ -235,7 +235,7 @@ export function RefillsPanel() {
                   </div>
                 )}
 
-                {rowError?.key === r.key && <p className="mt-2 text-[12px] text-[#d92d20]">{rowError.text}</p>}
+                {rowError?.key === r.key && <p className="mt-2 text-[12px] text-[var(--c-danger-ink)]">{rowError.text}</p>}
                 {done[r.key] && (
                   <p className="mt-3 flex items-center gap-2 rounded-[12px] bg-[var(--c-accent-soft)] px-3 py-2 text-[12.5px] text-[var(--c-accent-soft-ink)]">
                     <CheckCircle size={15} weight="fill" className="shrink-0" /> {done[r.key]}

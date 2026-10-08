@@ -44,8 +44,8 @@ export function TrendPanel({ card, children }: { card: LabStatCard | null; child
         <figure className="mt-8" aria-label={`${card.name} in the last ${n} reports: ${card.trend.map((p) => `${p.value} on ${fmtIsoDate(p.date) || "an undated report"}`).join(", ")}`}>
           <div className="relative" style={{ height: CHART_H }}>
             {line && (
-              <div className="pointer-events-none absolute inset-x-0 border-t border-dashed border-[#1f7a4d]" style={{ bottom: (line.at / top) * CHART_H }} aria-hidden>
-                <span className="absolute -top-[18px] left-0 text-[10.5px] text-[#1f7a4d]">{line.text}</span>
+              <div className="pointer-events-none absolute inset-x-0 border-t border-dashed border-[var(--c-ok-ink)]" style={{ bottom: (line.at / top) * CHART_H }} aria-hidden>
+                <span className="absolute -top-[18px] left-0 text-[10.5px] text-[var(--c-ok-ink)]">{line.text}</span>
               </div>
             )}
             <Bars values={values} highlight={[n - 1]} max={top} height={CHART_H} callout={{ index: n - 1, text: card.value }} />
@@ -125,7 +125,7 @@ export function NoticedBox({
       <p className="mt-1">{shown}</p>
       <div className="mt-2.5 flex flex-wrap items-center gap-2">
         {done ? (
-          <p role="status" className="flex items-center gap-1.5 text-[12.5px] font-medium text-[#1f7a4d]">
+          <p role="status" className="flex items-center gap-1.5 text-[12.5px] font-medium text-[var(--c-ok-ink)]">
             <Check size={14} weight="bold" aria-hidden /> {done}
           </p>
         ) : (

@@ -14,12 +14,12 @@ const Empty = ({ text, icon: Icon }: { text: string; icon: typeof User }) => (
   <div className="flex items-center gap-3 rounded-[18px] border border-dashed border-[#d5d9dc] px-4 py-3.5 text-[13.5px] text-[var(--c-ink-3)]"><Icon size={18} />{text}</div>
 );
 const Card = ({ title, children, fresh }: { title: string; children: React.ReactNode; fresh?: boolean }) => (
-  <div className={cn("h-full rounded-[20px] bg-white p-4 transition-shadow duration-700", fresh && "shadow-[0_0_0_2px_var(--c-accent-soft)]")}>
+  <div className={cn("h-full rounded-[20px] bg-[var(--c-frame)] p-4 transition-shadow duration-700", fresh && "shadow-[0_0_0_2px_var(--c-accent-soft)]")}>
     <p className={LABEL}>{title}</p>
     {children}
   </div>
 );
-const Pill2 = ({ t }: { t: string }) => <span className="c-num rounded-full bg-[var(--c-ink)] px-2.5 py-1 text-[12px] text-white">{t}</span>;
+const Pill2 = ({ t }: { t: string }) => <span className="c-num rounded-full bg-[var(--c-solid)] px-2.5 py-1 text-[12px] text-white">{t}</span>;
 
 function DayLine({ p }: { p: Person }) {
   const d = p.day;
@@ -28,7 +28,7 @@ function DayLine({ p }: { p: Person }) {
   return (
     <>
       <div className="relative mt-1 h-2 rounded-full bg-[var(--c-card)]">
-        {d.wake && d.sleep && min(d.sleep) > min(d.wake) && <div className="absolute inset-y-0 rounded-full bg-[var(--c-ink)]" style={{ left: `${pos(d.wake)}%`, right: `${100 - pos(d.sleep)}%` }} />}
+        {d.wake && d.sleep && min(d.sleep) > min(d.wake) && <div className="absolute inset-y-0 rounded-full bg-[var(--c-solid)]" style={{ left: `${pos(d.wake)}%`, right: `${100 - pos(d.sleep)}%` }} />}
         {[d.breakfast, d.lunch, d.dinner].filter((t): t is string => !!t).map((t) => (
           <span key={t} className="absolute top-1/2 h-3.5 w-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white bg-[var(--c-accent)]" style={{ left: `${pos(t)}%` }} />
         ))}
@@ -69,7 +69,7 @@ export function Notebook({ answers: a, index, onIndex, fresh, compact }: { answe
       {a.persons.length > 1 && (
         <div className="mb-4 flex gap-1.5">
           {a.persons.map((x, k) => (
-            <button key={k} type="button" onClick={() => onIndex(k)} className={cn("rounded-full px-3 py-1 text-[12.5px]", k === index ? "bg-[var(--c-ink)] text-white" : "bg-white text-[var(--c-ink-2)]")}>{callOf(x) || x.relation}</button>
+            <button key={k} type="button" onClick={() => onIndex(k)} className={cn("rounded-full px-3 py-1 text-[12.5px]", k === index ? "bg-[var(--c-solid)] text-white" : "bg-[var(--c-frame)] text-[var(--c-ink-2)]")}>{callOf(x) || x.relation}</button>
           ))}
         </div>
       )}
@@ -78,7 +78,7 @@ export function Notebook({ answers: a, index, onIndex, fresh, compact }: { answe
         <div className="col-span-2">
           <Card title={self ? "You" : "Who"} fresh={fresh === "who"}>
             <div className="flex items-center gap-3">
-              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[var(--c-ink)] text-[16px] font-medium text-white">{name.split(/\s+/).slice(0, 2).map((w) => w[0]?.toUpperCase()).join("")}</span>
+              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[var(--c-solid)] text-[16px] font-medium text-white">{name.split(/\s+/).slice(0, 2).map((w) => w[0]?.toUpperCase()).join("")}</span>
               <div className="min-w-0">
                 <p className="truncate text-[16px] font-medium">{name}</p>
                 {!self && (p.addressAs || p.callThem) && <p className="text-[12.5px] text-[var(--c-ink-2)]">Saheli calls {pr.their === "his" ? "him" : pr.their === "her" ? "her" : "them"} <b className="font-medium text-[var(--c-ink)]">{p.addressAs || p.callThem}</b></p>}
@@ -124,5 +124,5 @@ export function Notebook({ answers: a, index, onIndex, fresh, compact }: { answe
 }
 
 export function SetupDoneNote({ names }: { names: string }) {
-  return <p className="mt-4 flex items-center gap-2 text-[13px] text-[#1f7a4d]"><CheckCircle size={16} weight="fill" />Saheli is with {names} now</p>;
+  return <p className="mt-4 flex items-center gap-2 text-[13px] text-[var(--c-ok-ink)]"><CheckCircle size={16} weight="fill" />Saheli is with {names} now</p>;
 }

@@ -26,7 +26,7 @@ export function Sparkline({ values, lo, hi, w = 112, h = 34 }: { values: number[
   return (
     <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} aria-hidden className="shrink-0 overflow-visible">
       {(lo != null || hi != null) && (
-        <rect x="0" y={Math.max(0, bandTop)} width={w} height={Math.max(2, Math.min(h, bandBottom) - Math.max(0, bandTop))} rx="3" className="fill-[#e7efe9] dark:fill-[rgba(31,122,77,0.18)]" />
+        <rect x="0" y={Math.max(0, bandTop)} width={w} height={Math.max(2, Math.min(h, bandBottom) - Math.max(0, bandTop))} rx="3" className="fill-[var(--c-ok-band)] dark:fill-[rgba(31,122,77,0.18)]" />
       )}
       <polyline points={values.map((v, i) => `${x(i)},${y(v)}`).join(" ")} fill="none" stroke="var(--c-ink)" strokeWidth="1.8" strokeLinejoin="round" strokeLinecap="round" />
       {values.map((v, i) =>

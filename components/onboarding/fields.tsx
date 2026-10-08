@@ -27,10 +27,10 @@ export function Continue({ onClick, disabled, label = "Continue", loading }: { o
       type="button"
       onClick={onClick}
       disabled={disabled || loading}
-      className="flex h-12 min-w-[200px] items-center justify-between gap-3 rounded-full bg-[var(--c-ink)] pl-6 pr-1.5 text-[14px] font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-40"
+      className="flex h-12 min-w-[200px] items-center justify-between gap-3 rounded-full bg-[var(--c-solid)] pl-6 pr-1.5 text-[14px] font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-40"
     >
       <span>{label}</span>
-      <span className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-[var(--c-ink)]">
+      <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--c-frame)] text-[var(--c-ink)]">
         {loading ? <CircleNotch size={16} className="animate-spin" weight="bold" /> : <ArrowRight size={16} weight="bold" />}
       </span>
     </button>
@@ -53,7 +53,7 @@ export function Choice<T extends string>({ options, value, onPick, columns = 2 }
             onClick={() => onPick(o.id)}
             className={cn(
               "group flex items-center justify-between gap-3 rounded-[18px] border px-4 py-3.5 text-left transition",
-              on ? "border-[var(--c-ink)] bg-[var(--c-ink)] text-white" : "border-transparent bg-[var(--c-card)] hover:border-[var(--c-line)] hover:bg-[var(--c-frame)]",
+              on ? "border-[var(--c-solid)] bg-[var(--c-solid)] text-white" : "border-transparent bg-[var(--c-card)] hover:border-[var(--c-line)] hover:bg-[var(--c-frame)]",
             )}
           >
             <span className="min-w-0">
@@ -83,7 +83,7 @@ export function Chips({ options, values, onChange, allowOther = true, otherLabel
           const on = values.includes(o);
           return (
             <button key={o} type="button" aria-pressed={on} onClick={() => toggle(o)}
-              className={cn("inline-flex h-10 items-center gap-1.5 rounded-full px-4 text-[14px] transition", on ? "bg-[var(--c-ink)] text-white" : "bg-[var(--c-card)] text-[var(--c-ink)] hover:bg-[var(--c-line)]")}>
+              className={cn("inline-flex h-10 items-center gap-1.5 rounded-full px-4 text-[14px] transition", on ? "bg-[var(--c-solid)] text-white" : "bg-[var(--c-card)] text-[var(--c-ink)] hover:bg-[var(--c-line)]")}>
               {on && <Check size={13} weight="bold" className="text-[var(--c-accent)]" />}
               {o}
             </button>
@@ -201,8 +201,8 @@ export function VerifyWhatsApp({ target, phone, who, verified, onVerified, sahel
   if (verified) {
     const hi = saheliNumber ? `https://wa.me/${saheliNumber.replace(/\D/g, "")}?text=${encodeURIComponent("Namaste Saheli 🙏")}` : "";
     return (
-      <div className="rounded-[20px] bg-[#e6f2ec] px-5 py-4 text-[14px] text-[var(--c-forest)]">
-        <p className="flex items-center gap-3"><CheckCircle size={26} weight="fill" className="shrink-0 text-[#1f7a4d]" /><b className="font-medium">{self ? "Your" : `${who}'s`} WhatsApp is verified.</b></p>
+      <div className="rounded-[20px] bg-[var(--c-ok-soft)] px-5 py-4 text-[14px] text-[var(--c-forest)]">
+        <p className="flex items-center gap-3"><CheckCircle size={26} weight="fill" className="shrink-0 text-[var(--c-ok-ink)]" /><b className="font-medium">{self ? "Your" : `${who}'s`} WhatsApp is verified.</b></p>
         {!self && mode === "otp" && hi && (
           <p className="mt-2 pl-[38px] text-[13px]">WhatsApp lets Saheli start the chat only after {who} has written once. Ask {who} to send her a &ldquo;Namaste&rdquo;: <a href={hi} target="_blank" rel="noreferrer" className="font-medium underline">open the chat</a>.</p>
         )}
@@ -239,9 +239,9 @@ export function VerifyWhatsApp({ target, phone, who, verified, onVerified, sahel
             <input
               autoFocus inputMode="numeric" autoComplete="one-time-code" maxLength={6} value={otp} aria-label="6-digit code"
               onChange={(e) => { const v = e.target.value.replace(/\D/g, "").slice(0, 6); setOtp(v); if (v.length === 6) void confirm(v); }}
-              placeholder="••••••" className="c-num h-14 w-44 rounded-[16px] bg-white px-4 text-center text-[26px] tracking-[0.35em] outline-none focus:ring-2 focus:ring-[var(--c-ink)]"
+              placeholder="••••••" className="c-num h-14 w-44 rounded-[16px] bg-[var(--c-frame)] px-4 text-center text-[26px] tracking-[0.35em] outline-none focus:ring-2 focus:ring-[var(--c-ink)]"
             />
-            <button type="button" onClick={() => confirm(otp)} disabled={busy || otp.length !== 6} className="inline-flex h-11 items-center gap-2 rounded-full bg-[var(--c-ink)] px-5 text-[14px] font-medium text-white disabled:opacity-40">
+            <button type="button" onClick={() => confirm(otp)} disabled={busy || otp.length !== 6} className="inline-flex h-11 items-center gap-2 rounded-full bg-[var(--c-solid)] px-5 text-[14px] font-medium text-white disabled:opacity-40">
               {busy ? <CircleNotch size={16} className="animate-spin" /> : <Check size={16} weight="bold" />} Verify
             </button>
             <button type="button" onClick={sendOtp} disabled={busy} className="h-11 rounded-full px-3 text-[13px] text-[var(--c-ink-2)] hover:text-[var(--c-ink)]">Send again</button>
@@ -254,11 +254,11 @@ export function VerifyWhatsApp({ target, phone, who, verified, onVerified, sahel
           <div className="hidden overflow-hidden rounded-[14px] bg-white p-2 sm:block" aria-label="QR code to open WhatsApp" dangerouslySetInnerHTML={{ __html: qr }} />
           <div className="flex flex-col justify-center">
             <p className="text-[12px] font-medium uppercase tracking-[0.06em] text-[var(--c-ink-3)]">{self ? "From your phone" : `From ${who}'s phone`}</p>
-            <p className="mt-1 text-[15px]">Send <b className="rounded-md bg-white px-2 py-0.5 font-mono font-semibold tracking-wide">{msg.text}</b> to Saheli ({msg.saheliNumber}).</p>
+            <p className="mt-1 text-[15px]">Send <b className="rounded-md bg-[var(--c-frame)] px-2 py-0.5 font-mono font-semibold tracking-wide">{msg.text}</b> to Saheli ({msg.saheliNumber}).</p>
             <p className="mt-1 text-[13px] text-[var(--c-ink-2)]">{self ? "Scan the code or tap the button on your phone." : `With ${who}? Scan the code with their phone. Not together? Send them the link; they just tap Send. Saheli can then greet ${who} as soon as you finish.`}</p>
             <div className="mt-4 flex flex-wrap gap-2">
               <a href={msg.link} target="_blank" rel="noreferrer" className="inline-flex h-10 items-center gap-2 rounded-full bg-[var(--c-accent)] px-4 text-[13px] font-medium text-white"><WhatsappLogo size={16} weight="fill" /> Open WhatsApp</a>
-              {!self && <button type="button" onClick={share} className="inline-flex h-10 items-center gap-2 rounded-full bg-white px-4 text-[13px] font-medium">{copied ? <Check size={15} /> : canShare ? <ShareNetwork size={15} /> : <Copy size={15} />} {copied ? "Link copied" : `Send link to ${who}`}</button>}
+              {!self && <button type="button" onClick={share} className="inline-flex h-10 items-center gap-2 rounded-full bg-[var(--c-frame)] px-4 text-[13px] font-medium">{copied ? <Check size={15} /> : canShare ? <ShareNetwork size={15} /> : <Copy size={15} />} {copied ? "Link copied" : `Send link to ${who}`}</button>}
             </div>
             <p className="mt-4 flex items-center gap-2 text-[12px] text-[var(--c-ink-2)]"><span className="relative flex h-2.5 w-2.5"><span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[var(--c-accent)] opacity-60" /><span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-[var(--c-accent)]" /></span> Waiting for the message…</p>
           </div>
@@ -285,7 +285,7 @@ export function LanguagePicker({ value, onPick }: { value?: string; onPick: (cod
         const on = value === l.code;
         return (
           <button key={l.code} type="button" onClick={() => onPick(l.code)} aria-pressed={on}
-            className={cn("rounded-[18px] px-4 py-3 text-left transition", on ? "bg-[var(--c-ink)] text-white" : "bg-[var(--c-card)] hover:bg-[var(--c-line)]")}>
+            className={cn("rounded-[18px] px-4 py-3 text-left transition", on ? "bg-[var(--c-solid)] text-white" : "bg-[var(--c-card)] hover:bg-[var(--c-line)]")}>
             <span className="block text-[18px] leading-tight">{l.native}</span>
             <span className={cn("text-[12px]", on ? "text-white/70" : "text-[var(--c-ink-2)]")}>{l.name}</span>
           </button>
@@ -302,7 +302,7 @@ export function TimeField({ label, value, onChange }: { label: string; value?: s
   return (
     <label htmlFor={id} className="flex items-center justify-between gap-3 rounded-[16px] bg-[var(--c-card)] px-4 py-2.5">
       <span className="text-[14px]">{label}</span>
-      <input id={id} type="time" value={value || ""} onChange={(e) => onChange(e.target.value)} className="h-9 rounded-full bg-white px-3 text-[14px] outline-none" />
+      <input id={id} type="time" value={value || ""} onChange={(e) => onChange(e.target.value)} className="h-9 rounded-full bg-[var(--c-frame)] px-3 text-[14px] outline-none" />
     </label>
   );
 }
@@ -326,29 +326,29 @@ export function MedCard({ m, person, onChange, onRemove }: { m: Med; person: Per
   return (
     <div className="rounded-[20px] bg-[var(--c-card)] p-4">
       <div className="flex gap-2">
-        <input value={m.name} maxLength={80} onChange={(e) => onChange({ ...m, name: e.target.value })} placeholder="Medicine name (as on the strip)" className="h-11 min-w-0 flex-[2] rounded-[14px] bg-white px-4 text-[15px] font-medium outline-none" />
-        <input value={m.dose || ""} maxLength={60} onChange={(e) => onChange({ ...m, dose: e.target.value })} placeholder="Dose, e.g. 500 mg" className="h-11 min-w-0 flex-1 rounded-[14px] bg-white px-4 text-[14px] outline-none" />
-        <button type="button" onClick={onRemove} aria-label={`Remove ${m.name || "medicine"}`} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white text-[var(--c-ink-2)] hover:text-[var(--c-danger)]"><X size={16} /></button>
+        <input value={m.name} maxLength={80} onChange={(e) => onChange({ ...m, name: e.target.value })} placeholder="Medicine name (as on the strip)" className="h-11 min-w-0 flex-[2] rounded-[14px] bg-[var(--c-frame)] px-4 text-[15px] font-medium outline-none" />
+        <input value={m.dose || ""} maxLength={60} onChange={(e) => onChange({ ...m, dose: e.target.value })} placeholder="Dose, e.g. 500 mg" className="h-11 min-w-0 flex-1 rounded-[14px] bg-[var(--c-frame)] px-4 text-[14px] outline-none" />
+        <button type="button" onClick={onRemove} aria-label={`Remove ${m.name || "medicine"}`} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[var(--c-frame)] text-[var(--c-ink-2)] hover:text-[var(--c-danger)]"><X size={16} /></button>
       </div>
       <div className="mt-3 flex flex-wrap items-center gap-1.5">
         {SLOTS.map((s) => {
           const t = at[s.key];
           const on = m.times.includes(t);
           return (
-            <button key={s.key} type="button" onClick={() => toggleSlot(t)} aria-pressed={on} className={cn("h-9 rounded-full px-3 text-[13px] transition", on ? "bg-[var(--c-ink)] text-white" : "bg-white text-[var(--c-ink-2)]")}>
+            <button key={s.key} type="button" onClick={() => toggleSlot(t)} aria-pressed={on} className={cn("h-9 rounded-full px-3 text-[13px] transition", on ? "bg-[var(--c-solid)] text-white" : "bg-[var(--c-frame)] text-[var(--c-ink-2)]")}>
               {s.label} <span className={on ? "text-white/60" : "text-[var(--c-ink-3)]"}>{t}</span>
             </button>
           );
         })}
         {m.times.filter((t) => !Object.values(at).includes(t)).map((t) => (
-          <button key={t} type="button" onClick={() => toggleSlot(t)} className="h-9 rounded-full bg-[var(--c-ink)] px-3 text-[13px] text-white">{t} ✕</button>
+          <button key={t} type="button" onClick={() => toggleSlot(t)} className="h-9 rounded-full bg-[var(--c-solid)] px-3 text-[13px] text-white">{t} ✕</button>
         ))}
-        <input type="time" aria-label="Another time" onChange={(e) => e.target.value && !m.times.includes(e.target.value) && onChange({ ...m, times: [...m.times, e.target.value].sort() })} className="h-9 rounded-full bg-white px-3 text-[13px] text-[var(--c-ink-2)] outline-none" />
+        <input type="time" aria-label="Another time" onChange={(e) => e.target.value && !m.times.includes(e.target.value) && onChange({ ...m, times: [...m.times, e.target.value].sort() })} className="h-9 rounded-full bg-[var(--c-frame)] px-3 text-[13px] text-[var(--c-ink-2)] outline-none" />
       </div>
       <div className="mt-2 flex flex-wrap gap-1.5">
         {FOOD.map((f) => (
           <button key={f.id} type="button" onClick={() => onChange({ ...m, food: m.food === f.id ? undefined : f.id })} aria-pressed={m.food === f.id}
-            className={cn("h-8 rounded-full px-3 text-[12px] transition", m.food === f.id ? "bg-[var(--c-accent-soft)] text-[var(--c-accent-soft-ink)]" : "bg-white text-[var(--c-ink-2)]")}>{f.label}</button>
+            className={cn("h-8 rounded-full px-3 text-[12px] transition", m.food === f.id ? "bg-[var(--c-accent-soft)] text-[var(--c-accent-soft-ink)]" : "bg-[var(--c-frame)] text-[var(--c-ink-2)]")}>{f.label}</button>
         ))}
       </div>
     </div>

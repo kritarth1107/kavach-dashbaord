@@ -31,7 +31,7 @@ function ServiceMark({ service, size = 34 }: { service: string; size?: number })
   return (
     <span
       aria-hidden
-      className="inline-flex shrink-0 items-center justify-center rounded-[10px] bg-[var(--c-ink)] font-medium text-[var(--c-accent)]"
+      className="inline-flex shrink-0 items-center justify-center rounded-[10px] bg-[var(--c-solid)] font-medium text-[var(--c-accent)]"
       style={{ width: size, height: size, fontSize: Math.round(size * 0.42) }}
     >
       {serviceName(service).charAt(0).toUpperCase()}
@@ -50,7 +50,7 @@ const monthLabel = (m: string) => new Date(`${m}-15T12:00:00+05:30`).toLocaleDat
 function Share({ value, total, hi }: { value: number; total: number; hi?: boolean }) {
   return (
     <div className="mt-1.5 h-1.5 rounded-full bg-[var(--c-frame)]">
-      <div className={cn("h-full rounded-full", hi ? "bg-[var(--c-accent)]" : "bg-[var(--c-ink)]")} style={{ width: `${total ? Math.max(3, (value / total) * 100) : 0}%` }} />
+      <div className={cn("h-full rounded-full", hi ? "bg-[var(--c-accent)]" : "bg-[var(--c-solid)]")} style={{ width: `${total ? Math.max(3, (value / total) * 100) : 0}%` }} />
     </div>
   );
 }
@@ -216,7 +216,7 @@ export function SpendingPage() {
                 ].map((k) => (
                   <div key={k.label} className="rounded-[18px] bg-[var(--c-frame)] p-4">
                     <p className="flex items-center gap-1.5 text-[12px] text-[var(--c-ink-2)]">
-                      <span className={cn("h-2 w-2 rounded-full", k.hi ? "bg-[var(--c-accent)]" : "bg-[var(--c-ink)]")} />
+                      <span className={cn("h-2 w-2 rounded-full", k.hi ? "bg-[var(--c-accent)]" : "bg-[var(--c-solid)]")} />
                       {k.label}
                     </p>
                     <p className="c-num mt-2 text-[26px] leading-none">{rupees(k.v)}</p>
@@ -224,7 +224,7 @@ export function SpendingPage() {
                 ))}
               </div>
               <div className="mt-4 flex h-3 overflow-hidden rounded-full bg-[var(--c-frame)]">
-                <div className="h-full bg-[var(--c-ink)]" style={{ width: `${total ? (orders / total) * 100 : 0}%` }} />
+                <div className="h-full bg-[var(--c-solid)]" style={{ width: `${total ? (orders / total) * 100 : 0}%` }} />
                 <div className="h-full bg-[var(--c-accent)]" style={{ width: `${total ? (rides / total) * 100 : 0}%` }} />
               </div>
               {otherKinds.length > 0 && (

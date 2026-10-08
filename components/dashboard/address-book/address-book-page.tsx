@@ -124,7 +124,7 @@ function AddressForm({
       <label>
         <span className={LABEL}>Pincode *</span>
         <input
-          className={cn(INPUT, f.pincode && !pinOk && "border-[#d92d20]")}
+          className={cn(INPUT, f.pincode && !pinOk && "border-[var(--c-danger-ink)]")}
           value={f.pincode}
           onChange={set("pincode")}
           inputMode="numeric"
@@ -158,7 +158,7 @@ function AddressForm({
         </button>
         <button
           type="submit"
-          className="h-11 rounded-full bg-[var(--c-ink)] px-6 text-[14px] font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+          className="h-11 rounded-full bg-[var(--c-solid)] px-6 text-[14px] font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50"
           disabled={!valid || saving}
         >
           {saving ? "Saving…" : submitLabel}
@@ -371,7 +371,7 @@ function AddressBook() {
                 return (
                   <li key={a.addressId} className="flex flex-col rounded-[24px] bg-[var(--c-card)] p-5">
                     <div className="flex items-start gap-3">
-                      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[var(--c-ink)] text-white">
+                      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[var(--c-solid)] text-white">
                         <PlaceIcon nickname={a.nickname} />
                       </span>
                       <div className="min-w-0 flex-1">
@@ -436,7 +436,7 @@ function AddressBook() {
                               </button>
                               <button
                                 type="button"
-                                className="font-medium text-[#d92d20] disabled:opacity-50"
+                                className="font-medium text-[var(--c-danger-ink)] disabled:opacity-50"
                                 onClick={() => void onDelete(a.addressId)}
                                 disabled={busyId === a.addressId}
                               >
@@ -447,7 +447,7 @@ function AddressBook() {
                             <button
                               type="button"
                               aria-label={`Delete ${a.nickname}`}
-                              className="flex h-9 w-9 items-center justify-center rounded-full text-[var(--c-ink-3)] hover:bg-[var(--c-frame)] hover:text-[#d92d20]"
+                              className="flex h-9 w-9 items-center justify-center rounded-full text-[var(--c-ink-3)] hover:bg-[var(--c-frame)] hover:text-[var(--c-danger-ink)]"
                               onClick={() => setConfirmDelete(a.addressId)}
                             >
                               <Trash size={15} />

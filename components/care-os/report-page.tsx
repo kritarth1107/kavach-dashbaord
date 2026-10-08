@@ -64,7 +64,7 @@ function DayBars({ days }: { days: CareReport["adherence"]["byDay"] }) {
             <div key={d.day} className="relative flex h-full flex-1 justify-center" title={`${ymd(d.day)}: ${d.taken} of ${d.expected} taken`}>
               <div className="absolute inset-x-0 bottom-0 mx-auto h-full w-full max-w-[26px] rounded-full bg-[var(--c-frame)]" />
               <div
-                className={cn("absolute bottom-0 mx-auto w-full max-w-[26px] rounded-full", d.missed > 0 ? "bg-[var(--c-accent)]" : "bg-[var(--c-ink)]")}
+                className={cn("absolute bottom-0 mx-auto w-full max-w-[26px] rounded-full", d.missed > 0 ? "bg-[var(--c-accent)]" : "bg-[var(--c-solid)]")}
                 style={{ height: `${Math.max(d.expected ? 8 : 0, pct * 100)}%` }}
               />
             </div>
@@ -80,7 +80,7 @@ function DayBars({ days }: { days: CareReport["adherence"]["byDay"] }) {
       </div>
       <div className="mt-3 flex flex-wrap gap-4 text-[11px] text-[var(--c-ink-2)]">
         <span className="flex items-center gap-1.5">
-          <span className="h-2.5 w-2.5 rounded-full bg-[var(--c-ink)]" /> All taken
+          <span className="h-2.5 w-2.5 rounded-full bg-[var(--c-solid)]" /> All taken
         </span>
         <span className="flex items-center gap-1.5">
           <span className="h-2.5 w-2.5 rounded-full bg-[var(--c-accent)]" /> Some missed

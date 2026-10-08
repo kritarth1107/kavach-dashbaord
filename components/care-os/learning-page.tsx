@@ -342,7 +342,7 @@ export function LearningPage() {
                     {t.windows.map((w) => (
                       <div key={w.from} className="flex flex-1 flex-col items-center gap-1">
                         <div className="flex h-20 w-full items-end rounded-[8px] bg-[var(--c-frame)]">
-                          <div className="w-full rounded-[8px] bg-[var(--c-ink)]" style={{ height: `${Math.round((w.replyRate ?? 0) * 100)}%` }} />
+                          <div className="w-full rounded-[8px] bg-[var(--c-solid)]" style={{ height: `${Math.round((w.replyRate ?? 0) * 100)}%` }} />
                         </div>
                         <span className="text-[10px] text-[var(--c-ink-3)]">{w.from.slice(0, 2)}</span>
                         <span className="text-[10px]">{pct(w.replyRate)}</span>

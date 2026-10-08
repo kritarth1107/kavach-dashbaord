@@ -66,7 +66,7 @@ export function RecordAddForms({
           <span
             className={cn(
               "flex items-center justify-center rounded-full",
-              dragOver ? "bg-[var(--c-accent)] text-white" : "bg-[var(--c-ink)] text-[var(--c-frame)]",
+              dragOver ? "bg-[var(--c-accent)] text-white" : "bg-[var(--c-solid)] text-[var(--c-on-solid)]",
               compact ? "mb-2 h-10 w-10" : "mb-3 h-12 w-12",
             )}
           >
@@ -108,7 +108,7 @@ export function RecordAddForms({
                   type="button"
                   aria-label={`Remove ${file.name}`}
                   title={`Remove ${file.name}`}
-                  className="absolute right-1.5 top-1.5 flex h-7 w-7 items-center justify-center rounded-full bg-[var(--c-frame)] text-[var(--c-ink-2)] shadow-sm hover:text-[#d92d20]"
+                  className="absolute right-1.5 top-1.5 flex h-7 w-7 items-center justify-center rounded-full bg-[var(--c-frame)] text-[var(--c-ink-2)] shadow-sm hover:text-[var(--c-danger-ink)]"
                   onClick={() => onRemoveFile(file)}
                 >
                   <X size={12} weight="bold" />
@@ -211,7 +211,7 @@ function SinglePreview({ file, onRemove }: { file: File; onRemove: () => void })
         <button
           type="button"
           aria-label={`Remove ${file.name}`}
-          className="inline-flex h-7 shrink-0 items-center gap-1 rounded-full px-2.5 text-[12px] text-[var(--c-ink-2)] hover:bg-[var(--c-card)] hover:text-[#d92d20]"
+          className="inline-flex h-7 shrink-0 items-center gap-1 rounded-full px-2.5 text-[12px] text-[var(--c-ink-2)] hover:bg-[var(--c-card)] hover:text-[var(--c-danger-ink)]"
           onClick={onRemove}
         >
           <X size={12} />

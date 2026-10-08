@@ -354,9 +354,9 @@ function PersonBanner({
     const sorted = [...candidates].sort((a, b) => Number(b.id === pc.suggestedUserId) - Number(a.id === pc.suggestedUserId));
     const working = busy !== null;
     return (
-      <div role="region" aria-label="Whose report is this?" className="rounded-[22px] border-2 border-[#f3c4c4] bg-[#fff6f6] p-4 sm:p-5 dark:border-[rgba(180,35,42,0.4)] dark:bg-[rgba(180,35,42,0.1)]">
+      <div role="region" aria-label="Whose report is this?" className="rounded-[22px] border-2 border-[var(--c-danger-line)] bg-[var(--c-danger-wash)] p-4 sm:p-5 dark:border-[rgba(180,35,42,0.4)] dark:bg-[rgba(180,35,42,0.1)]">
         <div className="flex items-start gap-3">
-          <span className="hidden h-11 w-11 shrink-0 items-center justify-center rounded-[14px] bg-[#ffe1e1] text-[#b4232a] sm:flex" aria-hidden>
+          <span className="hidden h-11 w-11 shrink-0 items-center justify-center rounded-[14px] bg-[var(--c-danger-soft)] text-[var(--c-danger-ink)] sm:flex" aria-hidden>
             <Warning size={20} weight="fill" />
           </span>
           <div className="min-w-0 flex-1">
@@ -406,7 +406,7 @@ function PersonBanner({
                   type="button"
                   disabled={working}
                   onClick={onTheirs}
-                  className="rounded-[16px] bg-[var(--c-frame)] p-3 text-left outline-none transition-colors hover:bg-[#fffafa] focus-visible:ring-2 focus-visible:ring-[var(--c-accent)] disabled:opacity-60"
+                  className="rounded-[16px] bg-[var(--c-frame)] p-3 text-left outline-none transition-colors hover:bg-[var(--c-danger-wash)] focus-visible:ring-2 focus-visible:ring-[var(--c-accent)] disabled:opacity-60"
                 >
                   <span className="flex items-center gap-1.5 text-[13px] font-medium">
                     {busy === "person" ? <CircleNotch size={14} className="animate-spin" aria-hidden /> : <Check size={14} weight="bold" aria-hidden />}
@@ -418,7 +418,7 @@ function PersonBanner({
                   type="button"
                   disabled={working}
                   onClick={() => setConfirming(true)}
-                  className="rounded-[16px] bg-[var(--c-ink)] p-3 text-left text-[var(--c-frame)] outline-none transition-opacity hover:opacity-90 focus-visible:ring-2 focus-visible:ring-[var(--c-accent)] focus-visible:ring-offset-2 disabled:opacity-60"
+                  className="rounded-[16px] bg-[var(--c-solid)] p-3 text-left text-[var(--c-on-solid)] outline-none transition-opacity hover:opacity-90 focus-visible:ring-2 focus-visible:ring-[var(--c-accent)] focus-visible:ring-offset-2 disabled:opacity-60"
                 >
                   <span className="flex items-center gap-1.5 text-[13px] font-medium">
                     <Trash size={14} aria-hidden /> Discard it
@@ -428,7 +428,7 @@ function PersonBanner({
               </div>
             )}
             {error && (
-              <p role="alert" className="mt-3 text-[12.5px] text-[#b4232a]">
+              <p role="alert" className="mt-3 text-[12.5px] text-[var(--c-danger-ink)]">
                 {error}
               </p>
             )}
@@ -440,7 +440,7 @@ function PersonBanner({
 
   if (pc?.status === "match" || (pc?.status === "mismatch" && pc.confirmedBy)) {
     return (
-      <div className="flex items-start gap-3 rounded-[18px] bg-[#dff3e8] px-4 py-3 text-[13px] text-[#1f7a4d] dark:bg-[rgba(31,122,77,0.2)] dark:text-[#9be0bb]">
+      <div className="flex items-start gap-3 rounded-[18px] bg-[var(--c-ok-soft)] px-4 py-3 text-[13px] text-[var(--c-ok-ink)] dark:bg-[rgba(31,122,77,0.2)] ">
         <CheckCircle size={18} weight="fill" className="mt-[1px] shrink-0" aria-hidden />
         <span>
           {pc.confirmedBy && onReport ? (
@@ -503,7 +503,7 @@ function FailedPanel({
       ) : (
         <>
           <div className="flex items-start gap-3">
-            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] bg-[#ffe1e1] text-[#b4232a]" aria-hidden>
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] bg-[var(--c-danger-soft)] text-[var(--c-danger-ink)]" aria-hidden>
               <WarningCircle size={20} weight="fill" />
             </span>
             <div className="min-w-0">

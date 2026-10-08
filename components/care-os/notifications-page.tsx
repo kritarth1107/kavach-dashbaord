@@ -152,7 +152,7 @@ export function NotificationsPage() {
                         <span
                           className={cn(
                             "flex h-10 w-10 shrink-0 items-center justify-center rounded-full",
-                            m.urgent ? "bg-[var(--c-accent)] text-white" : it.readAt ? "border border-[var(--c-line)]" : "bg-[var(--c-ink)] text-white",
+                            m.urgent ? "bg-[var(--c-accent)] text-white" : it.readAt ? "border border-[var(--c-line)]" : "bg-[var(--c-solid)] text-white",
                           )}
                         >
                           <m.icon size={18} weight={m.urgent ? "fill" : "regular"} />

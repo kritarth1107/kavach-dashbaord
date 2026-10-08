@@ -59,7 +59,7 @@ export function PersonPicker({
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-label={person.self ? "Self care. Switch person" : `Caring for ${person.name}. Switch person`}
-        className="flex min-w-0 items-center gap-2.5 rounded-full bg-[var(--c-card)] py-1 pl-1 pr-3 text-left transition-colors hover:bg-[#ebedee]"
+        className="flex min-w-0 items-center gap-2.5 rounded-full bg-[var(--c-card)] py-1 pl-1 pr-3 text-left transition-colors hover:bg-[var(--c-line)]"
       >
         <Avatar name={person.name} src={person.photo} size={34} />
         <span className="min-w-0 leading-tight">

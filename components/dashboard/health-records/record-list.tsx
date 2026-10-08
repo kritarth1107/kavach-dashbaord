@@ -69,7 +69,7 @@ function RowBody({ doc }: { doc: LabDocument }) {
               key={c.text}
               className={cn(
                 "c-num inline-flex items-center gap-0.5 whitespace-nowrap rounded-full px-2 py-1 text-[11px]",
-                c.bad ? "bg-[#ffe1e1] text-[#b4232a]" : "bg-[var(--c-frame)] text-[var(--c-ink-2)]",
+                c.bad ? "bg-[var(--c-danger-soft)] text-[var(--c-danger-ink)]" : "bg-[var(--c-frame)] text-[var(--c-ink-2)]",
               )}
             >
               {c.text}

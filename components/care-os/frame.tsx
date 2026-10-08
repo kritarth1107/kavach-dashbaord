@@ -16,11 +16,13 @@ import {
   Heart,
   ListChecks,
   MapPin,
+  Moon,
   Plugs,
   Question,
   SignOut,
   Siren,
   Stethoscope,
+  Sun,
   UsersThree,
   Wallet,
   X,
@@ -28,6 +30,8 @@ import {
 } from "@phosphor-icons/react";
 import { useCallback, useEffect, useState } from "react";
 import { logout } from "@/lib/api";
+import { useTheme } from "@/components/providers/theme-provider";
+import { ThemeIcon, useThemeLabel } from "@/components/providers/theme-icon";
 import { useFamily } from "@/components/dashboard/family-context";
 import { FamilyAccessBanner } from "@/components/dashboard/family-access-banner";
 import { CareRecipientViewRightPanel } from "@/components/dashboard/family/care-recipient-view-right-panel";
@@ -167,7 +171,7 @@ function Drawer({ open, onClose }: { open: boolean; onClose: () => void }) {
                   }}
                   className={cn("flex w-full items-center gap-3 rounded-[16px] px-3 py-2.5 text-left", f.familyId === activeFamilyId ? "bg-[var(--c-card)]" : "hover:bg-[var(--c-card)]")}
                 >
-                  <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--c-ink)] text-[12px] font-medium text-white">{f.initial || f.name[0]}</span>
+                  <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--c-solid)] text-[12px] font-medium text-white">{f.initial || f.name[0]}</span>
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-[13px] font-medium">{f.name}</span>
                     <span className="block text-[11px] text-[var(--c-ink-3)]">{f.roleLabel}</span>
@@ -200,7 +204,8 @@ function Drawer({ open, onClose }: { open: boolean; onClose: () => void }) {
             </section>
           ))}
         </div>
-        <div className="border-t border-[var(--c-line)] px-4 py-3">
+        <div className="flex items-center justify-between gap-2 border-t border-[var(--c-line)] px-4 py-3">
+          <DrawerThemeSwitch />
           <button
             type="button"
             onClick={async () => {
@@ -208,13 +213,29 @@ function Drawer({ open, onClose }: { open: boolean; onClose: () => void }) {
               await signOut({ redirect: false });
               router.replace("/auth/login");
             }}
-            className="flex items-center gap-2 px-3 py-2 text-[14px] font-medium text-[#d92d20] hover:underline"
+            className="flex items-center gap-2 px-3 py-2 text-[14px] font-medium text-[var(--c-danger-ink)] hover:underline"
           >
             <SignOut size={17} /> Sign out
           </button>
         </div>
       </aside>
     </div>
+  );
+}
+
+function DrawerThemeSwitch() {
+  const { toggleTheme } = useTheme();
+  const { dark } = useThemeLabel();
+  return (
+    <button
+      type="button"
+      onClick={toggleTheme}
+      aria-pressed={dark}
+      className="flex items-center gap-2 rounded-full border border-[var(--c-line)] px-3 py-2 text-[13px] font-medium hover:bg-[var(--c-card)]"
+    >
+      <ThemeIcon size={16} sun={<Sun size={16} weight="bold" />} moon={<Moon size={16} weight="bold" />} />
+      Dark mode
+    </button>
   );
 }
 
@@ -268,7 +289,7 @@ function Inner({ children }: { children: React.ReactNode }) {
       loadingPeople={loading}
       selectedId={selectedId}
       onSelectPerson={select}
-      me={{ name: me.name || "there" }}
+      me={{ name: me.name || "there", avatar: me.avatar }}
       alerts={unread}
       onMenu={() => setMenu(true)}
     >

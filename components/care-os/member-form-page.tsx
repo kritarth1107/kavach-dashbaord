@@ -219,7 +219,7 @@ export function MemberFormPage({ memberId }: { memberId?: string }) {
                 onClick={() => set("role", r.value)}
                 className={cn(
                   "h-9 rounded-[10px] text-[13px] transition-colors disabled:cursor-not-allowed disabled:opacity-40",
-                  form.role === r.value ? "bg-[var(--c-ink)] font-medium text-white" : "text-[var(--c-ink-2)] hover:text-[var(--c-ink)]",
+                  form.role === r.value ? "bg-[var(--c-solid)] font-medium text-white" : "text-[var(--c-ink-2)] hover:text-[var(--c-ink)]",
                 )}
               >
                 {r.label}
@@ -287,7 +287,7 @@ export function MemberFormPage({ memberId }: { memberId?: string }) {
         <button
           type="submit"
           disabled={saving || loading}
-          className="h-11 rounded-full bg-[var(--c-ink)] px-6 text-[14px] font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+          className="h-11 rounded-full bg-[var(--c-solid)] px-6 text-[14px] font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50"
         >
           {saving ? "Saving…" : editing ? "Save changes" : isRecipient ? "Add to family" : "Send invite"}
         </button>

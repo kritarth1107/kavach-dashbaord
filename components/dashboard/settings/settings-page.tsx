@@ -380,7 +380,7 @@ export function SettingsPage() {
               // eslint-disable-next-line @next/next/no-img-element
               <img src={profile.avatarUrl} alt="" className="h-14 w-14 rounded-full object-cover" />
             ) : (
-              <span className="flex h-14 w-14 items-center justify-center rounded-full bg-[var(--c-ink)] text-[18px] font-medium text-white">{initials}</span>
+              <span className="flex h-14 w-14 items-center justify-center rounded-full bg-[var(--c-solid)] text-[18px] font-medium text-white">{initials}</span>
             )}
             <span className="absolute -bottom-0.5 -right-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-[var(--c-accent)] text-[11px] text-white">
               {photoBusy ? <Loader2 className="h-3 w-3 animate-spin" /> : "+"}
@@ -402,7 +402,7 @@ export function SettingsPage() {
         <div
           className={cn(
             "mb-4 rounded-[14px] px-4 py-2.5 text-[13px]",
-            error ? "bg-[var(--c-accent-soft)] text-[var(--c-accent-soft-ink)]" : "bg-[#e6f2ec] text-[var(--c-forest)]",
+            error ? "bg-[var(--c-accent-soft)] text-[var(--c-accent-soft-ink)]" : "bg-[var(--c-ok-soft)] text-[var(--c-forest)]",
           )}
         >
           {error || success}
@@ -419,7 +419,7 @@ export function SettingsPage() {
               onClick={() => setTab(item.id)}
               className={cn(
                 "flex min-w-[150px] flex-1 items-center gap-3 rounded-[18px] px-3 py-3 text-left transition-colors lg:min-w-0 lg:flex-none",
-                tab === item.id ? "bg-[var(--c-ink)] text-white" : "bg-[var(--c-card)] text-[var(--c-ink-2)] hover:text-[var(--c-ink)]",
+                tab === item.id ? "bg-[var(--c-solid)] text-white" : "bg-[var(--c-card)] text-[var(--c-ink-2)] hover:text-[var(--c-ink)]",
               )}
             >
               <span className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-full", tab === item.id ? "bg-[var(--c-accent)] text-white" : "bg-[var(--c-frame)]")}>

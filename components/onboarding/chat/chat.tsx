@@ -434,7 +434,7 @@ export function OnboardingChat() {
             <div className="flex flex-wrap gap-2 pt-1">
               <button type="button" onClick={() => void finish()} className="inline-flex h-12 items-center gap-2 rounded-full bg-[var(--c-accent)] px-6 text-[14.5px] font-medium text-white">Set everything up <ArrowRight size={16} /></button>
               <button type="button" onClick={() => void proceed(answers, flow, ["Sure — tap the pencil next to anything, or just tell me what to change."], { you: you("Change something") })}
-                className="inline-flex h-12 items-center rounded-full border border-[var(--c-line)] bg-white px-5 text-[14px]">Change something</button>
+                className="inline-flex h-12 items-center rounded-full border border-[var(--c-line)] bg-[var(--c-frame)] px-5 text-[14px]">Change something</button>
             </div>
           </div>
         );
@@ -455,11 +455,13 @@ export function OnboardingChat() {
         <header className="px-5 pt-4 sm:px-8 sm:pt-6">
           <div className="flex items-center justify-between gap-4">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/kavach-careos-logo.png" alt="Kavach CareOS" className="h-7 w-auto sm:h-9" />
+            <img src="/kavach-careos-logo.png" alt="Kavach CareOS" className="h-7 w-auto sm:h-9 dark:hidden" />
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/kavach-careos-logo-dark.png" alt="" aria-hidden className="hidden h-7 w-auto sm:h-9 dark:block" />
             <nav className="hidden items-center gap-1.5 md:flex" aria-label="Progress">
               {CHAPTERS.map((c, k) => (
                 <span key={c} className={cn("flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[12px]", k === at ? "bg-[var(--c-card)] font-medium" : k < at ? "text-[var(--c-ink-2)]" : "text-[var(--c-ink-3)]")}>
-                  {k < at ? <span className="text-[11px] text-[#1f7a4d]">✓</span> : k === at ? <span className="h-1.5 w-1.5 rounded-full bg-[var(--c-accent)]" /> : null}{chapterName(c)}
+                  {k < at ? <span className="text-[11px] text-[var(--c-ok-ink)]">✓</span> : k === at ? <span className="h-1.5 w-1.5 rounded-full bg-[var(--c-accent)]" /> : null}{chapterName(c)}
                 </span>
               ))}
             </nav>
@@ -467,7 +469,7 @@ export function OnboardingChat() {
               <span className="shrink-0 text-[12.5px] text-[var(--c-ink-3)]">{saved ? "Saved · " : ""}<button type="button" onClick={() => void later()} className="underline underline-offset-4 hover:text-[var(--c-ink)]">Finish later</button></span>
             )}
           </div>
-          <div className="mt-3 flex gap-1 md:hidden">{CHAPTERS.map((c, k) => <span key={c} className={cn("h-1 flex-1 rounded-full", k < at ? "bg-[var(--c-ink)]" : k === at ? "bg-[var(--c-accent)]" : "bg-[var(--c-card)]")} />)}</div>
+          <div className="mt-3 flex gap-1 md:hidden">{CHAPTERS.map((c, k) => <span key={c} className={cn("h-1 flex-1 rounded-full", k < at ? "bg-[var(--c-solid)]" : k === at ? "bg-[var(--c-accent)]" : "bg-[var(--c-card)]")} />)}</div>
           <button type="button" onClick={() => setNbOpen((x) => !x)} className="mt-3 flex w-full items-center justify-between rounded-full bg-[var(--c-card)] px-4 py-2 text-[12.5px] lg:hidden">
             <span className="flex items-center gap-2"><span className="h-3 w-3 rounded-[3px] bg-[var(--c-accent)]" />Saheli&apos;s notebook · <b className="font-medium">{notebookTitle}</b></span>
             <CaretDown size={14} className={cn("transition", nbOpen && "rotate-180")} />
@@ -491,8 +493,8 @@ export function OnboardingChat() {
                   <div key={m.id} className="flex justify-end">
                     {m.kind === "photo" && photos[m.id]
                       // eslint-disable-next-line @next/next/no-img-element
-                      ? <div className="w-[200px] overflow-hidden rounded-[22px] rounded-br-[6px] bg-[var(--c-ink)] p-1.5"><img src={photos[m.id]} alt="Prescription" className="h-[140px] w-full rounded-[17px] object-cover" /><p className="px-2 py-1.5 text-[12px] text-white/70">Prescription photo</p></div>
-                      : <div className="max-w-[80%] whitespace-pre-wrap rounded-[22px] rounded-br-[6px] bg-[var(--c-ink)] px-4 py-3 text-[15px] leading-[1.5] text-white">{m.text}</div>}
+                      ? <div className="w-[200px] overflow-hidden rounded-[22px] rounded-br-[6px] bg-[var(--c-solid)] p-1.5"><img src={photos[m.id]} alt="Prescription" className="h-[140px] w-full rounded-[17px] object-cover" /><p className="px-2 py-1.5 text-[12px] text-white/70">Prescription photo</p></div>
+                      : <div className="max-w-[80%] whitespace-pre-wrap rounded-[22px] rounded-br-[6px] bg-[var(--c-solid)] px-4 py-3 text-[15px] leading-[1.5] text-white">{m.text}</div>}
                   </div>
                 );
               }
@@ -516,7 +518,7 @@ export function OnboardingChat() {
             )}
             {widget && <div className="sm:ml-11">{widget}</div>}
             {phase === "done" && (
-              <div className="sm:ml-11"><button type="button" onClick={() => router.replace("/dashboard")} className="inline-flex h-12 items-center gap-2 rounded-full bg-[var(--c-ink)] px-6 text-[14.5px] font-medium text-white">Open my dashboard <ArrowRight size={16} /></button></div>
+              <div className="sm:ml-11"><button type="button" onClick={() => router.replace("/dashboard")} className="inline-flex h-12 items-center gap-2 rounded-full bg-[var(--c-solid)] px-6 text-[14.5px] font-medium text-white">Open my dashboard <ArrowRight size={16} /></button></div>
             )}
             <div ref={endRef} />
           </div>
@@ -524,7 +526,7 @@ export function OnboardingChat() {
 
         {phase === "chat" && (
           <footer className="mx-auto w-full max-w-[784px] px-3 pb-4 sm:px-8 sm:pb-6">
-            <div className="flex items-end gap-2 rounded-[26px] border border-[var(--c-line)] bg-white p-1.5 pl-5">
+            <div className="flex items-end gap-2 rounded-[26px] border border-[var(--c-line)] bg-[var(--c-frame)] p-1.5 pl-5">
               <textarea ref={inputRef} rows={1} value={text} maxLength={1500} disabled={busy}
                 onChange={(e) => { setText(e.target.value); e.target.style.height = "auto"; e.target.style.height = `${Math.min(120, e.target.scrollHeight)}px`; }}
                 onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void send(); } }}
@@ -546,7 +548,7 @@ export function OnboardingChat() {
         <div className="h-full overflow-y-auto rounded-[22px] bg-[var(--c-card)] p-7">
           <p className="mb-5 flex items-center gap-2 text-[13px] font-medium"><span className="h-3.5 w-3.5 rounded-[4px] bg-[var(--c-accent)]" />Saheli&apos;s notebook</p>
           <Notebook answers={answers} index={nbIndex} onIndex={setNbIndex} fresh={fresh} />
-          {phase === "done" && result && <p className="mt-4 text-[13px] text-[#1f7a4d]">✓ Saheli is with {result.persons.filter((p) => p.userId).map((p) => p.addressAs).join(" and ") || "you"} now</p>}
+          {phase === "done" && result && <p className="mt-4 text-[13px] text-[var(--c-ok-ink)]">✓ Saheli is with {result.persons.filter((p) => p.userId).map((p) => p.addressAs).join(" and ") || "you"} now</p>}
         </div>
       </aside>
     </div>

@@ -354,8 +354,8 @@ export function ReviewForm({
                     <li
                       key={r.id}
                       className={cn(
-                        "grid grid-cols-[minmax(0,1fr)_auto_32px] items-center gap-x-2 gap-y-1 border-b border-[var(--c-line)] px-3 py-1.5 last:border-0 focus-within:bg-[#fffaf5] sm:grid-cols-[1.4fr_.8fr_.8fr_.9fr_.7fr_32px] dark:focus-within:bg-[rgba(211,84,30,0.08)]",
-                        problem && bad && "bg-[#fff6f6]",
+                        "grid grid-cols-[minmax(0,1fr)_auto_32px] items-center gap-x-2 gap-y-1 border-b border-[var(--c-line)] px-3 py-1.5 last:border-0 focus-within:bg-[var(--c-accent-wash)] sm:grid-cols-[1.4fr_.8fr_.8fr_.9fr_.7fr_32px] dark:focus-within:bg-[rgba(211,84,30,0.08)]",
+                        problem && bad && "bg-[var(--c-danger-wash)]",
                       )}
                     >
                       <input
@@ -571,7 +571,7 @@ function MedicineRow({ med: m, person, onChange, onToggleSlot }: { med: Med; per
                   onClick={() => onToggleSlot(s.id)}
                   className={cn(
                     "h-[30px] rounded-full px-2.5 text-[11.5px] outline-none transition-colors focus-visible:ring-2 focus-visible:ring-[var(--c-accent)] focus-visible:ring-offset-1",
-                    on ? "bg-[var(--c-ink)] text-[var(--c-frame)]" : "border border-[var(--c-line)] bg-[var(--c-frame)] text-[var(--c-ink-2)] hover:text-[var(--c-ink)]",
+                    on ? "bg-[var(--c-solid)] text-[var(--c-on-solid)]" : "border border-[var(--c-line)] bg-[var(--c-frame)] text-[var(--c-ink-2)] hover:text-[var(--c-ink)]",
                   )}
                 >
                   {s.label}
@@ -597,7 +597,7 @@ function MedicineRow({ med: m, person, onChange, onToggleSlot }: { med: Med; per
       </div>
       <div className="ml-[30px] mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1.5 text-[12px] text-[var(--c-ink-2)]">
         {m.alreadyOnSchedule ? (
-          <span className="flex items-center gap-1 text-[#9a6700] dark:text-[#f5c862]">
+          <span className="flex items-center gap-1 text-[var(--c-warn-ink)] ">
             <Info size={13} aria-hidden />
             Already on {pron.possessive} schedule · not added again
           </span>
@@ -616,7 +616,7 @@ function MedicineRow({ med: m, person, onChange, onToggleSlot }: { med: Med; per
                 />
               </label>
             ))}
-            <span className={cn(m.add && !validTimes.length && "text-[#9a6700] dark:text-[#f5c862]")}>
+            <span className={cn(m.add && !validTimes.length && "text-[var(--c-warn-ink)] ")}>
               {[
                 when,
                 !m.add ? "Not added to the schedule" : validTimes.length ? `Saheli will remind ${pron.object} on WhatsApp` : `Pick a time so Saheli can remind ${pron.object}`,

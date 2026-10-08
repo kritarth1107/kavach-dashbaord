@@ -24,7 +24,7 @@ type Day = Wellbeing["days"][number];
 function cellClass(d: Day) {
   if (d.level === "concern") return "bg-[var(--c-accent)]";
   if (d.level === "watch") return "border-2 border-[var(--c-accent)] bg-[var(--c-frame)]";
-  return d.talked ? "bg-[var(--c-ink)]" : "bg-[var(--c-line)]";
+  return d.talked ? "bg-[var(--c-solid)]" : "bg-[var(--c-line)]";
 }
 const dayDate = (day: string) => parseIst(day);
 const weekday = (day: string) => dayDate(day).toLocaleDateString("en-IN", { weekday: "narrow", timeZone: IST });
@@ -180,7 +180,7 @@ export function WellbeingPage() {
               </div>
               <div className="mt-auto pt-5">
                 <div className="h-1.5 rounded-full bg-[var(--c-frame)]">
-                  <div className="h-full rounded-full bg-[var(--c-ink)]" style={{ width: `${days.length ? (data.daysTalked / days.length) * 100 : 0}%` }} />
+                  <div className="h-full rounded-full bg-[var(--c-solid)]" style={{ width: `${days.length ? (data.daysTalked / days.length) * 100 : 0}%` }} />
                 </div>
               </div>
             </Panel>
@@ -240,7 +240,7 @@ export function WellbeingPage() {
                                 aria-pressed={picked}
                                 className={cn(
                                   "flex h-7 w-7 items-center justify-center rounded-full border transition-colors",
-                                  picked ? "border-[var(--c-ink)] bg-[var(--c-ink)] text-[var(--c-frame)]" : "border-[var(--c-line)] text-[var(--c-ink-2)] hover:bg-[var(--c-card)]",
+                                  picked ? "border-[var(--c-solid)] bg-[var(--c-solid)] text-[var(--c-on-solid)]" : "border-[var(--c-line)] text-[var(--c-ink-2)] hover:bg-[var(--c-card)]",
                                 )}
                               >
                                 <Icon size={13} weight={picked ? "fill" : "regular"} />
@@ -286,7 +286,7 @@ export function WellbeingPage() {
             </div>
             <div className="mt-4 flex flex-wrap gap-x-4 gap-y-2 text-[11px] text-[var(--c-ink-2)]">
               {[
-                { c: "bg-[var(--c-ink)]", l: "Talked" },
+                { c: "bg-[var(--c-solid)]", l: "Talked" },
                 { c: "bg-[var(--c-line)]", l: "No chat" },
                 { c: "border-2 border-[var(--c-accent)] bg-[var(--c-frame)]", l: "Watch" },
                 { c: "bg-[var(--c-accent)]", l: "Concern" },
@@ -359,7 +359,7 @@ export function WellbeingPage() {
                           aria-pressed={draft.kind === k}
                           className={cn(
                             "h-8 rounded-full border px-3 text-[12px] transition-colors",
-                            draft.kind === k ? "border-[var(--c-ink)] bg-[var(--c-ink)] text-[var(--c-frame)]" : "border-[var(--c-line)] bg-[var(--c-frame)] hover:bg-[var(--c-card)]",
+                            draft.kind === k ? "border-[var(--c-solid)] bg-[var(--c-solid)] text-[var(--c-on-solid)]" : "border-[var(--c-line)] bg-[var(--c-frame)] hover:bg-[var(--c-card)]",
                           )}
                         >
                           {label}
@@ -411,7 +411,7 @@ export function WellbeingPage() {
                       <span
                         className={cn(
                           "absolute left-0 top-1.5 h-[11px] w-[11px] rounded-full border-2 border-[var(--c-card)]",
-                          m.level === "info" ? "bg-[var(--c-ink)]" : "bg-[var(--c-accent)]",
+                          m.level === "info" ? "bg-[var(--c-solid)]" : "bg-[var(--c-accent)]",
                         )}
                       />
                       <div className="min-w-0 flex-1">

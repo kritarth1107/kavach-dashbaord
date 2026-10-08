@@ -173,7 +173,7 @@ export function MemoryPage() {
                 <ol className="relative mt-4 space-y-3 before:absolute before:bottom-2 before:left-[5px] before:top-2 before:w-px before:bg-[var(--c-line)]">
                   {learned.slice(0, 5).map((e) => (
                     <li key={e.id} className="relative flex gap-3 pl-6">
-                      <span className={cn("absolute left-0 top-1.5 h-[11px] w-[11px] rounded-full border-2 border-[var(--c-card)]", e.kind === "fact_pending" ? "bg-[var(--c-accent)]" : "bg-[var(--c-ink)]")} />
+                      <span className={cn("absolute left-0 top-1.5 h-[11px] w-[11px] rounded-full border-2 border-[var(--c-card)]", e.kind === "fact_pending" ? "bg-[var(--c-accent)]" : "bg-[var(--c-solid)]")} />
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-[13px]">{e.summary}</p>
                         <p className="text-[11px] text-[var(--c-ink-3)]">
