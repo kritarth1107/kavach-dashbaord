@@ -26,7 +26,7 @@ function ItemRow({ item, tone, who, now, onDecide, busy }: { item: WorkItem; ton
   return (
     <div className="flex flex-col gap-2 border-t border-[var(--c-line)] py-3 first:border-t-0 sm:flex-row sm:items-center sm:justify-between">
       <div className="min-w-0">
-        <p className="text-[13.5px] font-medium">{item.title}</p>
+        <p className="line-clamp-2 text-[13.5px] font-medium" title={item.title}>{item.title}</p>
         <p className="mt-0.5 text-[12px] text-[var(--c-ink-2)]">
           {KIND[item.kind] ?? "Task"}
           {item.updated_at ? ` · updated ${ago(parseIst(item.updated_at), now)}` : ""}
