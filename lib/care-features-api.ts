@@ -368,3 +368,54 @@ export type Spending = {
 export async function getSpending(familyId: string, subjectUserId: string, month?: string) {
   return (await request<Spending>(`${base(familyId, subjectUserId)}/spending${month ? `?month=${month}` : ""}`))!;
 }
+
+/* ── limits & approvals (family boundaries) ─────────────────────────────── */
+
+export type BoundaryPolicy = {
+  elder_order_limit: number;
+  elder_ride_limit: number;
+  anyone_over: number | null;
+  monthly_cap: number | null;
+  approval_categories: Array<"grocery" | "food" | "pharmacy" | "ride">;
+  approvers: string[];
+  members: Record<string, { can_order: boolean; can_ride: boolean }>;
+};
+export type ApprovalWaiting = { taskId: string; title: string; reasons?: string[]; approvers?: string[]; amount?: number | null; asked_at?: string; asked_by?: string };
+export type Boundaries = {
+  policy: BoundaryPolicy;
+  plain: string;
+  approvers: Array<{ id: string; name: string }>;
+  members: Array<{ id: string; name: string; role?: string }>;
+  monthSpent: number;
+  categories: string[];
+  waiting: ApprovalWaiting[];
+};
+
+export async function getBoundaries(familyId: string, subjectUserId: string) {
+  return (await request<Boundaries>(`${base(familyId, subjectUserId)}/boundaries`))!;
+}
+export const saveBoundaries = (familyId: string, subjectUserId: string, changes: Partial<BoundaryPolicy>) =>
+  send<{ policy: BoundaryPolicy }>(`${base(familyId, subjectUserId)}/boundaries`, { changes }, "PUT");
+
+/* ── everything handed over (work) ───────────────────────────────────────── */
+
+export type WorkItem = {
+  id: string;
+  kind: string;
+  title: string;
+  state: "requested" | "working" | "waiting" | "done" | "failed" | "cancelled";
+  owner: string | null;
+  ownerName?: string | null;
+  waiting_on: string | null;
+  next_action: string | null;
+  due_at: string | null;
+  updated_at: string | null;
+  requested_by: string | null;
+  subject: string;
+  source: "task" | "loop";
+  stuck: string | null;
+};
+
+export async function getWork(familyId: string, subjectUserId: string, all = false) {
+  return (await request<{ items: WorkItem[]; stuck: number; open: number }>(`${base(familyId, subjectUserId)}/work${all ? "?all=1" : ""}`))!;
+}

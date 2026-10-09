@@ -46,7 +46,7 @@ export type OpenLoop = {
   createdAt: string;
 };
 
-export type TaskItem = { name: string; qty?: number; price?: string; available?: boolean };
+export type TaskItem = { name: string; qty?: number; price?: string; available?: boolean; for_item?: string };
 export type RideOption = { type?: string; fare?: string; eta?: string };
 
 export type CareTask = {
@@ -55,7 +55,20 @@ export type CareTask = {
   serviceLabel: string;
   kind: "order" | "ride";
   goal: string;
-  details: { items?: TaskItem[]; pickup?: string; drop?: string; vehicle?: string; area?: string; confirmed_by?: string; choice?: string };
+  details: {
+    items?: TaskItem[];
+    pickup?: string;
+    drop?: string;
+    vehicle?: string;
+    area?: string;
+    confirmed_by?: string;
+    choice?: string;
+    /** Same id on every store of one comparison (no store was named). */
+    compare?: string;
+    /** What that store's look-up came to, e.g. "Zepto does not deliver to Home". */
+    compare_note?: string;
+    login?: string;
+  };
   status: "queued" | "running" | "needs_input" | "awaiting_confirm" | "done" | "failed" | "cancelled";
   phase: "browse" | "prepare" | "otp" | "place" | "cancel";
   inputNeeded: "go" | "otp" | "confirm" | "fee" | "choice" | "swap" | null;
@@ -141,7 +154,7 @@ export function saveNote(familyId: string, subjectUserId: string, note: { subjec
   return post<{ saved: boolean; version: number }>(`${base(familyId, subjectUserId)}/notes`, note, "PUT");
 }
 
-export function taskInput(familyId: string, subjectUserId: string, taskId: string, kind: "go" | "otp" | "confirm" | "fee" | "choice", value: string) {
+export function taskInput(familyId: string, subjectUserId: string, taskId: string, kind: "go" | "otp" | "confirm" | "fee" | "choice" | "approve", value: string) {
   return post<{ result: string; task: CareTask }>(`${base(familyId, subjectUserId)}/tasks/${taskId}/input`, { kind, value });
 }
 
