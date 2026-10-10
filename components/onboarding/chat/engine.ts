@@ -134,11 +134,13 @@ export function plan(c: Ctx): Slot[] {
     if (p.medicines.length) out.push(slot("p_meds_confirm", i));
     if (!self) out.push(slot("p_problems", i, true));
     out.push(slot("p_whatsapp", i));
+    if (!self) out.push(slot("p_codes", i));
   });
   if (!self) {
     out.push(slot("help_with"));
     if (a.persons.some((p) => p.livesWith === "alone")) out.push(slot("emergency", undefined, true));
-    if (!c.myPhone) out.push(slot("you_whatsapp", undefined, true));
+    // Codes go to your phone for someone: then your WhatsApp is needed, not optional.
+    if (!c.myPhone) out.push(slot("you_whatsapp", undefined, !a.persons.some((p) => p.codesFrom === "me")));
   }
   out.push(slot("followups"));
   out.push(slot("anything_else", undefined, true), slot("summary"));
@@ -175,6 +177,7 @@ export function isDone(s: Slot, c: Ctx): boolean {
     case "p_medicines": return !!(p?.noMedicines || p?.medicines.length);
     case "p_problems": return !!(p?.problems.length || p?.problemsOther);
     case "p_whatsapp": return validPhone(p?.phone) && !!c.verified[isSelf(a) ? "self" : `person:${s.person}`];
+    case "p_codes": return !!p?.codesFrom;
     case "you_whatsapp": return validPhone(a.you.phone) && !!c.verified.self;
     case "emergency": return !!a.emergency?.name;
     case "followups": return !!flow.nurse;
@@ -328,6 +331,12 @@ export function ask(s: Slot, c: Ctx): Turn {
       return t(self ? "Your WhatsApp number, so I can talk to you there." : `${lead ? `${lead}${call}: ` : ""}${lead ? pr.their : `${Call}'s`} WhatsApp number, so I can talk to ${pr.them} there.`,
         { type: "phone", target: self ? "self" : `person:${i}`, person: i }, "Or type the number…", "their WhatsApp number");
     }
+    case "p_codes":
+      return t(`When ${call} orders something (groceries, medicines, a cab), the store sometimes sends a login code to a phone. Who should I ask for it?`,
+        { type: "chips", options: [
+          { id: "self", label: `${Call}`, hint: `Code on ${pr.their} phone` },
+          { id: "me", label: "Me", hint: "Code on my phone, with the order details" },
+        ] }, "Or tell me…", "who gives the store login codes for their orders", "Only when a store asks for a login code");
     case "help_with":
       return t("What should I help with most?", { type: "chips", options: HELP_WITH.map((h) => ({ id: h.id, label: h.label, hint: h.hint })), multi: true, selected: a.helpWith.length ? a.helpWith : ["reminders", "checkins", "company"] }, "Or tell me…", "what the caregiver wants Saheli to help with");
     case "emergency": {
@@ -427,6 +436,11 @@ export function applyChips(s: Slot, ids: string[], c: Ctx): Applied {
       if (ids[0] === "__mine" && c.myPhone) return { a: setP({ ...a, you: { ...a.you, phone: c.myPhone } }, i, { phone: c.myPhone }), flow: done(flow, s.key), you, ack: "Perfect — I'll talk to you there." };
       if (ids[0] === "__other") return { a, flow, you };
       return { a, flow, you };
+    case "p_codes": {
+      const me = ids[0] === "me";
+      return { a: setP(a, i, { codesFrom: me ? "me" : "self" }), flow: done(flow, s.key), you,
+        ack: me ? `Got it. I'll ask you for the code, with what ${call} is ordering. If you cancel an order, I'll tell ${pr.them} gently.` : `Got it. I'll ask ${call} for the code.` };
+    }
     case "help_with":
       return { a: { ...a, helpWith: ids }, flow: done(flow, s.key), you };
     case "anything_else":

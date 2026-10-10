@@ -16,6 +16,8 @@ export type Person = {
   dialect?: string | null;
   reads?: "text" | "voice" | "both";
   phone?: string;
+  /** Who gives store login codes (OTPs) for their orders: they themselves, or you (the caregiver). */
+  codesFrom?: "self" | "me";
   conditions: string[];
   conditionsOther?: string;
   sugarCheck?: "daily" | "sometimes" | "no";
