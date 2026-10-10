@@ -18,7 +18,7 @@ import {
   type Icon as PhosphorIcon,
 } from "@phosphor-icons/react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { closeLoop, resolveFact, type CareEvent, type CareFact } from "@/lib/care-memory-api";
+import { closeLoop, resolveFact, type CareEvent } from "@/lib/care-memory-api";
 import { useCareOverview } from "@/components/dashboard/saheli/saheli-shared";
 import { cn } from "@/lib/utils";
 import { possessive, usePerson } from "./person-context";
@@ -171,30 +171,32 @@ export function DayCalendarPage() {
   };
 
   const events: CareEvent[] = useMemo(() => (data?.events ?? []).filter((e) => !HIDDEN.has(e.kind)), [data]);
-  const meds: CareFact[] = useMemo(() => (data?.facts ?? []).filter((f) => f.domain === "medicine" && f.status === "active"), [data]);
 
   const blocks: Block[] = useMemo(() => {
     const out: Block[] = [];
-    const takenNames = events.filter((e) => e.kind.startsWith("dose_")).map((e) => e.summary.toLowerCase());
-    for (const f of meds) {
-      const v = f.value as { name?: string; dose?: string; times?: string[] };
-      const nm = v.name || f.name.replace(/_/g, " ");
-      for (const t of v.times ?? []) {
-        const [h, m] = t.split(":").map(Number);
-        const start = h * 60 + m;
-        const first = nm.toLowerCase().split(" ")[0];
-        const done = takenNames.some((s) => s.includes(first));
-        const past = day < today || (day === today && start < nowMins);
-        out.push({
-          id: `plan:${f.key}@${t}`,
-          lane: "medicines",
-          start,
-          title: nm,
-          sub: [v.dose, t].filter(Boolean).join(" · "),
-          planned: !done,
-          look: done ? { label: "Taken", icon: CheckCircle, tone: "dark" } : past ? { label: "Not marked", icon: WarningCircle, tone: "soft" } : { label: "Scheduled", icon: Pill, tone: "plain" },
-        });
-      }
+    // The day's due doses and their status come from the engine (the same list as the Home card): a weekly medicine
+    // shows only on its day, and "taken" comes from the dose records, not from matching names here.
+    for (const d of data?.doses ?? []) {
+      const [h, m] = d.time.split(":").map(Number);
+      const start = h * 60 + m;
+      const done = d.status === "taken";
+      const missed = d.status === "missed" || d.status === "skipped";
+      const past = day < today || (day === today && start < nowMins);
+      out.push({
+        id: `plan:${d.id}`,
+        lane: "medicines",
+        start,
+        title: d.name,
+        sub: [d.dose, d.time].filter(Boolean).join(" · "),
+        planned: !done,
+        look: done
+          ? { label: "Taken", icon: CheckCircle, tone: "dark" }
+          : missed
+            ? { label: "Missed", icon: WarningCircle, tone: "soft" }
+            : past
+              ? { label: "Not marked", icon: WarningCircle, tone: "soft" }
+              : { label: "Scheduled", icon: Pill, tone: "plain" },
+      });
     }
     const plans = out.filter((b) => b.id.startsWith("plan:"));
     for (const e of events) {
@@ -227,7 +229,7 @@ export function DayCalendarPage() {
       grouped.push({ ...b });
     }
     return grouped;
-  }, [events, meds, day, today, nowMins]);
+  }, [events, data, day, today, nowMins]);
 
   const placed = useMemo(() => LANES.flatMap((l) => layoutLane(blocks.filter((b) => b.lane === l.id))), [blocks]);
 

@@ -101,6 +101,8 @@ export type MemoryNote = { subjectId: string; slug: string; title: string; body:
 
 export type CareOverview = {
   day: string;
+  /** The day's due doses with their status (same list as the Home card: weekly medicines only on their day). */
+  doses?: Array<{ id: string; time: string; name: string; dose?: string | null; status: string }>;
   domains: Record<string, string>;
   facts: CareFact[];
   pending: CareFact[];
