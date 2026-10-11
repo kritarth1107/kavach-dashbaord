@@ -22,6 +22,18 @@ export type CareFact = {
   validTo: string | null;
   recordedAt: string;
   note: string | null;
+  /** How it connects (read-only; Saheli and the record review set these): "for diabetes", "Dr Sharma", "from the 3 Sep prescription". */
+  links?: CareLink[];
+};
+
+export type CareLink = {
+  relation: "for" | "prescribed_by" | "from_record" | "with_doctor" | "related_to" | string;
+  to: string;
+  label: string;
+  text: string;
+  phrase: string;
+  status: "active" | "pending" | string;
+  source: string;
 };
 
 export type CareEvent = {

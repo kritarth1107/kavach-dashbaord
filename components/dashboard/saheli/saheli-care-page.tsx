@@ -320,6 +320,11 @@ export function SaheliCarePage() {
                         <li key={f.id} className="flex flex-col gap-2 py-2.5 sm:flex-row sm:items-center sm:justify-between">
                           <div className="min-w-0">
                             <p className="break-words text-[13px] font-semibold text-[var(--text-primary)]">{f.text}</p>
+                            {f.status === "active" && !!f.links?.length && (
+                              <p className="mt-0.5 break-words text-[12px] text-[var(--text-secondary)]">
+                                {f.links.map((l) => (l.status === "pending" ? `${l.text} (waiting for your OK)` : l.text)).join(", ")}
+                              </p>
+                            )}
                             <p className="mt-0.5 text-[11px] text-[var(--text-tertiary)]">
                               {SOURCE_LABEL[f.source] ?? f.source}
                               {f.source === "elder_said" && !f.confirmedBy ? " · not confirmed" : ""} · since {formatIstDateTime(f.validFrom)}
