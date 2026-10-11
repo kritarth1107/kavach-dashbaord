@@ -29,7 +29,7 @@ import { Tag } from "@/components/care-os/ui";
 
 export type RecordPerson = {
   id: string;
-  /** Full name without honorifics: "Vasundara Devi". */
+  /** Full name without honorifics: "Sarla Devi". */
   name: string;
   first: string;
   relation?: string;
@@ -49,7 +49,7 @@ export function makeRecordPerson(input: { id: string; name: string; relation?: s
   };
 }
 
-/** "Vasundara's" or "Your". */
+/** "Sarla's" or "Your". */
 export const possessiveOf = (p: RecordPerson) => (p.self ? "Your" : `${p.first}'s`);
 
 /* ── links between the screens ─────────────────────────────────────────── */

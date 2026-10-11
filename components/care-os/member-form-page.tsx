@@ -240,7 +240,7 @@ export function MemberFormPage({ memberId }: { memberId?: string }) {
             </select>
           </Field>
           <Field label="Full name">
-            <input value={form.name} onChange={(e) => set("name", e.target.value)} placeholder="Vasundara Devi" className={field} required />
+            <input value={form.name} onChange={(e) => set("name", e.target.value)} placeholder="Sarla Devi" className={field} required />
           </Field>
         </div>
 

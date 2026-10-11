@@ -287,7 +287,7 @@ export function pronounsFor(person: { relation?: string; self?: boolean } | null
 
 const HONORIFIC = /^(mr|mrs|ms|miss|smt|shri|sri|dr|late)\.?$/i;
 
-/** "Smt. Vasundara Devi" → "Vasundara". */
+/** "Smt. Sarla Devi" → "Sarla". */
 export function firstNameOf(name: string | null | undefined): string {
   const parts = String(name || "").split(/\s+/).filter(Boolean);
   const first = parts.find((p) => !HONORIFIC.test(p));
