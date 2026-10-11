@@ -21,24 +21,33 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { closeLoop, resolveFact, type CareEvent } from "@/lib/care-memory-api";
 import { useCareOverview } from "@/components/dashboard/saheli/saheli-shared";
 import { cn } from "@/lib/utils";
-import { possessive, usePerson } from "./person-context";
-import { Panel, PanelTitle, SmallButton, Tag } from "./ui";
+import { callName, possessive, usePerson } from "./person-context";
+import { AllReminders, ReminderDetail, STATUS_WORD, useAllReminders, useReminderDay } from "./reminders-panel";
+import { Panel, PanelTitle, PillTabs, SmallButton, Tag } from "./ui";
 
 const IST = "Asia/Kolkata";
 const HOUR_PX = 88;
 const CARD_PX = 44; // a card is drawn this tall; cards closer than this in time sit side by side
+const CHIP_PX = 24; // the small card of one time of a reminder that goes out many times a day
 const MAX_COLS = 2;
 const GROUP_MIN = 30; // same kind in the same lane within this many minutes becomes one card
-const START_H = 5;
+const START_H = 0; // the whole day: reminders and doses after midnight show too
 const END_H = 24;
+const AHEAD_DAYS = 365; // future days open, so a reminder set for a date shows on that day
 
-type LaneId = "medicines" | "saheli" | "health" | "orders";
+type LaneId = "medicines" | "reminders" | "saheli" | "health" | "orders";
 const LANES: Array<{ id: LaneId; label: string; icon: PhosphorIcon }> = [
   { id: "medicines", label: "Medicines", icon: Pill },
+  { id: "reminders", label: "Reminders", icon: Alarm },
   { id: "saheli", label: "Saheli & chat", icon: ChatCircle },
   { id: "health", label: "Health", icon: Heartbeat },
   { id: "orders", label: "Orders & alerts", icon: ShoppingBag },
 ];
+// the Reminders column is wider: a reminder is read by its words
+const GRID_COLS = "grid-cols-[64px_minmax(130px,1fr)_minmax(190px,1.5fr)_repeat(3,minmax(120px,1fr))]";
+
+/** A reminder Saheli set (not a medicine): the calendar shows its times from the reminder list, not these ledger rows. */
+const isCustomReminderEvent = (e: CareEvent) => e.kind.startsWith("reminder") && String(e.payload?.scheduleId ?? "").startsWith("reminder:");
 
 const HIDDEN = new Set(["import_done", "memory_extract", "note_rewritten", "probe", "dashboard_edit"]);
 
@@ -91,8 +100,21 @@ type Block = {
   planned?: boolean;
   reminders?: string[];
   items?: Array<{ start: number; sub?: string }>;
+  /** a Saheli reminder's time: opens the reminder */
+  reminderId?: string;
+  compact?: boolean;
+  skipped?: boolean;
 };
-type Placed = Block & { y: number; col: number; cols: number; more?: Block[] };
+
+function reminderLook(status: keyof typeof STATUS_WORD): ReturnType<typeof eventLook> {
+  if (status === "sent") return { label: STATUS_WORD.sent, icon: CheckCircle, tone: "plain" };
+  if (status === "failed" || status === "not_sent") return { label: STATUS_WORD[status], icon: WarningCircle, tone: "soft" };
+  return { label: STATUS_WORD[status], icon: Alarm, tone: "plain" };
+}
+/** x / w: where the card sits across its lane (fractions); a many-times reminder's small card next to a full card gets a narrow strip. */
+type Placed = Block & { y: number; col: number; cols: number; x: number; w: number; more?: Block[] };
+
+const CHIP_SHARE = 0.24; // the width a small card takes when it shares its row with a full card
 
 /** "… at 1:00 PM" / "… at 13:00" in a reminder summary → minutes since midnight. */
 function reminderMinutes(text: string): number | null {
@@ -113,7 +135,18 @@ function layoutLane(items: Block[]): Placed[] {
   const flush = () => {
     if (!cluster.length) return;
     const cols = Math.min(MAX_COLS, Math.max(...cluster.map((c) => c.col)) + 1);
-    const shown: Placed[] = cluster.filter((c) => c.col < MAX_COLS).map((c) => ({ ...c, cols }));
+    const kept = cluster.filter((c) => c.col < MAX_COLS);
+    // a small card and a full card side by side: the small one a narrow strip, the full one the rest (it has words to show)
+    const chipCol = cols === 2 && kept.some((c) => c.compact) && kept.some((c) => !c.compact)
+      ? (kept.filter((c) => c.compact).every((c) => c.col === 0) ? 0 : kept.filter((c) => c.compact).every((c) => c.col === 1) ? 1 : null)
+      : null;
+    const place = (c: (typeof kept)[number]): { x: number; w: number } => {
+      if (chipCol === null) return { x: c.col / cols, w: 1 / cols };
+      const narrow = c.col === chipCol;
+      if (chipCol === 0) return narrow ? { x: 0, w: CHIP_SHARE } : { x: CHIP_SHARE, w: 1 - CHIP_SHARE };
+      return narrow ? { x: 1 - CHIP_SHARE, w: CHIP_SHARE } : { x: 0, w: 1 - CHIP_SHARE };
+    };
+    const shown: Placed[] = kept.map((c) => ({ ...c, cols, ...place(c) }));
     // Anything past the last column is folded into the nearest card there as "+N".
     for (const h of cluster.filter((c) => c.col >= MAX_COLS)) {
       const lastCol = shown.filter((c) => c.col === cols - 1);
@@ -124,14 +157,15 @@ function layoutLane(items: Block[]): Placed[] {
     cluster = [];
     clusterEnd = -Infinity;
   };
+  const height = (b: Block) => (b.compact ? CHIP_PX : CARD_PX);
   for (const b of [...items].sort((a, c) => a.start - c.start)) {
     const y = top(Math.max(b.start, START_H * 60));
     if (y >= clusterEnd) flush();
-    const taken = new Set(cluster.filter((c) => c.y + CARD_PX > y).map((c) => c.col));
+    const taken = new Set(cluster.filter((c) => c.y + height(c) > y).map((c) => c.col));
     let col = 0;
     while (taken.has(col)) col++;
     cluster.push({ ...b, y, col });
-    clusterEnd = Math.max(clusterEnd, y + CARD_PX);
+    clusterEnd = Math.max(clusterEnd, y + height(b));
   }
   flush();
   return out;
@@ -143,9 +177,19 @@ export function DayCalendarPage() {
   const params = useSearchParams();
   const { familyId, selectedId, selected } = usePerson();
   const today = dayKey(new Date());
+  const lastDay = shift(today, AHEAD_DAYS);
   const raw = params.get("day");
-  const day = raw && /^\d{4}-\d{2}-\d{2}$/.test(raw) && raw <= today ? raw : today;
+  const day = raw && /^\d{4}-\d{2}-\d{2}$/.test(raw) && raw <= lastDay ? raw : today;
   const { data, loading, reload } = useCareOverview(familyId, selectedId, day, day === today ? 30_000 : 0);
+  const rem = useReminderDay(familyId, selectedId, day, day === today ? 30_000 : 0);
+  const [view, setView] = useState<"day" | "all">("day");
+  const [picked, setPicked] = useState<string | null>(null);
+  const [remTick, setRemTick] = useState(0);
+  const allReminders = useAllReminders(familyId, selectedId, remTick);
+  const remindersChanged = () => {
+    rem.reload();
+    setRemTick((n) => n + 1);
+  };
   const [nowMins, setNowMins] = useState(() => istMinutes(new Date().toISOString()));
   const [busy, setBusy] = useState<string | null>(null);
   const scroller = useRef<HTMLDivElement>(null);
@@ -170,7 +214,7 @@ export function DayCalendarPage() {
     router.replace(`${pathname}${q.toString() ? `?${q}` : ""}`, { scroll: false });
   };
 
-  const events: CareEvent[] = useMemo(() => (data?.events ?? []).filter((e) => !HIDDEN.has(e.kind)), [data]);
+  const events: CareEvent[] = useMemo(() => (data?.events ?? []).filter((e) => !HIDDEN.has(e.kind) && !isCustomReminderEvent(e)), [data]);
 
   const blocks: Block[] = useMemo(() => {
     const out: Block[] = [];
@@ -216,12 +260,28 @@ export function DayCalendarPage() {
       }
       out.push({ id: `ev:${e.id}`, lane: lane(e.kind), start: istMinutes(e.at), title: eventLook(e.kind).label, sub: e.summary, look: eventLook(e.kind) });
     }
+    // Each time of each Saheli reminder, in its own words, with what happened (sent, skipped, scheduled …).
+    for (const o of rem.data?.occurrences ?? []) {
+      const [h, m] = o.time.split(":").map(Number);
+      out.push({
+        id: `rem:${o.reminderId}@${o.time}`,
+        lane: "reminders",
+        start: h * 60 + m,
+        title: o.text,
+        sub: `${STATUS_WORD[o.status]}${o.status === "sent" ? " ✓" : ""} · ${o.schedule}`,
+        look: reminderLook(o.status),
+        planned: o.status === "scheduled",
+        reminderId: o.reminderId,
+        compact: o.many,
+        skipped: o.status === "skipped",
+      });
+    }
     // A burst of the same kind (several chat messages, repeated reminders) becomes one card.
     const grouped: Block[] = [];
     for (const b of out.sort((x, y) => x.start - y.start)) {
       const prev = [...grouped].reverse().find((g) => g.lane === b.lane);
       const kindOf = (x: Block) => (x.id.startsWith("plan:") ? "plan" : x.title);
-      if (prev && !b.id.startsWith("plan:") && kindOf(prev) === kindOf(b) && b.start - prev.start <= GROUP_MIN) {
+      if (prev && !b.id.startsWith("plan:") && !b.reminderId && !prev.reminderId && kindOf(prev) === kindOf(b) && b.start - prev.start <= GROUP_MIN) {
         prev.items = [...(prev.items ?? [{ start: prev.start, sub: prev.sub }]), { start: b.start, sub: b.sub }];
         prev.sub = `${prev.items.length} ${prev.title === "Chat" ? "messages" : "times"} · latest: ${b.sub ?? ""}`;
         continue;
@@ -229,7 +289,7 @@ export function DayCalendarPage() {
       grouped.push({ ...b });
     }
     return grouped;
-  }, [events, data, day, today, nowMins]);
+  }, [events, data, rem.data, day, today, nowMins]);
 
   const placed = useMemo(() => LANES.flatMap((l) => layoutLane(blocks.filter((b) => b.lane === l.id))), [blocks]);
 
@@ -239,7 +299,13 @@ export function DayCalendarPage() {
     planned: blocks.filter((b) => b.id.startsWith("plan:")).length,
     alerts: events.filter((e) => e.kind.startsWith("alert_")).length,
     readings: events.filter((e) => e.kind === "vital").length,
+    remindersSent: (rem.data?.occurrences ?? []).filter((o) => o.status === "sent").length,
+    remindersDue: (rem.data?.occurrences ?? []).filter((o) => o.status !== "skipped").length,
   };
+  const pickedReminder = picked
+    ? (rem.data?.reminders ?? []).find((r) => r.reminderId === picked) ?? (allReminders ?? []).find((r) => r.reminderId === picked) ?? null
+    : null;
+  const personWord = selected?.self ? "You" : callName(selected);
   const confirmations = (data?.loops ?? []).filter((l) => l.kind === "confirm_fact");
   const following = (data?.loops ?? []).filter((l) => l.kind !== "confirm_fact");
   const label = new Date(`${day}T12:00:00+05:30`).toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long", timeZone: IST });
@@ -262,12 +328,11 @@ export function DayCalendarPage() {
             {week.map((d) => {
               const dt = new Date(`${d}T12:00:00+05:30`);
               const on = d === day;
-              const future = d > today;
               return (
                 <button
                   key={d}
                   type="button"
-                  disabled={future}
+                  disabled={d > lastDay}
                   onClick={() => go(d)}
                   className={cn(
                     "flex h-11 w-11 flex-col items-center justify-center rounded-full text-[11px] leading-tight transition-colors disabled:opacity-30 sm:w-12",
@@ -281,7 +346,7 @@ export function DayCalendarPage() {
               );
             })}
           </div>
-          <button type="button" aria-label="Next day" disabled={day >= today} onClick={() => go(shift(day, 1))} className="flex h-12 w-12 items-center justify-center rounded-full border border-[var(--c-line)] hover:bg-[var(--c-card)] disabled:opacity-30">
+          <button type="button" aria-label="Next day" disabled={day >= lastDay} onClick={() => go(shift(day, 1))} className="flex h-12 w-12 items-center justify-center rounded-full border border-[var(--c-line)] hover:bg-[var(--c-card)] disabled:opacity-30">
             <CaretRight size={16} />
           </button>
         </div>
@@ -289,7 +354,22 @@ export function DayCalendarPage() {
 
       <div className="grid gap-4 xl:grid-cols-[1fr_320px]">
         <Panel className="min-w-0 p-0">
-          <div className="grid grid-cols-[64px_repeat(4,minmax(150px,1fr))] border-b border-[var(--c-line)] px-2 py-3">
+          <div className="flex items-center justify-between gap-3 border-b border-[var(--c-line)] px-4 py-3">
+            <PillTabs
+              tabs={[
+                { id: "day", label: "Day" },
+                { id: "all", label: "All reminders" },
+              ]}
+              value={view}
+              onChange={setView}
+            />
+            {view === "all" && <span className="text-[12px] text-[var(--c-ink-2)]">Everything Saheli will remind {personWord === "You" ? "you" : personWord} about</span>}
+          </div>
+          {view === "all" ? (
+            <AllReminders rows={allReminders} today={today} familyId={familyId ?? ""} subjectId={selectedId ?? ""} onDone={remindersChanged} onPick={(r) => setPicked(r.reminderId)} />
+          ) : (
+          <>
+          <div className={cn("grid border-b border-[var(--c-line)] px-2 py-3", GRID_COLS)}>
             <span />
             {LANES.map((l) => (
               <span key={l.id} className="flex items-center gap-2 px-2 text-[13px] font-medium">
@@ -301,7 +381,7 @@ export function DayCalendarPage() {
             ))}
           </div>
           <div ref={scroller} className="c-scroll relative h-[640px] overflow-auto">
-            <div className="relative grid min-w-[680px] grid-cols-[64px_repeat(4,minmax(150px,1fr))]" style={{ height: (END_H - START_H) * HOUR_PX }}>
+            <div className={cn("relative grid min-w-[780px]", GRID_COLS)} style={{ height: (END_H - START_H) * HOUR_PX }}>
               <div className="relative">
                 {Array.from({ length: END_H - START_H }, (_, i) => (
                   <span key={i} className="absolute right-3 -translate-y-1/2 text-[11px] tabular-nums text-[var(--c-ink-3)]" style={{ top: i * HOUR_PX }}>
@@ -315,12 +395,40 @@ export function DayCalendarPage() {
                     <span key={i} className="absolute inset-x-0 border-t border-[var(--c-line)]/70" style={{ top: i * HOUR_PX }} />
                   ))}
                   {placed
-                    .filter((b) => b.lane === l.id)
+                    .filter((b) => b.lane === l.id && b.compact)
+                    .map((b) => (
+                      <button
+                        key={b.id}
+                        type="button"
+                        onClick={() => b.reminderId && setPicked(b.reminderId)}
+                        className={cn(
+                          "absolute flex items-center gap-1.5 overflow-hidden whitespace-nowrap rounded-[8px] border border-dashed px-2 text-left text-[10.5px]",
+                          b.look.tone === "soft" ? "border-transparent bg-[var(--c-accent-soft)] text-[var(--c-accent-soft-ink)]" : "border-[var(--c-line)] bg-[var(--c-frame)]/80 text-[var(--c-ink-2)]",
+                          b.skipped && "line-through opacity-60",
+                          !!picked && b.reminderId === picked && "ring-2 ring-[var(--c-accent)]",
+                        )}
+                        style={{ top: b.y + 2, height: CHIP_PX - 4, left: `calc(${b.x * 100}% + 4px)`, width: `calc(${b.w * 100}% - 8px)` }}
+                        title={`${hm(b.start)} ${b.title}\n${b.sub ?? ""}`}
+                      >
+                        <span className="font-medium tabular-nums text-[var(--c-ink)]">{hm(b.start)}</span>
+                        {b.w > 0.5 && <span className="truncate">{b.title}</span>}
+                        {b.look.label === "Sent" ? <CheckCircle size={11} weight="fill" className="shrink-0 text-[#1f7a4d]" /> : b.planned ? <span className="shrink-0 text-[var(--c-accent)]">·</span> : null}
+                      </button>
+                    ))}
+                  {placed
+                    .filter((b) => b.lane === l.id && !b.compact)
                     .map((b) => (
                       <div
                         key={b.id}
+                        role={b.reminderId ? "button" : undefined}
+                        tabIndex={b.reminderId ? 0 : undefined}
+                        onClick={b.reminderId ? () => setPicked(b.reminderId!) : undefined}
+                        onKeyDown={b.reminderId ? (e) => (e.key === "Enter" || e.key === " ") && setPicked(b.reminderId!) : undefined}
                         className={cn(
                           "absolute overflow-hidden rounded-[12px] px-2.5 py-1.5",
+                          b.reminderId && "cursor-pointer",
+                          b.skipped && "opacity-60 [&_p:first-child]:line-through",
+                          !!picked && b.reminderId === picked && "ring-2 ring-[var(--c-accent)]",
                           b.look.tone === "dark" && "bg-[var(--c-solid)] text-white",
                           b.look.tone === "accent" && "bg-[var(--c-accent)] text-white",
                           b.look.tone === "soft" && "bg-[var(--c-accent-soft)] text-[var(--c-accent-soft-ink)]",
@@ -329,8 +437,8 @@ export function DayCalendarPage() {
                         style={{
                           top: b.y + 1,
                           height: CARD_PX - 3,
-                          left: `calc(${(100 / b.cols) * b.col}% + 4px)`,
-                          width: `calc(${100 / b.cols}% - 8px)`,
+                          left: `calc(${b.x * 100}% + 4px)`,
+                          width: `calc(${b.w * 100}% - 8px)`,
                         }}
                         title={[
                           `${hm(b.start)} ${b.title}`,
@@ -378,8 +486,10 @@ export function DayCalendarPage() {
               <Link className="underline" href="/dashboard/saheli/care">
                 Medicines page
               </Link>{" "}
-              and they appear here as scheduled blocks.
+              and they appear here as scheduled blocks; reminders Saheli sets show in the Reminders column.
             </p>
+          )}
+          </>
           )}
         </Panel>
 
@@ -393,10 +503,27 @@ export function DayCalendarPage() {
               </p>
             </Panel>
             <Panel>
-              <p className="text-[11px] font-medium uppercase tracking-[0.06em] text-[var(--c-ink-2)]">Readings</p>
-              <p className="c-num mt-3 text-[40px] leading-none">{counts.readings}</p>
+              <p className="text-[11px] font-medium uppercase tracking-[0.06em] text-[var(--c-ink-2)]">Reminders</p>
+              <p className="c-num mt-3 text-[40px] leading-none">
+                {counts.remindersSent}
+                <span className="text-[var(--c-ink-3)]">/{counts.remindersDue}</span>
+              </p>
             </Panel>
           </div>
+          {pickedReminder && familyId && selectedId && (
+            <ReminderDetail
+              key={pickedReminder.reminderId}
+              reminder={pickedReminder}
+              occurrences={rem.data?.occurrences ?? []}
+              day={day}
+              today={today}
+              personWord={personWord}
+              familyId={familyId}
+              subjectId={selectedId}
+              onDone={remindersChanged}
+              onClose={() => setPicked(null)}
+            />
+          )}
           {confirmations.length > 0 && (
             <Panel>
               <PanelTitle title="Needs your OK" />
