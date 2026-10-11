@@ -107,7 +107,7 @@ type Block = {
 };
 
 function reminderLook(status: keyof typeof STATUS_WORD): ReturnType<typeof eventLook> {
-  if (status === "sent") return { label: STATUS_WORD.sent, icon: CheckCircle, tone: "plain" };
+  if (status === "sent" || status === "done") return { label: STATUS_WORD[status], icon: CheckCircle, tone: "plain" };
   if (status === "failed" || status === "not_sent") return { label: STATUS_WORD[status], icon: WarningCircle, tone: "soft" };
   return { label: STATUS_WORD[status], icon: Alarm, tone: "plain" };
 }
@@ -273,7 +273,7 @@ export function DayCalendarPage() {
         planned: o.status === "scheduled",
         reminderId: o.reminderId,
         compact: o.many,
-        skipped: o.status === "skipped",
+        skipped: o.status === "skipped" || o.status === "done",
       });
     }
     // A burst of the same kind (several chat messages, repeated reminders) becomes one card.
@@ -300,7 +300,7 @@ export function DayCalendarPage() {
     alerts: events.filter((e) => e.kind.startsWith("alert_")).length,
     readings: events.filter((e) => e.kind === "vital").length,
     remindersSent: (rem.data?.occurrences ?? []).filter((o) => o.status === "sent").length,
-    remindersDue: (rem.data?.occurrences ?? []).filter((o) => o.status !== "skipped").length,
+    remindersDue: (rem.data?.occurrences ?? []).filter((o) => o.status !== "skipped" && o.status !== "done").length,
   };
   const pickedReminder = picked
     ? (rem.data?.reminders ?? []).find((r) => r.reminderId === picked) ?? (allReminders ?? []).find((r) => r.reminderId === picked) ?? null

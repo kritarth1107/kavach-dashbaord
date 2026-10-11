@@ -35,7 +35,8 @@ export type ReminderOccurrence = {
   reminderId: string;
   text: string;
   time: string;
-  status: "scheduled" | "sent" | "failed" | "not_sent" | "skipped";
+  /** done: not needed, the dose it was for was already marked taken */
+  status: "scheduled" | "sent" | "failed" | "not_sent" | "skipped" | "done";
   reason?: string;
   schedule: string;
   /** More than three times that day (an hourly one): drawn smaller. */

@@ -28,6 +28,7 @@ export const STATUS_WORD: Record<ReminderOccurrence["status"], string> = {
   failed: "Not delivered",
   not_sent: "Not sent",
   skipped: "Skipped",
+  done: "Already done",
 };
 
 export function dayWord(day: string, today: string): string {
