@@ -41,6 +41,7 @@ import { CareRecipientProfileProvider } from "@/components/dashboard/family/care
 import { CareRecipientScheduleProvider } from "@/components/dashboard/family/care-recipient-schedule-context";
 import { RecipientDateProvider } from "@/components/dashboard/recipient/recipient-date-context";
 import { cn } from "@/lib/utils";
+import { useMounted } from "./care-kit";
 import { PersonProvider, usePerson } from "./person-context";
 import { CareShell, type NavKey } from "./shell";
 import { Avatar } from "./ui";
@@ -129,6 +130,10 @@ function Drawer({ open, onClose }: { open: boolean; onClose: () => void }) {
       document.body.style.overflow = prev;
     };
   }, [open, onClose]);
+  // the family list comes from the browser's saved session, so the server can't render the same menu: it is drawn
+  // once the page is in the browser (it starts closed, so nothing visible changes)
+  const mounted = useMounted();
+  if (!mounted) return null;
   return (
     <div className={cn("fixed inset-0 z-[60]", !open && "pointer-events-none")} aria-hidden={!open}>
       <button

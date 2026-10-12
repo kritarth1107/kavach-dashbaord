@@ -58,11 +58,18 @@ const TABS: Array<{ key: NavKey; short: string; href: string; icon: PhosphorIcon
 
 export type Person = { id: string; name: string; relation?: string; photo?: string | null; self?: boolean };
 
-function useClock() {
-  const [now, setNow] = useState(() => new Date());
+/** The time, only after the page is in the browser: a server-rendered clock never matches (it caused a hydration error
+ * on every page). */
+function useClock(): Date | null {
+  const [now, setNow] = useState<Date | null>(null);
   useEffect(() => {
-    const t = setInterval(() => setNow(new Date()), 30_000);
-    return () => clearInterval(t);
+    const tick = () => setNow(new Date());
+    const first = setTimeout(tick, 0);
+    const t = setInterval(tick, 30_000);
+    return () => {
+      clearTimeout(first);
+      clearInterval(t);
+    };
   }, []);
   return now;
 }
@@ -99,8 +106,8 @@ export function CareShell({
   children: React.ReactNode;
 }) {
   const now = useClock();
-  const time = now.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Asia/Kolkata" });
-  const date = now.toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short", timeZone: "Asia/Kolkata" });
+  const time = now ? now.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Asia/Kolkata" }) : "";
+  const date = now ? now.toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short", timeZone: "Asia/Kolkata" }) : "";
 
   return (
     <div className="care-os h-dvh w-full overflow-hidden">
