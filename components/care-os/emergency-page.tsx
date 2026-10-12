@@ -1,7 +1,8 @@
 "use client";
 
-import { Check, Copy, FirstAidKit, LinkBreak, PencilSimple, Printer, Trash, WhatsappLogo } from "@phosphor-icons/react";
-import { useCallback, useRef, useState } from "react";
+import { Ambulance, Check, Copy, LinkBreak, MapPin, PencilSimple, Phone, Printer, Trash, WhatsappLogo } from "@phosphor-icons/react";
+import QRCode from "qrcode";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   createEmergencyLink,
   getEmergencyCard,
@@ -10,11 +11,14 @@ import {
   type EmergencyCard,
   type EmergencyLink,
 } from "@/lib/care-features-api";
-import { saveFact, stopFact } from "@/lib/care-memory-api";
-import { Field, INPUT, Notice, PageHeading, PrintSheet, SideDrawer, WhatsAppHint, fmtAt, useLoad } from "./care-kit";
+import { getPortrait, saveFact, stopFact, type Portrait } from "@/lib/care-memory-api";
+import type { FamilyMember } from "@/components/dashboard/family/family-data";
+import { Field, INPUT, Notice, PageHeading, PrintSheet, SideDrawer, fmtAt, telHref, useLoad } from "./care-kit";
 import { EmergencyCardView, PROFILE_FIELDS } from "./emergency-card-view";
+import { MedicalIdCard, type CallPerson } from "./medical-id-card";
 import { callName, possessive, usePerson } from "./person-context";
-import { DarkButton, Panel, PanelTitle, SmallButton } from "./ui";
+import { PersonPhoto, Ring } from "./portrait-kit";
+import { DarkButton, Panel, PanelTitle, SmallButton, Tag } from "./ui";
 
 const BLOOD_GROUPS = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
 const EDIT_FIELDS = ["blood_group", "height", "weight", "mobility", "insurance", "id_note"];
@@ -217,13 +221,82 @@ function Editor({
   );
 }
 
+/** "Speaks Hindi (हिन्दी), in Roman letters…" → "Speaks Hindi". */
+function shortLanguage(text?: string | null) {
+  return text ? text.split(/[,(]/)[0].trim() : null;
+}
+
+/** Who a helper calls: the family's caregivers with a real number (primary first), then the record's emergency contacts. */
+export function callPeople(card: EmergencyCard, members: FamilyMember[], subjectId: string | null): CallPerson[] {
+  const out: CallPerson[] = [];
+  const caregivers = members
+    .filter((m) => m.userId && m.userId !== subjectId && m.status === "joined" && (m.role === "primary_caregiver" || m.role === "co_caregiver"))
+    .sort((a, b) => Number(b.role === "primary_caregiver") - Number(a.role === "primary_caregiver"));
+  for (const m of caregivers) {
+    const cc = m.phoneCountryCode || "";
+    if (!m.phone || cc.startsWith("+99")) continue;
+    const rel = m.relationship && m.relationship !== "—" ? m.relationship : m.role === "primary_caregiver" ? "caregiver" : "family";
+    out.push({ name: m.name, relation: rel, phone: `${cc}${m.phone}`, photo: m.avatarUrl });
+  }
+  for (const c of card.contacts) {
+    if (!c.emergency || !c.phone || out.some((o) => o.name.toLowerCase() === c.name.toLowerCase())) continue;
+    out.push({ name: c.name, relation: c.relation, phone: c.phone });
+  }
+  return out;
+}
+
+/** The public card as a helper sees it on their phone. */
+function HelperPreview({ card, name, photo, callers }: { card: EmergencyCard; name: string; photo?: string | null; callers: CallPerson[] }) {
+  return (
+    <div className="mx-auto w-[248px] rounded-[40px] bg-[#0d0f0e] p-[9px] shadow-[0_30px_50px_-28px_rgba(0,0,0,0.6)]">
+      <div className="relative h-[470px] overflow-hidden rounded-[32px] bg-[#102a22] px-3.5 pt-8 text-white">
+        <p className="text-center text-[10.5px] font-semibold tracking-[0.14em] text-[#ff9b6a]">MEDICAL ID</p>
+        <div className="mt-3 flex flex-col items-center">
+          <PersonPhoto name={name} src={photo} rounded="rounded-[20px]" className="h-16 w-16 border-2 border-white" text={22} />
+          <p className="mt-2 text-[18px] font-medium">{name}</p>
+          <p className="text-[11px] opacity-70">{[card.profile.blood_group, card.conditions[0]].filter(Boolean).join(" · ")}</p>
+        </div>
+        {card.allergies.length > 0 && (
+          <p className="mt-3 rounded-[12px] bg-[#c62828] px-3 py-2 text-[11.5px]">
+            <b>Allergic:</b> {card.allergies.map((a) => a.allergen).join(", ")}
+          </p>
+        )}
+        <div className="mt-2 grid gap-1.5">
+          {callers.slice(0, 2).map((c) => (
+            <div key={c.name} className="flex items-center gap-2 rounded-[12px] bg-white/[0.08] p-1.5">
+              <PersonPhoto name={c.name} src={c.photo} rounded="rounded-full" className="h-[30px] w-[30px]" text={11} />
+              <span className="min-w-0 flex-1 truncate text-[12px]">Call {c.name}</span>
+              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[var(--c-accent)]">
+                <Phone size={13} weight="fill" />
+              </span>
+            </div>
+          ))}
+        </div>
+        <p className="mt-2.5 text-[11px] leading-relaxed opacity-75">
+          {card.medicines.map((m) => m.name).join(" · ") || (card.none?.medicine ? "No regular medicines" : "")}
+          {card.home && (
+            <>
+              <br />
+              {card.home} · <span className="text-[#ff9b6a]">Maps</span>
+            </>
+          )}
+        </p>
+        <span className="absolute bottom-3.5 left-3.5 right-3.5 flex h-10 items-center justify-center rounded-full bg-[#c62828] text-[13px] font-semibold">Call 112</span>
+      </div>
+    </div>
+  );
+}
+
 export function EmergencyPage() {
-  const { familyId, selectedId, selected } = usePerson();
+  const { familyId, selectedId, selected, members } = usePerson();
   const key = familyId && selectedId ? `${familyId}/${selectedId}` : null;
   const loadCard = useCallback(() => getEmergencyCard(familyId!, selectedId!), [familyId, selectedId]);
   const loadLink = useCallback(async () => (await getEmergencyLink(familyId!, selectedId!)) ?? null, [familyId, selectedId]);
+  const loadPortrait = useCallback(() => getPortrait(familyId!, selectedId!), [familyId, selectedId]);
   const card = useLoad<EmergencyCard>(key, loadCard);
   const link = useLoad<EmergencyLink | null>(key, loadLink);
+  const portrait = useLoad<Portrait>(key, loadPortrait);
+  const [qrState, setQrState] = useState<{ url: string; svg: string } | null>(null);
   const [linkState, setLinkState] = useState<{ key: string | null; link: EmergencyLink | null } | null>(null);
   const [busy, setBusy] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -235,8 +308,18 @@ export function EmergencyPage() {
   const name = callName(selected);
   const active = linkState && linkState.key === key ? linkState.link : (link.data ?? null);
   const data = card.data;
-  const missingBlood = data && !data.profile.blood_group;
-  const missingContacts = data && !data.contacts.some((c) => c.emergency);
+  const qr = active && qrState?.url === active.url ? qrState.svg : null;
+
+  useEffect(() => {
+    if (!active?.url || qrState?.url === active.url) return;
+    let off = false;
+    QRCode.toString(active.url, { type: "svg", margin: 0, width: 192, color: { dark: "#142a22", light: "#ffffff" } })
+      .then((svg) => !off && setQrState({ url: active.url, svg }))
+      .catch(() => undefined);
+    return () => {
+      off = true;
+    };
+  }, [active?.url, qrState?.url]);
 
   async function share() {
     if (!familyId || !selectedId) return;
@@ -279,128 +362,207 @@ export function EmergencyPage() {
   }
 
   const waText = active ? encodeURIComponent(`${selected?.self ? "My" : `${name}'s`} emergency card (blood group, allergies, medicines, contacts): ${active.url}`) : "";
+  const person = portrait.data?.person;
+  const callers = data ? callPeople(data, members, selectedId) : [];
+  const hospital = data?.hospital[0];
+  const mapQuery = hospital ? [hospital.name, hospital.address || person?.city].filter(Boolean).join(", ") : "";
+  const lines = [
+    [person?.age ? `${person.age} years` : null, person?.city, shortLanguage(person?.language)].filter(Boolean).join(" · "),
+    [data?.profile.mobility, selected?.relation && selected.relation !== "self care" ? selected.relation : null].filter(Boolean).join(" · "),
+  ].filter(Boolean);
+  const checks = data
+    ? [
+        { label: "Blood group", ok: Boolean(data.profile.blood_group) },
+        { label: "Allergies", ok: data.allergies.length > 0 || Boolean(data.none?.allergy) },
+        { label: "Someone to call", ok: callers.length > 0 },
+        { label: "Doctor", ok: data.doctors.length > 0 },
+        { label: "Hospital", ok: data.hospital.length > 0 },
+        { label: "Home address", ok: Boolean(data.home) },
+      ]
+    : [];
+  const done = checks.filter((c) => c.ok).length;
 
   return (
     <div className="space-y-4">
       <div className="flex flex-col gap-5 pb-2 lg:flex-row lg:items-end lg:justify-between">
-        <div className="flex items-end gap-5">
+        <div>
           <PageHeading top={possessive(selected)} bottom="Emergency card" />
-          <span className="mb-2 hidden h-[68px] w-[68px] items-center justify-center rounded-full bg-[var(--c-accent)] text-white sm:flex">
-            <FirstAidKit size={32} weight="fill" />
-          </span>
+          <p className="mt-3 max-w-[560px] text-[13px] leading-relaxed text-[var(--c-ink-2)]">
+            Everything a neighbour, driver or doctor needs in the first ten minutes. Kept current from {selected?.self ? "your" : `${name}'s`} chats with Saheli and your edits.
+          </p>
         </div>
         <div className="flex flex-wrap items-center gap-2.5">
           <SmallButton icon={PencilSimple} onClick={() => setEditing(true)} disabled={!data}>
             Edit
           </SmallButton>
           <SmallButton icon={Printer} onClick={() => window.print()} disabled={!data}>
-            Print
+            Print card
           </SmallButton>
           <DarkButton onClick={() => void share()} disabled={busy || !data}>
-            Share link
+            Share card
           </DarkButton>
         </div>
       </div>
-      <WhatsAppHint>ask Saheli for {selected?.self ? "your" : `${name}'s`} emergency card, or say “share the emergency link”.</WhatsAppHint>
 
       {err && <Notice>{err}</Notice>}
       {card.error && !data && <Notice>{card.error}</Notice>}
-      {(missingBlood || missingContacts) && (
-        <div className="flex flex-col gap-3 rounded-[18px] bg-[var(--c-accent-soft)] px-4 py-3 text-[var(--c-accent-soft-ink)] sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-[13px]">
-            {missingBlood && missingContacts
-              ? "Add a blood group and at least one emergency contact so a helper knows what to do."
-              : missingBlood
-                ? "The blood group is missing. It's the first thing a paramedic asks."
-                : "No emergency contact yet. Add someone nearby who can be called."}
-          </p>
-          <SmallButton onClick={() => setEditing(true)} className="shrink-0 self-start sm:self-auto">
-            Add now
-          </SmallButton>
-        </div>
-      )}
 
-      <div className="grid gap-4 lg:grid-cols-[1fr_320px]">
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
         <div className="min-w-0">
           {!data ? (
-            <div className="h-[520px] animate-pulse rounded-[24px] bg-[var(--c-card)]" />
+            <div className="h-[560px] animate-pulse rounded-[32px] bg-[var(--c-card)]" />
           ) : (
-            <EmergencyCardView card={data} name={selected?.name ?? ""} relation={selected?.relation} photo={selected?.photo} />
+            <MedicalIdCard
+              card={data}
+              name={selected?.name ?? ""}
+              photo={selected?.photo}
+              lines={lines}
+              callers={callers}
+              qrSvg={active ? qr : null}
+              onMakeLink={() => void share()}
+              updated="kept current by Saheli"
+            />
           )}
+
+          <div className="mt-2 grid gap-4 lg:grid-cols-[1.2fr_1fr]">
+            <Panel>
+              <PanelTitle title="Card health" right={<span className="text-[12px] text-[var(--c-ink-2)]">{data ? `${done} of ${checks.length} filled` : ""}</span>} />
+              <div className="mt-4 flex items-center gap-5">
+                <Ring pct={checks.length ? (done / checks.length) * 100 : 0} />
+                <ul className="grid flex-1 grid-cols-1 gap-x-4 gap-y-1.5 text-[12.5px] sm:grid-cols-2">
+                  {checks.map((c) => (
+                    <li key={c.label} className={c.ok ? "" : "text-[var(--c-accent-soft-ink)]"}>
+                      {c.ok ? "✓ " : "! "}
+                      {c.label}
+                      {!c.ok && (
+                        <button type="button" onClick={() => setEditing(true)} className="ml-1 underline underline-offset-2">
+                          add
+                        </button>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <p className="mt-3 text-[11.5px] text-[var(--c-ink-3)]">
+                Allergies, medicines, doctor and hospital also change in the care plan, or on WhatsApp: “{name === "You" ? "my" : `${name} ka`} blood group B+ hai”.
+              </p>
+            </Panel>
+
+            <div ref={shareRef}>
+              <Panel>
+                <PanelTitle title="Share link" right={active ? <Tag tone="ok">On</Tag> : <Tag tone="light">Off</Tag>} />
+                {link.loading && !link.data && !linkState ? (
+                  <div className="mt-4 h-20 animate-pulse rounded-[16px] bg-[var(--c-frame)]" />
+                ) : active ? (
+                  <>
+                    <p className="mt-3 select-all break-all rounded-[14px] bg-[var(--c-frame)] px-4 py-3 text-[12.5px] font-medium">{active.url}</p>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <SmallButton icon={copied ? Check : Copy} onClick={() => void copy(active.url)}>
+                        {copied ? "Copied" : "Copy"}
+                      </SmallButton>
+                      <a
+                        href={`https://wa.me/?text=${waText}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex h-8 items-center gap-1.5 rounded-full bg-[var(--c-solid)] px-3.5 text-[12px] font-medium text-[var(--c-on-solid)] hover:opacity-90"
+                      >
+                        <WhatsappLogo size={14} weight="bold" /> WhatsApp
+                      </a>
+                      <button
+                        type="button"
+                        disabled={busy}
+                        onClick={() => void turnOff()}
+                        className="inline-flex h-8 items-center gap-1.5 rounded-full px-2 text-[12px] font-medium text-[var(--c-danger-ink)] hover:underline disabled:opacity-50"
+                      >
+                        <LinkBreak size={14} /> Turn off
+                      </button>
+                    </div>
+                    <p className="mt-3 text-[11.5px] text-[var(--c-ink-3)]">
+                      {active.opens ? `Opened ${active.opens} time${active.opens === 1 ? "" : "s"}` : "Not opened yet"}
+                      {active.lastOpenedAt ? ` · last ${fmtAt(active.lastOpenedAt)}` : ""}
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <p className="mt-3 text-[12.5px] text-[var(--c-ink-2)]">
+                      A private link and QR for a neighbour, driver or paramedic. They see the card without signing in. Turn it off any time.
+                    </p>
+                    <SmallButton dark className="mt-4" disabled={busy || !data} onClick={() => void share()}>
+                      {busy ? "Creating…" : "Create link and QR"}
+                    </SmallButton>
+                  </>
+                )}
+              </Panel>
+            </div>
+          </div>
         </div>
 
-        <aside className="space-y-4">
-          <Panel accent className="flex flex-col">
-            <p className="text-[11px] font-medium uppercase tracking-[0.06em] text-white/80">Share link opened</p>
-            <p className="c-num mt-4 text-[56px] leading-none text-white">{active ? (active.opens ?? 0) : "Off"}</p>
-            <p className="mt-2 text-[12px] text-white/80">
-              {active
-                ? active.lastOpenedAt
-                  ? `Last opened ${fmtAt(active.lastOpenedAt)}`
-                  : "Not opened yet"
-                : "No link is active. Nobody outside the family can see the card."}
-            </p>
-          </Panel>
-
-          <div ref={shareRef}>
-            <Panel>
-              <PanelTitle title="Share link" />
-              {link.loading && !link.data && !linkState ? (
-                <div className="mt-4 h-20 animate-pulse rounded-[16px] bg-[var(--c-frame)]" />
-              ) : active ? (
-                <>
-                  <p className="mt-3 text-[12.5px] text-[var(--c-ink-2)]">Anyone with this link sees the card without signing in. Send it to a neighbour, driver or doctor.</p>
-                  <p className="mt-3 select-all break-all rounded-[14px] bg-[var(--c-frame)] px-4 py-3 text-[12.5px] font-medium">{active.url}</p>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    <SmallButton dark icon={copied ? Check : Copy} onClick={() => void copy(active.url)}>
-                      {copied ? "Copied" : "Copy"}
-                    </SmallButton>
-                    <a
-                      href={`https://wa.me/?text=${waText}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex h-8 items-center gap-1.5 rounded-full border border-[var(--c-line)] bg-[var(--c-frame)] px-3.5 text-[12px] font-medium hover:bg-[var(--c-card)]"
-                    >
-                      <WhatsappLogo size={14} weight="bold" /> WhatsApp
-                    </a>
-                  </div>
-                  {active.createdAt && <p className="mt-3 text-[11px] text-[var(--c-ink-3)]">Created {fmtAt(active.createdAt)}</p>}
-                  <button
-                    type="button"
-                    disabled={busy}
-                    onClick={() => void turnOff()}
-                    className="mt-3 inline-flex items-center gap-1.5 text-[12.5px] font-medium text-[var(--c-danger-ink)] hover:underline disabled:opacity-50"
-                  >
-                    <LinkBreak size={14} /> Turn off link
-                  </button>
-                </>
-              ) : (
-                <>
-                  <p className="mt-3 text-[12.5px] text-[var(--c-ink-2)]">
-                    Make a private link to this card for a neighbour, driver or paramedic. You can turn it off any time.
-                  </p>
-                  <SmallButton dark className="mt-4" disabled={busy || !data} onClick={() => void share()}>
-                    {busy ? "Creating…" : "Create link"}
-                  </SmallButton>
-                </>
-              )}
-            </Panel>
+        <aside className="flex flex-col gap-4">
+          <div className="grid grid-cols-2 gap-2.5">
+            <a href="tel:112" className="flex flex-col gap-6 rounded-[22px] bg-gradient-to-br from-[#e0413a] to-[#b71c1c] p-4 text-white transition-opacity hover:opacity-95">
+              <span className="text-[11.5px] opacity-85">Police · fire · medical</span>
+              <span>
+                <span className="c-num block text-[34px] leading-none">112</span>
+                <span className="mt-1 block text-[11.5px] opacity-85">Tap to call</span>
+              </span>
+            </a>
+            <a href="tel:108" className="flex flex-col gap-6 rounded-[22px] bg-gradient-to-br from-[#ff7a45] to-[#d3541e] p-4 text-white transition-opacity hover:opacity-95">
+              <Ambulance size={20} weight="fill" />
+              <span>
+                <span className="c-num block text-[34px] leading-none">108</span>
+                <span className="mt-1 block text-[11.5px] opacity-85">Ambulance</span>
+              </span>
+            </a>
           </div>
 
-          <Panel>
-            <PanelTitle title="Keep it handy" />
-            <ul className="mt-3 space-y-2 text-[12.5px] text-[var(--c-ink-2)]">
-              {[
-                "Print it and keep one copy on the fridge and one in the wallet.",
-                "Allergies and medicines update here as Saheli learns them.",
-                "Set the link as a phone wallpaper note or share with the society guard.",
-              ].map((t) => (
-                <li key={t} className="flex items-start gap-2">
-                  <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--c-accent)]" /> {t}
-                </li>
-              ))}
-            </ul>
+          <Panel className="p-4">
+            <PanelTitle title="Nearest help" right={<span className="text-[12px] text-[var(--c-ink-2)]">{hospital ? "their hospital" : ""}</span>} />
+            {hospital ? (
+              <>
+                <div className="mt-3 h-[170px] overflow-hidden rounded-[18px] bg-[var(--c-frame)]">
+                  <iframe
+                    title={`Map: ${hospital.name}`}
+                    src={`https://www.google.com/maps?q=${encodeURIComponent(mapQuery)}&output=embed`}
+                    className="h-full w-full border-0"
+                    loading="lazy"
+                    referrerPolicy="no-referrer-when-downgrade"
+                  />
+                </div>
+                <p className="mt-2.5 truncate px-1 text-[12.5px]">
+                  <b className="font-medium">{hospital.name}</b>
+                  <span className="text-[var(--c-ink-2)]">{hospital.address ? ` · ${hospital.address}` : ""}</span>
+                </p>
+                <div className="mt-2.5 grid grid-cols-2 gap-2">
+                  {hospital.phone ? (
+                    <a href={telHref(hospital.phone)} className="inline-flex h-9 items-center justify-center gap-1.5 rounded-full border border-[var(--c-line)] bg-[var(--c-frame)] text-[12.5px] font-medium">
+                      <Phone size={14} weight="fill" /> Call hospital
+                    </a>
+                  ) : (
+                    <span className="inline-flex h-9 items-center justify-center rounded-full border border-dashed border-[var(--c-line)] text-[11.5px] text-[var(--c-ink-3)]">No phone saved</span>
+                  )}
+                  <a
+                    href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(mapQuery)}${data?.home ? `&origin=${encodeURIComponent(data.home)}` : ""}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex h-9 items-center justify-center gap-1.5 rounded-full bg-[var(--c-solid)] text-[12.5px] font-medium text-[var(--c-on-solid)]"
+                  >
+                    <MapPin size={14} weight="fill" /> Directions
+                  </a>
+                </div>
+              </>
+            ) : (
+              <div className="mt-3 rounded-[18px] border border-dashed border-[var(--c-line)] p-4 text-[12.5px] text-[var(--c-ink-2)]">
+                No hospital saved. Tell Saheli their usual hospital (“Maa ko City Care Hospital le jaate hain”) and it shows here with directions.
+              </div>
+            )}
           </Panel>
+
+          {data && (
+            <Panel className="px-4 pb-5 pt-4">
+              <HelperPreview card={data} name={selected?.name ?? ""} photo={selected?.photo} callers={callers} />
+              <p className="mt-3 text-center text-[11.5px] text-[var(--c-ink-2)]">What a helper sees after scanning the QR. No app, no login.</p>
+            </Panel>
+          )}
         </aside>
       </div>
 

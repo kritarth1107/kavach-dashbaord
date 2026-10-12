@@ -2,29 +2,105 @@
 
 import Link from "next/link";
 import {
-  Brain,
   ClockCounterClockwise,
   Heart,
   Leaf,
+  LockSimple,
   MagnifyingGlass,
+  Microphone,
+  MusicNotes,
   NotePencil,
   Plus,
   ShieldWarning,
   Sparkle,
   UsersThree,
+  WhatsappLogo,
   X,
   type Icon as PhosphorIcon,
 } from "@phosphor-icons/react";
-import { useEffect, useMemo, useState } from "react";
-import { DOMAIN_TITLE, SOURCE_LABEL, getRecentLearning, saveNote, type CareEvent, type CareFact, type MemoryNote } from "@/lib/care-memory-api";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  DOMAIN_TITLE,
+  SOURCE_LABEL,
+  getPortrait,
+  getRecentLearning,
+  resolveFact,
+  saveNote,
+  type CareEvent,
+  type CareFact,
+  type MemoryNote,
+  type Portrait,
+} from "@/lib/care-memory-api";
 import { useCareOverview } from "@/components/dashboard/saheli/saheli-shared";
 import { cn } from "@/lib/utils";
 import { MemoryHealthPanel } from "./memory-health-panel";
 import { MemoryHistoryDrawer, RecentChangesPanel, type HistoryItem } from "./memory-history";
 import { PanelBoundary } from "./panel-boundary";
 import { SkillsPanel } from "./skills-panel";
+import { useLoad } from "./care-kit";
 import { callName, possessive, usePerson } from "./person-context";
+import { Bubble, MoodLine, PersonPhoto, ScoreDots, cap } from "./portrait-kit";
 import { DarkButton, Panel, PanelTitle, SmallButton, Tag } from "./ui";
+
+const FILTERS: Array<{ id: string; label: string; domains: string[] | null }> = [
+  { id: "all", label: "All", domains: null },
+  { id: "health", label: "Health", domains: ["medicine", "allergy", "condition", "vital_target", "appointment", "doctor", "hospital", "profile"] },
+  { id: "life", label: "Life", domains: ["routine", "home", "occasion", "diet", "language", "naming"] },
+  { id: "people", label: "People", domains: ["family", "contact"] },
+  { id: "likes", label: "Likes", domains: ["preference", "dish", "no_order"] },
+];
+const HEALTH = ["medicine", "allergy", "condition", "vital_target"];
+const DOMAIN_ICON: Record<string, PhosphorIcon> = { medicine: Heart, allergy: ShieldWarning, condition: Heart, family: UsersThree, contact: UsersThree, preference: MusicNotes, dish: Leaf, routine: Sparkle };
+const LOVE_TONES = ["bg-[#fff3ea] dark:bg-[#2a1d14]", "bg-[#eaf3ec] dark:bg-[#15261c]", "bg-[#f1eefb] dark:bg-[#1f1b2e]"];
+const clock = (iso: string) => new Date(iso).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: IST });
+const dayAndTime = (iso: string) => `${when(iso)}, ${clock(iso)}`;
+
+/** Their people around their photo: household first, then the record's family, contacts and doctors. */
+function PeopleOrbit({ people, center, centerPhoto, photos }: { people: Portrait["people"]; center: string; centerPhoto?: string | null; photos: Map<string, string | null | undefined> }) {
+  const spots = ["left-[4%] top-[4%]", "right-[2%] top-[18%]", "left-[0%] bottom-[20%]", "right-[4%] bottom-[2%]"];
+  const ring = people.slice(0, 4);
+  const rest = people.slice(4);
+  return (
+    <>
+      <div className="relative hidden h-[330px] sm:block">
+        <svg className="absolute inset-0 h-full w-full" aria-hidden>
+          <circle cx="50%" cy="50%" r="125" fill="none" stroke="var(--c-line)" strokeDasharray="4 6" />
+        </svg>
+        <div className="absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 flex-col items-center">
+          <PersonPhoto name={center} src={centerPhoto} rounded="rounded-full" className="h-[104px] w-[104px] border-4 border-[var(--c-frame)] shadow-[0_0_0_8px_rgba(211,84,30,0.15),0_0_0_18px_rgba(211,84,30,0.07)]" text={34} />
+          <b className="mt-2.5 text-[13px] font-medium">{center}</b>
+        </div>
+        {ring.map((x, i) => (
+          <div key={`${x.kind}-${x.name}`} className={cn("absolute flex max-w-[48%] items-center gap-2 rounded-full bg-[var(--c-frame)] py-1 pl-1 pr-3.5 shadow-[0_10px_20px_-14px_rgba(0,0,0,0.4)]", spots[i])}>
+            <PersonPhoto name={x.name} src={x.id ? photos.get(x.id) : null} rounded="rounded-full" className="h-[42px] w-[42px]" text={15} />
+            <div className="min-w-0">
+              <b className="block truncate text-[12.5px] font-medium">
+                {x.name}
+                {x.relation && <span className="font-normal capitalize text-[var(--c-ink-2)]"> · {x.relation}</span>}
+              </b>
+              {x.note && x.note !== x.name && <span className="block truncate text-[10.5px] text-[var(--c-ink-2)]">{x.note}</span>}
+            </div>
+          </div>
+        ))}
+      </div>
+      <ul className={cn("mt-3 space-y-2", ring.length > 0 && "sm:hidden")}>
+        {ring.map((x) => (
+          <li key={`m-${x.kind}-${x.name}`} className="flex items-center gap-2.5 rounded-[16px] bg-[var(--c-frame)] p-2">
+            <PersonPhoto name={x.name} src={x.id ? photos.get(x.id) : null} rounded="rounded-full" className="h-9 w-9" text={13} />
+            <span className="min-w-0 truncate text-[13px]">
+              <b className="font-medium">{x.name}</b> <span className="capitalize text-[var(--c-ink-2)]">{x.relation}</span>
+            </span>
+          </li>
+        ))}
+      </ul>
+      {rest.length > 0 && (
+        <p className="mt-2 text-[12px] text-[var(--c-ink-2)]">
+          Also: {rest.map((x) => `${x.name}${x.relation ? ` (${x.relation})` : ""}`).join(", ")}
+        </p>
+      )}
+    </>
+  );
+}
 
 const IST = "Asia/Kolkata";
 const when = (iso: string) => new Date(iso).toLocaleDateString("en-IN", { day: "numeric", month: "short", timeZone: IST });
@@ -63,7 +139,36 @@ export function MemoryPage() {
   const [historyOf, setHistoryOf] = useState<HistoryItem | null>(null);
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState("");
+  const [filter, setFilter] = useState("all");
+  const [deciding, setDeciding] = useState<string | null>(null);
   const name = callName(selected);
+  const { members } = usePerson();
+  const pkey = familyId && selectedId ? `${familyId}/${selectedId}` : null;
+  const portrait = useLoad<Portrait>(pkey, useCallback(() => getPortrait(familyId!, selectedId!), [familyId, selectedId]));
+  const p = portrait.data;
+  const photos = useMemo(() => new Map(members.filter((m) => m.userId).map((m) => [m.userId as string, m.avatarUrl])), [members]);
+  const ownWords = (p?.learned ?? []).filter((l) => l.said);
+  // the big quote: something everyday they said themselves (a health change waits in its own approval card)
+  const theirs = (l: (typeof ownWords)[number]) => Boolean(l.statedBy && selected?.name && l.statedBy.split(" ")[0] === selected.name.split(" ")[0]);
+  const everyday = (l: (typeof ownWords)[number]) => l.status === "active" && !HEALTH.includes(l.domain);
+  const hero = ownWords.find((l) => theirs(l) && everyday(l)) ?? ownWords.find(everyday) ?? ownWords.find(theirs) ?? ownWords[0];
+  const shownLearned = (p?.learned ?? []).filter((l) => {
+    const f = FILTERS.find((x) => x.id === filter);
+    return !f?.domains || f.domains.includes(l.domain);
+  });
+  async function decide(key: string, approve: boolean) {
+    if (!familyId || !selectedId) return;
+    setDeciding(key);
+    try {
+      await resolveFact(familyId, selectedId, key, approve);
+      portrait.reload();
+      reload();
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "That did not work");
+    } finally {
+      setDeciding(null);
+    }
+  }
 
   useEffect(() => {
     if (!familyId || !selectedId) return;
@@ -79,15 +184,12 @@ export function MemoryPage() {
   const term = q.trim().toLowerCase();
   const facts = useMemo(() => (data?.facts ?? []).filter((f) => f.status === "active"), [data]);
   const match = (s: string) => !term || s.toLowerCase().includes(term);
-  // allergies and never-order items are always shown in full: a search must never make them look absent
-  const guards = facts.filter((f) => f.domain === "allergy" || f.domain === "no_order");
   const identity = IDENTITY.flatMap((d) => facts.filter((f) => f.domain === d && match(f.text)));
   const notes = (data?.notes ?? []).filter((n) => match(`${n.title}\n${n.body}`));
   const personNotes = notes.filter((n) => n.subjectId === selectedId);
   const familyNotes = notes.filter((n) => n.subjectId === "family");
   const [weekAgo] = useState(() => Date.now() - 7 * 86_400_000);
   const thisWeek = learned.filter((e) => new Date(e.at).getTime() > weekAgo).length;
-  const totalPoints = facts.length + (data?.notes ?? []).reduce((n, x) => n + noteLines(x.body).length, 0);
 
   async function save() {
     if (!editing || !familyId || !selectedId) return;
@@ -112,23 +214,24 @@ export function MemoryPage() {
   return (
     <div className="space-y-4">
       <div className="flex flex-col gap-5 pb-2 lg:flex-row lg:items-end lg:justify-between">
-        <div className="flex items-end gap-5">
+        <div>
           <h1 className="text-[40px] leading-[1.02] tracking-[-0.035em] sm:text-[52px]">
             <span className="block font-light text-[var(--c-ink-3)]">{possessive(selected)}</span>
-            <span className="block font-medium">Memory</span>
+            <span className="block font-medium">Story</span>
           </h1>
-          <span className="mb-2 hidden h-[68px] w-[68px] items-center justify-center rounded-full bg-[var(--c-accent)] text-white sm:flex">
-            <Brain size={32} weight="fill" />
-          </span>
+          <p className="mt-3 max-w-[580px] text-[13px] leading-relaxed text-[var(--c-ink-2)]">
+            {selected?.self ? "Who you are" : `Who ${name || "they"} ${name === "You" ? "are" : "is"}`}, the people around {selected?.self ? "you" : "them"} and what Saheli has learned from {selected?.self ? "your" : "their"} own words. Everything here came from chats, photos or you.
+          </p>
         </div>
         <div className="flex flex-wrap items-center gap-2.5">
-          <label className="flex h-12 w-[280px] items-center gap-2 rounded-full bg-[var(--c-card)] px-4">
+          <label className="flex h-12 w-[260px] items-center gap-2 rounded-full border border-[var(--c-line)] bg-[var(--c-frame)] px-4">
             <MagnifyingGlass size={16} className="text-[var(--c-ink-3)]" />
             <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search everything Saheli knows" className="w-full bg-transparent text-[13px] outline-none placeholder:text-[var(--c-ink-3)]" />
           </label>
-          <DarkButton onClick={() => setEditing({ subjectId: selectedId ?? "family", slug: "", title: "", body: "", isNew: true })}>New note</DarkButton>
+          <DarkButton onClick={() => setEditing({ subjectId: selectedId ?? "family", slug: "", title: "", body: "", isNew: true })}>Tell Saheli something</DarkButton>
         </div>
       </div>
+      {err && <p className="rounded-[14px] bg-[var(--c-accent-soft)] px-4 py-2 text-[13px] text-[var(--c-accent-soft-ink)]">{err}</p>}
 
       {loading && !data ? (
         <div className="grid gap-4 md:grid-cols-3">
@@ -138,55 +241,187 @@ export function MemoryPage() {
         </div>
       ) : (
         <>
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-[1fr_1fr_1.3fr]">
-            <Panel accent className="flex flex-col">
-              <div className="flex items-center justify-between">
-                <p className="text-[11px] font-medium uppercase tracking-[0.06em] text-white/80">Things Saheli knows</p>
-                <Sparkle size={18} weight="fill" className="text-white" />
+          <div className="grid gap-4 xl:grid-cols-[minmax(0,1.55fr)_minmax(0,1fr)]">
+            <section className="relative min-h-[340px] min-w-0 overflow-hidden rounded-[30px] text-white">
+              {selected?.photo ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={selected.photo} alt="" className="absolute inset-0 h-full w-full object-cover object-[50%_30%]" />
+              ) : (
+                <div className="absolute inset-0 bg-[radial-gradient(120%_120%_at_100%_0%,#2f6f5e,#143429_60%)]" />
+              )}
+              <div className="absolute inset-0 bg-gradient-to-r from-[rgba(15,42,34,0.92)] via-[rgba(15,42,34,0.72)] to-[rgba(15,42,34,0.05)]" />
+              <div className="relative flex h-full min-h-[340px] max-w-[640px] flex-col justify-between gap-6 p-6 sm:p-7">
+                <span className="inline-flex w-max items-center gap-1.5 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-[11.5px]">
+                  <WhatsappLogo size={13} weight="fill" />
+                  {hero?.said ? `In ${hero.statedBy && hero.statedBy !== selected?.name ? `${hero.statedBy.split(" ")[0]}'s` : selected?.self ? "your" : "their"} words · ${dayAndTime(hero.said.at)}` : "Getting to know them"}
+                </span>
+                {hero?.said ? (
+                  <div>
+                    <p className="text-[24px] leading-[1.2] tracking-[-0.02em] sm:text-[30px]">
+                      <span className="mr-1 align-[-20px] text-[56px] leading-none text-[#ff9b6a]">“</span>
+                      {hero.said.text}
+                    </p>
+                    <p className="mt-3 text-[13px] text-white/75">Saheli saved: {hero.text}</p>
+                  </div>
+                ) : (
+                  <div>
+                    <p className="text-[26px] leading-tight tracking-[-0.02em]">Saheli is getting to know {name === "You" ? "you" : name}.</p>
+                    <p className="mt-3 text-[13px] text-white/75">What {name === "You" ? "you share" : "they share"} on WhatsApp shows here in {name === "You" ? "your" : "their"} own words.</p>
+                  </div>
+                )}
+                {hero?.said?.voice ? (
+                  <span className="inline-flex w-max items-center gap-2 rounded-full bg-white/[0.12] py-1.5 pl-1.5 pr-4 text-[12px]">
+                    <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--c-accent)]">
+                      <Microphone size={14} weight="fill" />
+                    </span>
+                    Said in a voice note
+                  </span>
+                ) : (
+                  <span />
+                )}
               </div>
-              <p className="c-num mt-6 text-[64px] leading-none text-white">{totalPoints}</p>
-              <p className="mt-auto pt-6 text-[12px] text-white/80">
-                {thisWeek ? `+${thisWeek} learned this week` : "Grows as they talk to Saheli"}
-              </p>
-            </Panel>
-            <Panel className="flex flex-col">
-              <PanelTitle title="Never forget" right={<ShieldWarning size={18} />} />
-              {guards.length === 0 ? (
-                <p className="mt-4 text-[13px] text-[var(--c-ink-2)]">No allergies or never-order items saved. Saheli will not guess.</p>
+            </section>
+
+            <section className="flex min-w-0 flex-col rounded-[30px] bg-[var(--c-card)] p-5">
+              <PanelTitle title={selected?.self ? "How you've been" : "How they've been"} right={<span className="text-[11.5px] text-[var(--c-ink-2)]">from the chats, 14 days</span>} />
+              <div className="mt-3 flex items-end justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="c-num text-[44px] leading-none">{p?.mood.now?.word ? cap(p.mood.now.word) : "—"}</p>
+                  <p className="mt-1.5 truncate text-[12px] text-[var(--c-ink-2)]">
+                    {p?.mood.now ? `${clock(p.mood.now.at)} · ${p.mood.now.summary}` : "No mood heard in the last day"}
+                  </p>
+                </div>
+                <ScoreDots score={p?.mood.now?.score ?? null} />
+              </div>
+              <div className="mt-3">
+                <MoodLine days={p?.mood.days ?? []} />
+              </div>
+              <div className="mt-auto grid grid-cols-3 gap-2 pt-3">
+                <div className="rounded-[16px] bg-[var(--c-frame)] px-3 py-2.5">
+                  <b className="c-num block text-[22px] font-normal">{p?.stats.known ?? facts.length}</b>
+                  <span className="text-[11px] text-[var(--c-ink-2)]">things Saheli knows</span>
+                </div>
+                <div className="rounded-[16px] bg-[var(--c-frame)] px-3 py-2.5">
+                  <b className="c-num block text-[22px] font-normal">+{p?.stats.learnedWeek ?? thisWeek}</b>
+                  <span className="text-[11px] text-[var(--c-ink-2)]">learned this week</span>
+                </div>
+                <Link href="/dashboard/saheli/care" className={cn("rounded-[16px] px-3 py-2.5", (p?.stats.pending ?? 0) > 0 ? "bg-[var(--c-accent-soft)] text-[var(--c-accent-soft-ink)]" : "bg-[var(--c-frame)]")}>
+                  <b className="c-num block text-[22px] font-normal">{p?.stats.pending ?? 0}</b>
+                  <span className="text-[11px]">need your OK</span>
+                </Link>
+              </div>
+            </section>
+          </div>
+
+          <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.55fr)]">
+            <Panel className="min-w-0">
+              <PanelTitle title={selected?.self ? "Your people" : "Their people"} />
+              {p && p.people.length ? (
+                <PeopleOrbit people={p.people} center={name} centerPhoto={selected?.photo} photos={photos} />
               ) : (
-                <ul className="mt-4 flex flex-wrap gap-2">
-                  {guards.map((f) => (
-                    <li key={f.id} className="rounded-full bg-[var(--c-accent-soft)] px-3 py-1.5 text-[12.5px] text-[var(--c-accent-soft-ink)]">
-                      {f.text}
-                    </li>
-                  ))}
-                </ul>
+                <p className="mt-4 text-[13px] text-[var(--c-ink-2)]">Family, neighbours and doctors show here as Saheli hears about them.</p>
               )}
-              <Link href="/dashboard/saheli/care" className="mt-auto pt-5 text-[12px] font-medium hover:text-[var(--c-accent)]">
-                Edit care record →
-              </Link>
             </Panel>
-            <Panel className="md:col-span-2 xl:col-span-1">
-              <PanelTitle title="Recently learned" right={<span className="text-[11px] text-[var(--c-ink-3)]">from conversations</span>} />
-              {learned.length === 0 ? (
-                <p className="mt-4 text-[13px] text-[var(--c-ink-2)]">Nothing new yet. Facts appear here the moment Saheli learns them.</p>
-              ) : (
-                <ol className="relative mt-4 space-y-3 before:absolute before:bottom-2 before:left-[5px] before:top-2 before:w-px before:bg-[var(--c-line)]">
-                  {learned.slice(0, 5).map((e) => (
-                    <li key={e.id} className="relative flex gap-3 pl-6">
-                      <span className={cn("absolute left-0 top-1.5 h-[11px] w-[11px] rounded-full border-2 border-[var(--c-card)]", e.kind === "fact_pending" ? "bg-[var(--c-accent)]" : "bg-[var(--c-solid)]")} />
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-[13px]">{e.summary}</p>
-                        <p className="text-[11px] text-[var(--c-ink-3)]">
-                          {when(e.at)} · {e.kind === "fact_pending" ? "waiting for your OK" : e.kind === "fact_superseded" ? "updated" : e.kind === "fact_stopped" ? "stopped" : "learned"}
+
+            <Panel className="min-w-0">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <PanelTitle title="Learned from the chats" />
+                <div className="flex flex-wrap gap-1.5">
+                  {FILTERS.map((f) => (
+                    <button
+                      key={f.id}
+                      type="button"
+                      onClick={() => setFilter(f.id)}
+                      className={cn("h-7 rounded-full px-3 text-[11.5px]", filter === f.id ? "bg-[var(--c-solid)] text-[var(--c-on-solid)]" : "border border-[var(--c-line)] bg-[var(--c-frame)] text-[var(--c-ink-2)]")}
+                    >
+                      {f.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="mt-4 space-y-3">
+                {shownLearned.length === 0 && (
+                  <p className="rounded-[16px] bg-[var(--c-frame)] p-4 text-[13px] text-[var(--c-ink-2)]">
+                    {portrait.error ? "Couldn't load what Saheli learned. The rest of the page works." : "Nothing new in the last two weeks."}
+                  </p>
+                )}
+                {shownLearned.slice(0, 8).map((l) => {
+                  const Icon = DOMAIN_ICON[l.domain] ?? NotePencil;
+                  const pendingRow = l.status === "pending";
+                  return (
+                    <div key={l.id} className="grid grid-cols-1 items-center gap-2 md:grid-cols-[minmax(0,1fr)_26px_minmax(0,1.05fr)]">
+                      <div className="min-w-0">
+                        <p className="mb-1 ml-0.5 text-[10.5px] text-[var(--c-ink-3)]">
+                          {l.statedBy ?? "Saheli"} · {dayAndTime(l.said?.at ?? l.at)}
+                          {l.said?.voice ? " · voice note" : ""}
                         </p>
+                        {l.said ? (
+                          <Bubble mine={l.source !== "caregiver_said" && l.source !== "dashboard"}>{l.said.text}</Bubble>
+                        ) : (
+                          <Bubble mine={false}>
+                            <span className="text-[var(--c-ink-2)]">{SOURCE_LABEL[l.source] ?? "Noted"}</span>
+                          </Bubble>
+                        )}
                       </div>
-                    </li>
-                  ))}
-                </ol>
-              )}
+                      <span className="hidden h-[26px] w-[26px] items-center justify-center rounded-full bg-[var(--c-frame)] text-[13px] text-[var(--c-ink-3)] md:flex">→</span>
+                      <div className={cn("flex items-center gap-2.5 rounded-[16px] px-3 py-2.5", pendingRow ? "bg-[var(--c-accent-soft)]" : "bg-[var(--c-frame)]")}>
+                        <span className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-[12px]", pendingRow ? "bg-[var(--c-frame)] text-[var(--c-accent-soft-ink)]" : "bg-[var(--c-card)]")}>
+                          <Icon size={16} />
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-[13px] font-medium" title={l.text}>
+                            {l.text}
+                          </p>
+                          <p className="truncate text-[11px] text-[var(--c-ink-2)]">
+                            {DOMAIN_TITLE[l.domain] ?? cap(l.domain.replace(/_/g, " "))} · {pendingRow ? "waiting for your OK" : "saved"}
+                          </p>
+                        </div>
+                        {isCaregiver &&
+                          (pendingRow ? (
+                            <button type="button" disabled={deciding === l.key} onClick={() => void decide(l.key, true)} className="h-8 shrink-0 rounded-full bg-[var(--c-ok-ink)] px-3 text-[12px] font-medium text-white disabled:opacity-50">
+                              Approve
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => setHistoryOf({ kind: "fact", target: l.key, subjectId: selectedId ?? "", owner: selectedId ?? "", label: l.text.slice(0, 40) })}
+                              className="h-8 shrink-0 rounded-full border border-[var(--c-line)] px-3 text-[12px] font-medium"
+                            >
+                              Undo
+                            </button>
+                          ))}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </Panel>
           </div>
+
+          {p && (p.enjoys.length > 0 || p.avoid.length > 0) && (
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+              {p.enjoys.slice(0, 3).map((e, i) => (
+                <div key={e.key} className={cn("flex min-h-[150px] flex-col gap-2.5 rounded-[24px] p-5", LOVE_TONES[i % LOVE_TONES.length])}>
+                  <span className="flex h-9 w-9 items-center justify-center rounded-[12px] bg-[var(--c-frame)]">{i === 0 ? <MusicNotes size={17} /> : i === 1 ? <Leaf size={17} /> : <Heart size={17} />}</span>
+                  <p className="text-[11px] font-medium uppercase tracking-[0.06em] text-[var(--c-ink-3)]">{e.domain === "dish" ? "Loves to eat" : e.domain === "occasion" ? "Remember" : "Enjoys"}</p>
+                  <p className="text-[15px] font-medium leading-snug tracking-[-0.01em]">{e.text}</p>
+                </div>
+              ))}
+              {p.avoid.length > 0 && (
+                <div className="flex min-h-[150px] flex-col gap-2.5 rounded-[24px] bg-[#fdeeee] p-5 dark:bg-[#2a1617]">
+                  <span className="flex h-9 w-9 items-center justify-center rounded-[12px] bg-[var(--c-frame)] text-[var(--c-danger-ink)]">
+                    <LockSimple size={17} />
+                  </span>
+                  <p className="text-[11px] font-medium uppercase tracking-[0.06em] text-[var(--c-ink-3)]">Please avoid</p>
+                  <ul className="space-y-1 text-[13.5px] leading-snug">
+                    {p.avoid.map((a) => (
+                      <li key={a}>{a}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          )}
 
           <Panel>
             <PanelTitle title={selected?.self ? "About you" : name ? `Who ${name} is` : "Who they are"} right={<span className="text-[11px] text-[var(--c-ink-3)]">{identity.length} facts</span>} />

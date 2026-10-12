@@ -66,6 +66,19 @@ function synthetic() {
     learning: { events: [{ id: 1, kind: "fact_created", at: now, day: now.slice(0, 10), summary: "Walks at 6 am", actorId: ELDER, payload: {} }] },
     health: { issues: [{ kind: "no_time", key: "notime:x", problem: "Metformin: no time saved", ask: "What time is Metformin taken?" }], profileCard: "Name: Test\nSpeaks: Hindi", forgotten: [] },
     skills: { skills: [], store: [{ id: 1, scope: "store", subjectId: null, service: "blinkit", title: "cart path", body: "", steps: [], source: "agent", status: "active", uses: 3, successes: 2, failures: 1, successRate: 0.66, lastUsedAt: now, createdAt: now, updatedAt: now, updatedBy: "agent", version: 1 }] },
+    portrait: {
+      person: { name: "Test Elder", age: "72", callAs: null, language: null, livesWith: null, city: "Jodhpur", address: null, mobility: null },
+      mood: { now: { score: 4, word: "calm", summary: "Happy after a call", at: now, source: "chat" },
+              days: [{ day: "2026-10-12", score: 2, word: "worried", summary: "Knee pain", at: now, source: "chat" }, { day: "2026-10-13", score: 4, word: "calm", summary: "", at: now, source: "chat" }] },
+      stats: { known: 5, learnedWeek: 2, pending: 1 },
+      learned: [
+        { id: "l1", key: "routine:walk", domain: "routine", text: "Walks at 6 am", status: "active", source: "elder_said", statedBy: "Test Elder", at: now,
+          said: { text: "Subah chhe baje ghoomne jaati hoon", at: now, voice: true } },
+        { id: "l2", key: "medicine:amlodipine", domain: "medicine", text: "Wants to stop Amlodipine", status: "pending", source: "elder_said", statedBy: "Test Elder", at: now, said: null },
+      ],
+      people: [{ id: CG, name: "Test Caregiver", relation: "primary caregiver", kind: "member" }, { name: "Ramesh", relation: "neighbour", kind: "contact", key: "contact:ramesh" }],
+      day: [], enjoys: [{ key: "preference:likes", text: "Enjoys bhajans", domain: "preference" }], avoid: ['Never call them "aunty"'], week: [], knownSince: now,
+    },
     history: {
       changes: [
         change(9, "link", { label: "Metformin for diabetes", summary: "linked: for diabetes", body: "Metformin is for diabetes" }),
@@ -111,6 +124,7 @@ g.fetch = (async (input: string | URL | Request, init?: RequestInit) => {
     if (route === "skills") return ok(data.skills);
     if (route === "memory-history") return ok(data.history);
     if (route === "voice") return ok({ mode: "auto", means: "" });
+    if (route === "portrait" && data.portrait) return ok(data.portrait);
   }
   if (p === "/api/client-error") {
     reports.push(String((init as RequestInit | undefined)?.body ?? ""));
@@ -198,6 +212,14 @@ async function mount(): Promise<{ text: string; crashed: string | null; unmount:
     assert.ok(!page.text.includes("What the order agents learned") && !page.text.includes("worked"), "no shared store steps");
     page.unmount();
     console.log("  ✓ link changes and unknown change kinds render; no shared store steps");
+
+    // 1b. the Story (design approved 2026-10-13): their own words, mood, what was learned with an approve, their people
+    page = await mount();
+    for (const bit of ["Subah chhe baje ghoomne jaati hoon", "Said in a voice note", "Calm", "Learned from the chats", "Approve", "Ramesh", "Enjoys bhajans", 'Never call them "aunty"']) {
+      assert.ok(page.text.includes(bit), `the story shows: ${bit}`);
+    }
+    page.unmount();
+    console.log("  ✓ the story shows their words, mood, learned items with approve, people, likes and avoid");
 
     // 2. a panel whose data breaks it shows a note in its place; the rest of the page keeps working, and we are told
     data = synthetic();

@@ -49,6 +49,10 @@ export type EmergencyCard = {
   hospital: Array<{ name: string; phone: string | null; address: string | null; text: string }>;
   contacts: Array<{ name: string; phone: string | null; relation: string | null; emergency: boolean; text: string }>;
   familyRules: string[];
+  /** The family answered "none" (no allergies / conditions / regular medicines): an answer, not a missing field. */
+  none?: { allergy: boolean; condition: boolean; medicine: boolean };
+  /** Home address from the care record (for the ambulance). */
+  home?: string | null;
 };
 export type EmergencyLink = { url: string; createdAt?: string; opens?: number; lastOpenedAt?: string | null };
 export type PublicEmergency = {

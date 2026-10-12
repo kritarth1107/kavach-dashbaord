@@ -247,3 +247,44 @@ export async function getRecentLearning(familyId: string, subjectUserId: string)
   const data = await request<{ events: CareEvent[] }>(`${base(familyId, subjectUserId)}/events?kinds=${kinds}&limit=300`);
   return (data?.events ?? []).slice().reverse();
 }
+
+/** The person-centred pages (Care plan, Story, Emergency card): one read from the engine's /portrait. */
+export type PortraitMood = { day?: string; score: number | null; word: string | null; summary: string; at: string; source: string };
+export type PortraitDose = { id: string; time: string; name: string; dose?: string | null; status: CareHomeSummary["doses"][number]["status"] };
+export type Portrait = {
+  person: {
+    name: string | null;
+    age: string | null;
+    callAs: string | null;
+    language: string | null;
+    livesWith: string | null;
+    city: string | null;
+    address: string | null;
+    mobility: string | null;
+  };
+  mood: { now: PortraitMood | null; days: PortraitMood[] };
+  stats: { known: number; learnedWeek: number; pending: number };
+  learned: Array<{
+    id: string;
+    key: string;
+    domain: string;
+    text: string;
+    status: FactStatus;
+    source: string;
+    statedBy: string | null;
+    at: string;
+    said: { text: string; at: string; voice: boolean } | null;
+  }>;
+  people: Array<{ id?: string; name: string; relation: string; phone?: string | null; note?: string; kind: "member" | "family" | "contact" | "doctor"; key?: string }>;
+  day: Array<{ time: string; label: string; key: string }>;
+  enjoys: Array<{ key: string; text: string; domain: string }>;
+  avoid: string[];
+  week: Array<{ day: string; doses: PortraitDose[] }>;
+  knownSince: string | null;
+};
+
+export async function getPortrait(familyId: string, subjectUserId: string): Promise<Portrait> {
+  const data = await request<Portrait>(`${base(familyId, subjectUserId)}/portrait`, {}, 45_000);
+  if (!data) throw new Error("Empty response");
+  return data;
+}

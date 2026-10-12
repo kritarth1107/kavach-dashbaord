@@ -65,13 +65,27 @@ function draftFrom(f: CareFact): Draft {
   };
 }
 
-export function SaheliCarePage() {
+/**
+ * The whole care record, every kind, with add / change / remove / approve and history.
+ * embedded: the lower half of the Care plan page (the page above shows the person, approvals and stock); addSignal opens
+ * the add form each time it changes; onChanged lets the page above refresh.
+ */
+export function SaheliCarePage({ embedded, addSignal = 0, onChanged }: { embedded?: boolean; addSignal?: number; onChanged?: () => void } = {}) {
   const sel = useRecipientSelection();
   const { familyId, selectedId } = sel;
-  const { data, error, loading, reload } = useCareOverview(familyId, selectedId);
+  const { data, error, loading, reload: reloadOwn } = useCareOverview(familyId, selectedId);
   const { busy, banner, run } = useAction();
   const [draft, setDraft] = useState<Draft | null>(null);
   const [historyOf, setHistoryOf] = useState<HistoryItem | null>(null);
+  const [seenSignal, setSeenSignal] = useState(addSignal);
+  if (addSignal !== seenSignal) {
+    setSeenSignal(addSignal);
+    setDraft({ ...EMPTY });
+  }
+  const reload = () => {
+    reloadOwn();
+    onChanged?.();
+  };
 
   const grouped = useMemo(() => {
     const g = new Map<string, CareFact[]>();
@@ -127,16 +141,19 @@ export function SaheliCarePage() {
     setHistoryOf({ kind: "fact", target: f.key, subjectId: selectedId, owner: selectedId, label: short });
   }
 
-  return (
-    <AccessGate
-      familyId={sel.familyId}
-      loading={sel.loading}
-      isCaregiver={sel.isCaregiver}
-      isRecipient={sel.isRecipient}
-      recipients={sel.recipients}
-      error={sel.error}
-    >
+  const body = (
       <div className="space-y-4">
+        {embedded ? (
+          <div className="flex flex-wrap items-end justify-between gap-3 pt-2">
+            <div>
+              <h2 className="flex items-center gap-2.5 text-[16px] font-medium"><span className="h-[14px] w-[14px] rounded-[4px] bg-[var(--c-solid)]" aria-hidden />Everything in the care plan</h2>
+              <p className="mt-1 text-[12.5px] text-[var(--c-ink-2)]">Every kind of thing Saheli treats as true, with where it came from. Change or remove anything; each change keeps its history.</p>
+            </div>
+            <button type="button" className={btnPrimary} onClick={() => setDraft({ ...EMPTY })}>
+              <Plus className="h-3.5 w-3.5" /> Add
+            </button>
+          </div>
+        ) : (
         <SaheliHeader
           recipients={sel.recipients}
           selectedId={selectedId}
@@ -150,11 +167,12 @@ export function SaheliCarePage() {
             </button>
           }
         />
+        )}
         <Banner banner={banner} />
-        <RefillsPanel />
+        {!embedded && <RefillsPanel />}
 
         {draft && (
-          <section className="panel-card p-5" aria-label="Edit care record">
+          <section id="care-record-form" className="panel-card p-5" aria-label="Edit care record">
             <div className="flex items-center justify-between">
               <h2 className="flex items-center gap-2.5 text-[14px] font-medium text-[var(--text-primary)]"><span className="h-[14px] w-[14px] shrink-0 rounded-[4px] bg-[var(--c-accent)]" aria-hidden />{draft.editingKey ? "Change" : "Add to the care record"}</h2>
               <button type="button" aria-label="Close" onClick={() => setDraft(null)} className="text-[var(--text-tertiary)]">
@@ -261,7 +279,7 @@ export function SaheliCarePage() {
           </div>
         ) : data ? (
           <>
-            {pending.length > 0 && (
+            {!embedded && pending.length > 0 && (
               <section className="panel-card p-5">
                 <h2 className="flex items-center gap-2 text-[14px] font-extrabold text-[var(--text-primary)]">
                   <ShieldCheck className="h-4 w-4 text-[var(--warning-text)]" /> Waiting for your OK
@@ -367,6 +385,18 @@ export function SaheliCarePage() {
           <MemoryHistoryDrawer familyId={familyId} item={historyOf} onClose={() => setHistoryOf(null)} onChanged={reload} canEdit={sel.isCaregiver} />
         )}
       </div>
+  );
+  if (embedded) return body;
+  return (
+    <AccessGate
+      familyId={sel.familyId}
+      loading={sel.loading}
+      isCaregiver={sel.isCaregiver}
+      isRecipient={sel.isRecipient}
+      recipients={sel.recipients}
+      error={sel.error}
+    >
+      {body}
     </AccessGate>
   );
 }
