@@ -147,7 +147,8 @@ export function MemoryPage() {
   const portrait = useLoad<Portrait>(pkey, useCallback(() => getPortrait(familyId!, selectedId!), [familyId, selectedId]));
   const p = portrait.data;
   const photos = useMemo(() => new Map(members.filter((m) => m.userId).map((m) => [m.userId as string, m.avatarUrl])), [members]);
-  const ownWords = (p?.learned ?? []).filter((l) => l.said);
+  // only a message a fact was saved from counts as their words for the big quote (the re-read's pick may be loose)
+  const ownWords = (p?.learned ?? []).filter((l) => l.said && !l.said.heard && l.statedBy);
   // the big quote: something everyday they said themselves (a health change waits in its own approval card)
   const theirs = (l: (typeof ownWords)[number]) => Boolean(l.statedBy && selected?.name && l.statedBy.split(" ")[0] === selected.name.split(" ")[0]);
   const everyday = (l: (typeof ownWords)[number]) => l.status === "active" && !HEALTH.includes(l.domain);
@@ -352,15 +353,17 @@ export function MemoryPage() {
                     <div key={l.id} className="grid grid-cols-1 items-center gap-2 md:grid-cols-[minmax(0,1fr)_26px_minmax(0,1.05fr)]">
                       <div className="min-w-0">
                         <p className="mb-1 ml-0.5 text-[10.5px] text-[var(--c-ink-3)]">
-                          {l.statedBy ?? "Saheli"} · {dayAndTime(l.said?.at ?? l.at)}
+                          {l.said?.heard ? "Heard in the chat" : (l.statedBy ?? SOURCE_LABEL[l.source] ?? "Saheli")} · {dayAndTime(l.said?.at ?? l.at)}
                           {l.said?.voice ? " · voice note" : ""}
                         </p>
                         {l.said ? (
-                          <Bubble mine={l.source !== "caregiver_said" && l.source !== "dashboard"}>{l.said.text}</Bubble>
-                        ) : (
-                          <Bubble mine={false}>
-                            <span className="text-[var(--c-ink-2)]">{SOURCE_LABEL[l.source] ?? "Noted"}</span>
+                          <Bubble mine={!l.said.heard && l.source !== "caregiver_said" && l.source !== "dashboard"} className={l.said.heard ? "italic" : undefined}>
+                            {l.said.text}
                           </Bubble>
+                        ) : (
+                          <p className="rounded-[14px] border border-dashed border-[var(--c-line)] px-3 py-2 text-[12px] text-[var(--c-ink-2)]">
+                            {l.source === "caregiver_said" || l.source === "dashboard" ? `Added by ${l.statedBy ?? "the family"}` : (SOURCE_LABEL[l.source] ?? "Noted")}
+                          </p>
                         )}
                       </div>
                       <span className="hidden h-[26px] w-[26px] items-center justify-center rounded-full bg-[var(--c-frame)] text-[13px] text-[var(--c-ink-3)] md:flex">→</span>

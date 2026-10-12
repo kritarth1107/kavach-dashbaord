@@ -73,7 +73,9 @@ function synthetic() {
       stats: { known: 5, learnedWeek: 2, pending: 1 },
       learned: [
         { id: "l1", key: "routine:walk", domain: "routine", text: "Walks at 6 am", status: "active", source: "elder_said", statedBy: "Test Elder", at: now,
-          said: { text: "Subah chhe baje ghoomne jaati hoon", at: now, voice: true } },
+          said: { text: "Subah chhe baje ghoomne jaati hoon", at: now, voice: true, heard: false } },
+        { id: "l3", key: "family:son", domain: "family", text: "Son lives in Pune", status: "active", source: "inferred", statedBy: null, at: now,
+          said: { text: "send this image to mom", at: now, voice: false, heard: true } },
         { id: "l2", key: "medicine:amlodipine", domain: "medicine", text: "Wants to stop Amlodipine", status: "pending", source: "elder_said", statedBy: "Test Elder", at: now, said: null },
       ],
       people: [{ id: CG, name: "Test Caregiver", relation: "primary caregiver", kind: "member" }, { name: "Ramesh", relation: "neighbour", kind: "contact", key: "contact:ramesh" }],
@@ -215,9 +217,11 @@ async function mount(): Promise<{ text: string; crashed: string | null; unmount:
 
     // 1b. the Story (design approved 2026-10-13): their own words, mood, what was learned with an approve, their people
     page = await mount();
-    for (const bit of ["Subah chhe baje ghoomne jaati hoon", "Said in a voice note", "Calm", "Learned from the chats", "Approve", "Ramesh", "Enjoys bhajans", 'Never call them "aunty"']) {
+    for (const bit of ["Subah chhe baje ghoomne jaati hoon", "Said in a voice note", "Calm", "Learned from the chats", "Approve", "Ramesh", "Enjoys bhajans", 'Never call them "aunty"', "Heard in the chat"]) {
       assert.ok(page.text.includes(bit), `the story shows: ${bit}`);
     }
+    // words the re-read picked never become the big quote (live 2026-10-13 a loose pick headed the page)
+    assert.ok(page.text.indexOf("Subah chhe baje ghoomne jaati hoon") < page.text.indexOf("send this image to mom"), "the quote is their own message");
     page.unmount();
     console.log("  ✓ the story shows their words, mood, learned items with approve, people, likes and avoid");
 

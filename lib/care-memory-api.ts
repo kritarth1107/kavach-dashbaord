@@ -273,7 +273,8 @@ export type Portrait = {
     source: string;
     statedBy: string | null;
     at: string;
-    said: { text: string; at: string; voice: boolean } | null;
+    /** The person's own words: the message the fact was saved from, or (heard) the words the 30-minute re-read picked. */
+    said: { text: string; at: string; voice: boolean; heard?: boolean } | null;
   }>;
   people: Array<{ id?: string; name: string; relation: string; phone?: string | null; note?: string; kind: "member" | "family" | "contact" | "doctor"; key?: string }>;
   day: Array<{ time: string; label: string; key: string }>;
