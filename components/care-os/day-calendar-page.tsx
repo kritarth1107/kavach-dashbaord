@@ -39,7 +39,7 @@ type LaneId = "medicines" | "reminders" | "saheli" | "health" | "orders";
 const LANES: Array<{ id: LaneId; label: string; icon: PhosphorIcon }> = [
   { id: "medicines", label: "Medicines", icon: Pill },
   { id: "reminders", label: "Reminders", icon: Alarm },
-  { id: "saheli", label: "Saheli & chat", icon: ChatCircle },
+  { id: "saheli", label: "Habits & chat", icon: ChatCircle },
   { id: "health", label: "Health", icon: Heartbeat },
   { id: "orders", label: "Orders & alerts", icon: ShoppingBag },
 ];
@@ -72,6 +72,9 @@ function eventLook(kind: string): { label: string; icon: PhosphorIcon; tone: "da
   if (kind.startsWith("task_")) return { label: `Order ${kind.slice(5)}`, icon: ShoppingBag, tone: "plain" };
   if (kind.startsWith("fact_")) return { label: "Care record", icon: CheckCircle, tone: "plain" };
   if (kind === "social") return { label: "Chat", icon: ChatCircle, tone: "plain" };
+  // habits are good things, not reminders (founder 2026-10-13): what they did shows as done
+  if (kind === "activity_done") return { label: "Done", icon: CheckCircle, tone: "dark" };
+  if (kind === "activity_skipped") return { label: "Skipped", icon: WarningCircle, tone: "soft" };
   const t = kind.replace(/_/g, " ");
   return { label: t.charAt(0).toUpperCase() + t.slice(1), icon: ChatCircle, tone: "plain" };
 }
