@@ -113,7 +113,7 @@ export function VitalsTrendCard({
         <div className="dark-card p-4">
           <div className="mb-2 flex items-center justify-between">
             <p className="text-[10px] font-medium text-white/50">Check-ins</p>
-            <Sparkline color="#22c55e" data={[38, 40, 41, 42, 43, 43, 43]} />
+            <Sparkline color="#2f8a76" data={[38, 40, 41, 42, 43, 43, 43]} />
           </div>
           <p className="text-[1.35rem] font-extrabold leading-none text-white">{checkInRate}%</p>
           <p className="mt-1 text-[10px] text-white/40">
@@ -123,7 +123,7 @@ export function VitalsTrendCard({
         <div className="dark-card p-4">
           <div className="mb-2 flex items-center justify-between">
             <p className="text-[10px] font-medium text-white/50">Medicines</p>
-            <Sparkline color="#22c55e" data={[1, 2, 2, 2, 2, 2, 2]} />
+            <Sparkline color="#2f8a76" data={[1, 2, 2, 2, 2, 2, 2]} />
           </div>
           <p className="text-[1.35rem] font-extrabold leading-none text-white">
             {dosesTaken}/{dosesTaken + dosesDue}
@@ -186,7 +186,7 @@ export function VitalsGridCard() {
         Latest readings · updated 3h ago (07:41 today)
       </p>
       <div className="grid grid-cols-2 gap-3">
-        <MiniVitalBar label="Blood pressure" value="128/78" unit="mmHg" pct={72} color="#16a34a" />
+        <MiniVitalBar label="Blood pressure" value="128/78" unit="mmHg" pct={72} color="#1e7458" />
         <MiniVitalBar label="Heart rate" value="78" unit="bpm" pct={58} color="#0d9488" />
         <MiniVitalBar label="Blood sugar" value="132" unit="mg/dL" pct={66} color="#0284c7" />
         <MiniVitalBar label="SpO₂" value="96" unit="%" pct={96} color="#059669" />

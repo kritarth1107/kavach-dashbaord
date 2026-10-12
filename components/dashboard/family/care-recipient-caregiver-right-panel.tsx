@@ -70,7 +70,7 @@ export function CareRecipientCaregiverRightPanel({
               ) : (
                 <div
                   className="flex h-14 w-14 items-center justify-center rounded-2xl text-[15px] font-extrabold text-white ring-2 ring-white"
-                  style={{ backgroundColor: member.avatarColor || "#16a34a" }}
+                  style={{ backgroundColor: member.avatarColor || "#1e7458" }}
                 >
                   {initials}
                 </div>

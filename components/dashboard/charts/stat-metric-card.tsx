@@ -23,7 +23,7 @@ export function StatMetricCard({
   trend,
   trendUp = true,
   sparkline,
-  sparkColor = "#22c55e",
+  sparkColor = "#2f8a76",
   icon: Icon,
   iconBg = "bg-primary-light text-primary",
   dark = false,

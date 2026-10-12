@@ -595,7 +595,7 @@ export function SettingsPage() {
                 <div className="rounded-lg border border-[var(--border-strong)] bg-[var(--input-bg)] p-5">
                   <div className="flex items-start gap-4">
                     <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-[var(--surface)]">
-                      <KeyRound className="h-5 w-5 text-[#a78bfa]" />
+                      <KeyRound className="h-5 w-5 text-[var(--c-solid)]" />
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">

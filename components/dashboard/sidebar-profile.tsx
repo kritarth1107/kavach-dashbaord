@@ -59,7 +59,7 @@ export function SidebarProfile({ collapsed }: { collapsed: boolean }) {
             className="h-9 w-9 shrink-0 rounded-full object-cover"
           />
         ) : (
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#86efac] to-[#16a34a] text-xs font-bold text-white">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#9cc5b8] to-[#1e7458] text-xs font-bold text-white">
             {initials}
           </div>
         )}

@@ -179,7 +179,7 @@ export function FamilySwitcher({ collapsed }: FamilySwitcherProps) {
                     <p
                       className={cn(
                         "truncate text-[10px] font-medium uppercase tracking-wide",
-                        selected ? "text-[#4ade80]" : "text-[var(--text-tertiary)]",
+                        selected ? "text-[#7cc3b1]" : "text-[var(--text-tertiary)]",
                       )}
                     >
                       {family.switcherRoleBadge}

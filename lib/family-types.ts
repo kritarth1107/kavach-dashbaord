@@ -52,7 +52,7 @@ export type FamilyMembersPayload = {
   members: ApiFamilyMember[];
 };
 
-const FAMILY_COLORS = ["#16a34a", "#059669", "#0d9488", "#0891b2", "#0284c7"];
+const FAMILY_COLORS = ["#1e7458", "#059669", "#0d9488", "#0891b2", "#0284c7"];
 
 export function familyAvatarColor(index: number): string {
   return FAMILY_COLORS[index % FAMILY_COLORS.length];

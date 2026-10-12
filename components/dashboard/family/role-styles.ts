@@ -9,7 +9,7 @@ export const roleStyles: Record<
     bg: "bg-emerald-500/15",
     text: "text-emerald-700",
     ring: "ring-emerald-500/20",
-    accent: "#16a34a",
+    accent: "#1e7458",
   },
   co_caregiver: {
     label: "Co-caregiver",
@@ -37,6 +37,6 @@ export const roleStyles: Record<
     bg: "bg-emerald-50",
     text: "text-emerald-700",
     ring: "ring-emerald-500/25",
-    accent: "#16a34a",
+    accent: "#1e7458",
   },
 };

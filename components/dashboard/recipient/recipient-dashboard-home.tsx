@@ -348,7 +348,7 @@ export function RecipientDashboardHome({
                 value={data.vitalsSnapshot.bp ?? "—"}
                 unit="mmHg"
                 pct={data.vitalsSnapshot.bp ? 72 : 0}
-                color="#16a34a"
+                color="#1e7458"
               />
               <MiniVitalBar
                 label="Heart rate"

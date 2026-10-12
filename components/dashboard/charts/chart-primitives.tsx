@@ -66,7 +66,7 @@ export function AreaTrendChart({
   labels,
   gradientId,
   stroke = "#1a1a1a",
-  fillColor = "#16a34a",
+  fillColor = "#1e7458",
   height = 120,
 }: {
   data: number[];
@@ -133,7 +133,7 @@ export function AreaTrendChart({
 export function BarChart({
   data,
   labels,
-  color = "#16a34a",
+  color = "#1e7458",
   maxValue,
 }: {
   data: number[];
@@ -168,7 +168,7 @@ export function ProgressRing({
   value,
   size = 88,
   stroke = 8,
-  color = "#16a34a",
+  color = "#1e7458",
   label,
 }: {
   value: number;
