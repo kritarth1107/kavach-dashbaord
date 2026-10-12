@@ -1002,7 +1002,12 @@ export type LabStatCard = {
   trend: Array<{ date: string | null; value: number }>;
   delta: number | null;
   prevDate: string | null;
+  /** Where the latest value came from: a saved report, a reading told to Saheli, or worked out (BMI). */
+  from?: "report" | "chat" | "calculated";
 };
+
+/** A reading told to Saheli on WhatsApp (typed, said, or read from a photo of a scale or scan). */
+export type ChatReading = { key: string; name: string; value: string; unit: string | null; date: string; at: string };
 
 export type LabHighlights = {
   cards: LabStatCard[];
@@ -1010,6 +1015,7 @@ export type LabHighlights = {
   reports: number;
   latestDate: string | null;
   noticed: { key: string; text: string } | null;
+  readings?: ChatReading[];
 };
 
 export type LabDecisionInput = {

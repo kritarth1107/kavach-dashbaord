@@ -68,12 +68,13 @@ export function StatCard({ card, selected, onSelect }: { card: LabStatCard; sele
         <Sparkline values={values} lo={lo} hi={hi} />
       </span>
       <span className="mt-3 flex flex-col gap-0.5 text-[11.5px] text-[var(--c-ink-2)] sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-x-2">
-        <span>{card.range ? `Normal ${prettyRange(card.range)}` : "No normal range printed"}</span>
+        <span>{card.range ? `Normal ${prettyRange(card.range)}` : card.from && card.from !== "report" ? "Your own reading" : "No normal range printed"}</span>
         {delta && <span className="c-num whitespace-nowrap">{delta}</span>}
       </span>
       <span className="mt-1 block text-[11px] text-[var(--c-ink-3)]">
         {fmtIsoDate(card.date) || "Undated"}
         {card.count === 1 ? " · seen once" : ""}
+        {card.from === "chat" ? " · told on WhatsApp" : card.from === "calculated" ? " · from weight and height" : ""}
       </span>
     </button>
   );
@@ -96,7 +97,7 @@ export function AllValuesSheet({
 }) {
   return (
     <SideDrawer open={open} onClose={onClose} top="All" bottom={`${cards.length} values`} label="All values from the reports">
-      <p className="text-[12.5px] text-[var(--c-ink-2)]">The latest reading of each test, values outside normal first. Choose one to see its trend.</p>
+      <p className="text-[12.5px] text-[var(--c-ink-2)]">The latest reading of each test and of each reading told to Saheli, values outside normal first. Choose one to see its trend.</p>
       <table className="mt-3 w-full">
         <thead>
           <tr>
@@ -121,6 +122,7 @@ export function AllValuesSheet({
                 </button>
                 <span className="block text-[11px] text-[var(--c-ink-3)]">
                   {fmtIsoDate(c.date) || "Undated"} · {c.count === 1 ? "seen once" : `${c.count} readings`}
+                  {c.from === "chat" ? " · WhatsApp" : c.from === "calculated" ? " · worked out" : ""}
                 </span>
               </td>
               <td className={cn(TD, "text-right")}>

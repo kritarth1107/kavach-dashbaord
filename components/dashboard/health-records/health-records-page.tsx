@@ -13,11 +13,12 @@ import {
   uploadRecipientLab,
   uploadRecipientLabFile,
   uploadRecipientLabFiles,
+  type ChatReading,
   type LabDocument,
   type LabHighlights,
 } from "@/lib/api";
 import { addDoctorQuestion, addFamilyTask, getCareTeam, type Appointment } from "@/lib/care-features-api";
-import { addedAt, friendlyError, kindLabel, rowStatus } from "@/lib/health-records";
+import { addedAt, fmtIsoDate, friendlyError, kindLabel, rowStatus } from "@/lib/health-records";
 import { cn } from "@/lib/utils";
 import { useLoad } from "@/components/care-os/care-kit";
 import { usePerson } from "@/components/care-os/person-context";
@@ -227,6 +228,7 @@ export function HealthRecordsView(props: HealthRecordsViewProps) {
 
   const cards = highlights?.cards ?? [];
   const all = highlights?.all ?? [];
+  const saidCount = highlights?.readings?.length ?? 0;
   const selected = all.find((c) => c.key === picked) ?? cards.find((c) => c.key === highlights?.noticed?.key) ?? cards[0] ?? null;
   const waiting = useMemo(
     () => (records ?? []).filter((d) => d.review_status === "needs_review").sort((a, b) => (b.created_at ?? "").localeCompare(a.created_at ?? "")),
@@ -266,10 +268,10 @@ export function HealthRecordsView(props: HealthRecordsViewProps) {
 
       <section aria-labelledby="hr-latest">
         <div className="mt-2 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-          <Lbl id="hr-latest">Latest from {pron.possessive} reports</Lbl>
+          <Lbl id="hr-latest">{saidCount ? `${pron.possessive[0].toUpperCase()}${pron.possessive.slice(1)} latest numbers` : `Latest from ${pron.possessive} reports`}</Lbl>
           {cards.length > 0 && highlights && (
             <p className="text-[12px] text-[var(--c-ink-3)]">
-              Picked from {plural(highlights.reports, "lab report")} · values outside normal first ·{" "}
+              Picked from {[highlights.reports ? plural(highlights.reports, "lab report") : "", saidCount ? plural(saidCount, "reading") + " told to Saheli" : ""].filter(Boolean).join(" and ")} · values outside normal first ·{" "}
               <button type="button" onClick={() => setAllOpen(true)} className="rounded-sm text-[var(--c-ink)] underline underline-offset-2 outline-none focus-visible:ring-2 focus-visible:ring-[var(--c-accent)]">
                 see all {all.length} values
               </button>
@@ -289,8 +291,11 @@ export function HealthRecordsView(props: HealthRecordsViewProps) {
             ))}
           </div>
         ) : (
-          <p className="mt-2.5 rounded-[18px] bg-[var(--c-card)] px-4 py-3.5 text-[13px] text-[var(--c-ink-2)]">Upload a report and the important numbers will show here.</p>
+          <p className="mt-2.5 rounded-[18px] bg-[var(--c-card)] px-4 py-3.5 text-[13px] text-[var(--c-ink-2)]">
+            Upload a report, or tell Saheli a reading on WhatsApp (weight, BP, sugar, or a photo of the scale), and the important numbers will show here.
+          </p>
         )}
+        {saidCount > 0 && <ToldReadings readings={highlights?.readings ?? []} onPick={pick} />}
       </section>
 
       {waiting.length > 0 && <ReviewBanner docs={waiting} href={props.reviewHrefFor(waiting[0])} />}
@@ -397,6 +402,42 @@ function PageSkeleton() {
         ))}
       </div>
       <div className="h-[360px] animate-pulse rounded-[24px] bg-[var(--c-card)]" />
+    </div>
+  );
+}
+
+/** The readings told to Saheli, newest first: one line each, tap to see its trend. */
+function ToldReadings({ readings, onPick }: { readings: ChatReading[]; onPick: (key: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const shown = open ? readings : readings.slice(0, 4);
+  return (
+    <div className="mt-3 rounded-[18px] bg-[var(--c-card)] px-4 py-3">
+      <p className="text-[12px] font-medium text-[var(--c-ink-2)]">Told to Saheli on WhatsApp</p>
+      <ul className="mt-1.5 divide-y divide-[var(--c-line)]">
+        {shown.map((r) => (
+          <li key={`${r.key}-${r.at}`}>
+            <button
+              type="button"
+              onClick={() => onPick(r.key)}
+              className="flex w-full items-baseline justify-between gap-3 py-2 text-left text-[13px] outline-none focus-visible:ring-2 focus-visible:ring-[var(--c-accent)]"
+            >
+              <span className="min-w-0 truncate">{r.name}</span>
+              <span className="flex shrink-0 items-baseline gap-3">
+                <span className="c-num font-medium">
+                  {r.value}
+                  {r.unit && <span className="ml-1 text-[11px] font-normal text-[var(--c-ink-2)]">{r.unit}</span>}
+                </span>
+                <span className="w-[68px] text-right text-[11.5px] text-[var(--c-ink-3)]">{fmtIsoDate(r.date)}</span>
+              </span>
+            </button>
+          </li>
+        ))}
+      </ul>
+      {readings.length > 4 && (
+        <button type="button" onClick={() => setOpen((o) => !o)} className="mt-1 text-[12px] text-[var(--c-ink-2)] underline underline-offset-2">
+          {open ? "Show fewer" : `Show all ${readings.length}`}
+        </button>
+      )}
     </div>
   );
 }
