@@ -286,7 +286,7 @@ export function CareHome({
             {[300, 230, 160].map((s) => (
               <span key={s} className="absolute rounded-full border border-[var(--c-line)]" style={{ width: s, height: s, left: (300 - s) / 2, top: (300 - s) / 2 }} />
             ))}
-            <span className="absolute left-[95px] top-[95px] flex h-[110px] w-[110px] flex-col items-center justify-center rounded-full bg-[var(--c-accent)] text-[var(--c-accent-ink)] shadow-[0_20px_40px_-12px_rgba(211,84,30,0.55)]">
+            <span className="absolute left-[95px] top-[95px] flex h-[110px] w-[110px] flex-col items-center justify-center rounded-full bg-[var(--c-accent)] text-[var(--c-accent-ink)] shadow-[0_20px_40px_-12px_rgba(236,154,47,0.55)]">
               <span
                 className={cn("c-num leading-none", (data.mood?.length ?? 0) > 9 ? "text-[17px]" : (data.mood?.length ?? 0) > 6 ? "text-[21px]" : "text-[26px]")}
                 title={data.moodNote}

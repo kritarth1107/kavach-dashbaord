@@ -132,7 +132,7 @@ function Pillbox({ week, colorOf }: { week: Portrait["week"]; colorOf: (name: st
                     key={`${slot.id}-${d.day}`}
                     title={cell.doses.map((x) => `${x.time} ${x.name}: ${x.status}`).join("\n")}
                     className={cn(
-                      "relative flex h-[62px] items-center justify-center gap-1 rounded-[16px] shadow-[inset_0_-3px_0_rgba(20,42,34,0.05)]",
+                      "relative flex h-[62px] items-center justify-center gap-1 rounded-[16px] shadow-[inset_0_-3px_0_rgba(27,32,30,0.05)]",
                       cell.state === "empty" && "border border-dashed border-[var(--c-line)] shadow-none",
                       cell.state === "taken" && "bg-[var(--c-frame)]",
                       cell.state === "missed" && "border-[1.5px] border-dashed border-[#e69a9a] bg-[var(--c-frame)]",

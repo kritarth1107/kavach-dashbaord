@@ -83,7 +83,7 @@ export function Drawer({ open, light, dark, onClose, children }: { open: boolean
   if (!open) return null;
   return (
     <div className="fixed inset-0 z-[60]">
-      <button type="button" aria-label="Close" onClick={onClose} className="absolute inset-0 bg-[rgba(20,42,34,0.28)]" />
+      <button type="button" aria-label="Close" onClick={onClose} className="absolute inset-0 bg-[rgba(27,32,30,0.28)]" />
       <aside
         role="dialog"
         aria-modal="true"

@@ -354,7 +354,7 @@ export function ReviewForm({
                     <li
                       key={r.id}
                       className={cn(
-                        "grid grid-cols-[minmax(0,1fr)_auto_32px] items-center gap-x-2 gap-y-1 border-b border-[var(--c-line)] px-3 py-1.5 last:border-0 focus-within:bg-[var(--c-accent-wash)] sm:grid-cols-[1.4fr_.8fr_.8fr_.9fr_.7fr_32px] dark:focus-within:bg-[rgba(211,84,30,0.08)]",
+                        "grid grid-cols-[minmax(0,1fr)_auto_32px] items-center gap-x-2 gap-y-1 border-b border-[var(--c-line)] px-3 py-1.5 last:border-0 focus-within:bg-[var(--c-accent-wash)] sm:grid-cols-[1.4fr_.8fr_.8fr_.9fr_.7fr_32px] dark:focus-within:bg-[rgba(236,154,47,0.08)]",
                         problem && bad && "bg-[var(--c-danger-wash)]",
                       )}
                     >

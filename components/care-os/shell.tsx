@@ -236,7 +236,7 @@ export function CareShell({
 
       <nav
         aria-label="Main"
-        className="fixed inset-x-3 bottom-[max(12px,env(safe-area-inset-bottom))] z-30 grid grid-cols-5 gap-1 rounded-[26px] bg-[var(--c-solid)] p-1.5 shadow-[0_18px_40px_-18px_rgba(20,42,34,0.6)] md:hidden"
+        className="fixed inset-x-3 bottom-[max(12px,env(safe-area-inset-bottom))] z-30 grid grid-cols-5 gap-1 rounded-[26px] bg-[var(--c-solid)] p-1.5 shadow-[0_18px_40px_-18px_rgba(27,32,30,0.6)] md:hidden"
       >
         {TABS.map((n) => {
           const on = n.key === active;

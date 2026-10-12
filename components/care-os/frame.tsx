@@ -141,7 +141,7 @@ function Drawer({ open, onClose }: { open: boolean; onClose: () => void }) {
         aria-label="Close menu"
         tabIndex={open ? 0 : -1}
         onClick={onClose}
-        className={cn("absolute inset-0 bg-[rgba(20,42,34,0.28)] transition-opacity duration-300", open ? "opacity-100" : "opacity-0")}
+        className={cn("absolute inset-0 bg-[rgba(27,32,30,0.28)] transition-opacity duration-300", open ? "opacity-100" : "opacity-0")}
       />
       <aside
         role="dialog"

@@ -71,7 +71,7 @@ function PeopleOrbit({ people, center, centerPhoto, photos }: { people: Portrait
           <circle cx="50%" cy="50%" r="125" fill="none" stroke="var(--c-line)" strokeDasharray="4 6" />
         </svg>
         <div className="absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 flex-col items-center">
-          <PersonPhoto name={center} src={centerPhoto} rounded="rounded-full" className="h-[104px] w-[104px] border-4 border-[var(--c-frame)] shadow-[0_0_0_8px_rgba(211,84,30,0.15),0_0_0_18px_rgba(211,84,30,0.07)]" text={34} />
+          <PersonPhoto name={center} src={centerPhoto} rounded="rounded-full" className="h-[104px] w-[104px] border-4 border-[var(--c-frame)] shadow-[0_0_0_8px_rgba(236,154,47,0.15),0_0_0_18px_rgba(236,154,47,0.07)]" text={34} />
           <b className="mt-2.5 text-[13px] font-medium">{center}</b>
         </div>
         {ring.map((x, i) => (
@@ -477,7 +477,7 @@ export function MemoryPage() {
 
       {editing && (
         <div className="fixed inset-0 z-[60]">
-          <button type="button" aria-label="Close" onClick={() => setEditing(null)} className="absolute inset-0 bg-[rgba(20,42,34,0.28)]" />
+          <button type="button" aria-label="Close" onClick={() => setEditing(null)} className="absolute inset-0 bg-[rgba(27,32,30,0.28)]" />
           <aside role="dialog" aria-modal="true" aria-label="Edit note" className="care-os absolute inset-y-0 right-0 flex w-full max-w-[520px] flex-col bg-[var(--c-frame)] p-6">
             <div className="flex items-center justify-between">
               <h2 className="text-[28px] leading-tight tracking-[-0.03em]">
