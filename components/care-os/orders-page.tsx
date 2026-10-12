@@ -24,6 +24,7 @@ const STATUS: Record<string, { label: string; tone: Tone }> = {
   running: { label: "Working", tone: "light" },
   needs_input: { label: "Needs you", tone: "accent" },
   awaiting_confirm: { label: "Needs you", tone: "accent" },
+  scheduled: { label: "Set for later", tone: "dark" },
   done: { label: "Done", tone: "ok" },
   failed: { label: "Didn't go through", tone: "danger" },
   cancelled: { label: "Cancelled", tone: "light" },
@@ -43,9 +44,38 @@ const rupees = (s?: string) => {
   return Number.isFinite(n) && n > 0 ? n : null;
 };
 
+/** What happened to a cancel asked after it was placed or booked (details.cancel_ask.state). */
+const CANCEL: Record<string, { label: string; tone: Tone }> = {
+  pending: { label: "Cancel asked", tone: "warn" },
+  cancelling: { label: "Cancelling on the store", tone: "warn" },
+  fee: { label: "Cancel fee needs a yes", tone: "accent" },
+  cancelled: { label: "Cancelled on the store", tone: "light" },
+  cancelled_in_app: { label: "Cancelled in the app", tone: "light" },
+  refused: { label: "Store refused the cancel", tone: "danger" },
+  kept: { label: "Kept", tone: "light" },
+  told_carers: { label: "Caregivers told", tone: "light" },
+  unclear: { label: "Cancel unclear", tone: "warn" },
+};
+/** The badges a task needs beyond its status: placed before a yes, a cancel under way. */
+function flags(t: CareTask): Array<{ label: string; tone: Tone }> {
+  const out: Array<{ label: string; tone: Tone }> = [];
+  if (t.result?.by_mistake) out.push({ label: t.kind === "ride" ? "Booked before a yes, cancelling" : "Placed before a yes, cancelling", tone: "danger" });
+  const c = t.details?.cancel_ask?.state;
+  if (c && c !== "not_placed" && CANCEL[c] && !(c === "cancelled" && t.status === "cancelled")) out.push(CANCEL[c]);
+  return out;
+}
+const hhmm = (iso?: string) => (iso ? when(iso) : null);
+/** "Booked Thu 10:00, up to ₹900" for a task set for later. */
+function laterLine(t: CareTask): string | null {
+  const lt = t.details?.later;
+  if (!lt) return null;
+  const at = hhmm(lt.book_at || lt.at);
+  return [at ? `${t.kind === "ride" ? "Books" : "Orders"} ${at}` : null, lt.max ? `up to ₹${Math.round(lt.max)}` : lt.no_max ? "no limit set" : null].filter(Boolean).join(", ") || null;
+}
+
 /** Where a running order is: looked up, logged in, cart or fares ready, placed. */
 const STEPS: Record<CareTask["kind"], string[]> = { order: ["Found", "Logged in", "Cart ready", "Placed"], ride: ["Fares", "Logged in", "Ride picked", "Booked"] };
-const stepOf = (t: CareTask) => (t.status === "done" ? 4 : t.phase === "place" ? 3 : t.phase === "prepare" ? 2 : t.phase === "otp" ? 1 : 0);
+const stepOf = (t: CareTask) => (t.status === "done" || t.phase === "check" ? 4 : t.phase === "place" ? 3 : t.phase === "prepare" ? 2 : t.phase === "otp" ? 1 : 0);
 
 /** Stores looked up together (no store named) until one is picked; the dropped ones after a pick are hidden. */
 function compareGroups(tasks: CareTask[]): { comparing: CareTask[][]; hidden: Set<string> } {
@@ -80,7 +110,8 @@ export function OrdersPage() {
   const inCard = new Set(comparing.flat().map((t) => t.id));
   const needs = tasks.filter((t) => LIVE.has(t.status) && t.inputNeeded && !inCard.has(t.id));
   const working = tasks.filter((t) => LIVE.has(t.status) && !t.inputNeeded && !inCard.has(t.id));
-  const past = tasks.filter((t) => !LIVE.has(t.status) && !inCard.has(t.id) && !hidden.has(t.id));
+  const later = tasks.filter((t) => t.status === "scheduled" && !inCard.has(t.id));
+  const past = tasks.filter((t) => !LIVE.has(t.status) && t.status !== "scheduled" && !inCard.has(t.id) && !hidden.has(t.id));
   const monthKey = new Date().toLocaleDateString("en-CA", { timeZone: IST }).slice(0, 7);
   const spent = all
     .filter((t) => t.status === "done" && t.kind === "order" && new Date(t.createdAt).toLocaleDateString("en-CA", { timeZone: IST }).startsWith(monthKey))
@@ -101,6 +132,7 @@ export function OrdersPage() {
           <div className="flex flex-wrap gap-2">
             {needs.length + comparing.length > 0 && <Stat label="need you" value={needs.length + comparing.length} tone="accent" />}
             {working.length > 0 && <Stat label="in progress" value={working.length} />}
+            {later.length > 0 && <Stat label="set for later" value={later.length} />}
             {spent > 0 && <Stat label="ordered this month" value={`₹${Math.round(spent).toLocaleString("en-IN")}`} />}
           </div>
         </header>
@@ -169,6 +201,19 @@ export function OrdersPage() {
               </Panel>
             )}
 
+            {later.length > 0 && (
+              <Panel>
+                <PanelTitle title="Set for later" right={<span className="text-[12px] text-[var(--c-ink-2)]">booked at the time, details sent then</span>} />
+                <ul className="mt-3 space-y-2">
+                  {later.map((t) => (
+                    <li key={t.id}>
+                      <Row task={t} onOpen={() => setOpen(t.id)} />
+                    </li>
+                  ))}
+                </ul>
+              </Panel>
+            )}
+
             {past.length > 0 && (
               <Panel>
                 <PanelTitle title="Earlier" right={<span className="text-[12px] text-[var(--c-ink-2)]">{past.length}</span>} />
@@ -211,7 +256,9 @@ function Steps({ task: t }: { task: CareTask }) {
       {STEPS[t.kind].map((s, i) => (
         <span key={s} title={s} className={cn("h-1.5 w-5 rounded-full", i < at ? "bg-[var(--c-solid)]" : i === at ? "bg-[var(--c-accent)]" : "bg-[var(--c-line)]")} />
       ))}
-      <span className="ml-1.5 text-[11.5px] text-[var(--c-ink-2)]">{t.status === "done" ? STEPS[t.kind][3] : STEPS[t.kind][at]}</span>
+      <span className="ml-1.5 text-[11.5px] text-[var(--c-ink-2)]">
+        {t.phase === "check" ? "Checking the store" : t.status === "done" ? STEPS[t.kind][3] : STEPS[t.kind][Math.min(at, 3)]}
+      </span>
     </span>
   );
 }
@@ -234,7 +281,17 @@ function Row({ task: t, onOpen, live }: { task: CareTask; onOpen: () => void; li
           <span aria-hidden>·</span>
           <span>{when(t.createdAt)}</span>
           {t.status === "failed" && t.result.problem && <span className="truncate text-[var(--c-danger-ink)]">· {t.result.problem}</span>}
+          {t.status === "scheduled" && laterLine(t) && <span>· {laterLine(t)}</span>}
         </span>
+        {flags(t).length > 0 && (
+          <span className="mt-1.5 flex flex-wrap gap-1.5">
+            {flags(t).map((f) => (
+              <Tag key={f.label} tone={f.tone}>
+                {f.label}
+              </Tag>
+            ))}
+          </span>
+        )}
         {live && (
           <span className="mt-1.5 block">
             <Steps task={t} />
@@ -244,7 +301,7 @@ function Row({ task: t, onOpen, live }: { task: CareTask; onOpen: () => void; li
       {total && <span className="c-num hidden shrink-0 text-[14px] font-medium sm:block">{total}</span>}
       <span className="flex shrink-0 items-center gap-1.5">
         {live && <SpinnerGap size={14} className="animate-spin text-[var(--c-ink-3)]" aria-hidden />}
-        <Tag tone={s.tone}>{t.cancelRequested && LIVE.has(t.status) ? "Cancelling" : s.label}</Tag>
+        <Tag tone={s.tone}>{(t.cancelRequested || t.phase === "cancel") && LIVE.has(t.status) ? "Cancelling" : t.phase === "check" && LIVE.has(t.status) ? "Checking the store" : s.label}</Tag>
         <CaretRight size={14} className="text-[var(--c-ink-3)]" aria-hidden />
       </span>
     </button>
@@ -286,6 +343,15 @@ function ActionCard({
           Details
         </button>
       </div>
+      {flags(t).length > 0 && (
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          {flags(t).map((f) => (
+            <Tag key={f.label} tone={f.tone}>
+              {f.label}
+            </Tag>
+          ))}
+        </div>
+      )}
       {t.kind === "order" && items.length > 0 && (
         <p className="mt-3 line-clamp-2 text-[12.5px] text-[var(--c-ink-2)]">
           {items
@@ -400,6 +466,39 @@ function Decision({ task: t, busy, familyId, subjectId, run, reload }: { task: C
         </div>
       </div>
     );
+  if (t.inputNeeded === "approve") {
+    const ap = t.details?.approval_needed;
+    return (
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <p className="text-[12.5px] text-[var(--c-ink-2)]">
+          Needs a family approver&apos;s yes{ap?.reasons?.length ? `: ${ap.reasons.join("; ")}` : ""}. Nothing is placed until then.
+        </p>
+        <div className="flex shrink-0 gap-2">
+          <SmallButton dark disabled={isBusy("approve")} onClick={() => act("approve", () => taskInput(familyId, subjectId, t.id, "approve", "yes"), "Approved. Going ahead.")}>
+            Approve
+          </SmallButton>
+          <SmallButton disabled={isBusy("approve")} onClick={() => act("approve", () => taskInput(familyId, subjectId, t.id, "approve", "no"), "Declined. Nothing was placed.")}>
+            Decline
+          </SmallButton>
+        </div>
+      </div>
+    );
+  }
+  if (t.inputNeeded === "later")
+    return (
+      <p className="text-[12.5px] text-[var(--c-ink-2)]">
+        Set for {hhmm(t.details?.later?.at) || "later"}: Saheli asked on WhatsApp for the most to pay, so she can {t.kind === "ride" ? "book" : "order"} it at the time
+        without asking again. Answer her there.
+      </p>
+    );
+  if (t.inputNeeded === "fare")
+    return (
+      <p className="text-[12.5px] text-[var(--c-ink-2)]">
+        It now costs {t.details?.later?.asked?.amount || "more"}, above the ₹{Math.round(t.details?.later?.max || 0)} agreed. Saheli asked on WhatsApp whether to go ahead.
+      </p>
+    );
+  if (t.inputNeeded === "swap")
+    return <p className="text-[12.5px] text-[var(--c-ink-2)]">The store doesn&apos;t have one item; Saheli asked on WhatsApp which of its other options to take.</p>;
   return <p className="text-[12.5px] text-[var(--c-ink-2)]">Waiting for an answer on WhatsApp.</p>;
 }
 
@@ -524,7 +623,7 @@ function TaskDrawer({
       bottom={t?.kind === "ride" ? "Ride" : "Order"}
       label={t ? `${t.serviceLabel}: ${t.goal}` : "Order"}
       footer={
-        live && t && familyId && subjectId && !t.cancelRequested ? (
+        (live || t?.status === "scheduled") && t && familyId && subjectId && !t.cancelRequested ? (
           <SmallButton
             icon={X}
             className="text-[var(--c-danger-ink)]"
@@ -548,8 +647,14 @@ function TaskDrawer({
               <p className="mt-1 text-[12px] text-[var(--c-ink-2)]">Asked {when(t.createdAt)}</p>
               <div className="mt-2 flex flex-wrap items-center gap-2">
                 <Tag tone={statusOf(t.status).tone}>{statusOf(t.status).label}</Tag>
+                {flags(t).map((f) => (
+                  <Tag key={f.label} tone={f.tone}>
+                    {f.label}
+                  </Tag>
+                ))}
                 {live && <Steps task={t} />}
               </div>
+              {laterLine(t) && <p className="mt-2 text-[12.5px] text-[var(--c-ink-2)]">{laterLine(t)}</p>}
             </div>
           </div>
 

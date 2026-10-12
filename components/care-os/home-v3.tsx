@@ -540,6 +540,7 @@ const TASK_STATUS: Record<string, { label: string; tone: "ok" | "danger" | "acce
   running: { label: "Working", tone: "light" },
   needs_input: { label: "Needs you", tone: "accent" },
   awaiting_confirm: { label: "Confirm", tone: "accent" },
+  scheduled: { label: "Set for later", tone: "light" },
   done: { label: "Done", tone: "ok" },
   failed: { label: "Didn't work", tone: "danger" },
   cancelled: { label: "Cancelled", tone: "light" },
@@ -558,7 +559,7 @@ function Errands({ tasks }: { tasks: CareHomeSummary["tasks"] }) {
       />
       <ul className="mt-3 space-y-1.5">
         {tasks.slice(0, 4).map((t) => {
-          const s = TASK_STATUS[t.status] ?? TASK_STATUS.running;
+          const s = t.phase === "check" && t.status === "running" ? { label: "Checking the store", tone: "light" as const } : TASK_STATUS[t.status] ?? TASK_STATUS.running;
           return (
             <li key={t.id} className="flex items-center gap-3 rounded-[14px] bg-[var(--c-frame)] px-3 py-2.5">
               <ServiceLogo service={t.service} label={t.serviceLabel} size={30} />

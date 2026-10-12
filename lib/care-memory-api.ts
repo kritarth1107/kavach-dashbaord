@@ -80,10 +80,17 @@ export type CareTask = {
     /** What that store's look-up came to, e.g. "Zepto does not deliver to Home". */
     compare_note?: string;
     login?: string;
+    /** Set for later: when it is for, when it is booked or placed, the most they agreed to pay. */
+    later?: { at?: string; book_at?: string; max?: number | null; no_max?: boolean; state?: string; asked?: { amount?: string } };
+    /** A cancel asked after it was placed or booked (Order Engineer, HANDOFF §3). */
+    cancel_ask?: { state?: "pending" | "cancelling" | "fee" | "cancelled" | "refused" | "kept" | "told_carers" | "unclear" | "not_placed" | "cancelled_in_app" | string; by?: string };
+    approval_needed?: { reasons?: string[]; amount?: number | null };
   };
-  status: "queued" | "running" | "needs_input" | "awaiting_confirm" | "done" | "failed" | "cancelled";
-  phase: "browse" | "prepare" | "otp" | "place" | "cancel";
-  inputNeeded: "go" | "otp" | "confirm" | "fee" | "choice" | "swap" | null;
+  /** scheduled: set for later (details.later). */
+  status: "queued" | "running" | "needs_input" | "awaiting_confirm" | "scheduled" | "done" | "failed" | "cancelled";
+  /** check: Saheli is reading the store's own order list. */
+  phase: "browse" | "prepare" | "otp" | "place" | "check" | "cancel";
+  inputNeeded: "go" | "otp" | "confirm" | "fee" | "choice" | "swap" | "later" | "approve" | "fare" | null;
   cancelRequested: boolean;
   result: {
     items?: TaskItem[];
@@ -100,6 +107,10 @@ export type CareTask = {
     alternatives?: string[];
     problem?: string;
     payment_method?: string;
+    /** Placed or booked before a yes: being cancelled on the store. */
+    by_mistake?: boolean;
+    placed?: boolean;
+    booked?: boolean;
   };
   history: Array<{ at: string; phase: string; status: string; note: string }>;
   audit?: string[];
