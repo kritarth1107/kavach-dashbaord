@@ -3,7 +3,9 @@
 import Link from "next/link";
 import {
   ClockCounterClockwise,
+  Fire,
   Heart,
+  IdentificationBadge,
   Leaf,
   LockSimple,
   MagnifyingGlass,
@@ -13,6 +15,7 @@ import {
   Plus,
   ShieldWarning,
   Sparkle,
+  SunHorizon,
   UsersThree,
   WhatsappLogo,
   X,
@@ -40,7 +43,8 @@ import { SkillsPanel } from "./skills-panel";
 import { useLoad } from "./care-kit";
 import { callName, possessive, usePerson } from "./person-context";
 import { Bubble, MoodLine, PersonPhoto, ScoreDots, cap } from "./portrait-kit";
-import { DarkButton, Panel, PanelTitle, SmallButton, Tag } from "./ui";
+import { DarkButton, Panel, PanelTitle, SmallButton } from "./ui";
+import type { PortraitActivity } from "@/lib/care-memory-api";
 
 const FILTERS: Array<{ id: string; label: string; domains: string[] | null }> = [
   { id: "all", label: "All", domains: null },
@@ -426,117 +430,42 @@ export function MemoryPage() {
             </div>
           )}
 
-          <Panel>
-            <PanelTitle title={selected?.self ? "About you" : name ? `Who ${name} is` : "Who they are"} right={<span className="text-[11px] text-[var(--c-ink-3)]">{identity.length} facts</span>} />
-            {identity.length === 0 ? (
-              <p className="mt-4 text-[13px] text-[var(--c-ink-2)]">Name, language, routines, dishes and family rules show here as Saheli learns them.</p>
-            ) : (
-              <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                {identity.map((f: CareFact) => (
-                  <div key={f.id} className="rounded-[18px] bg-[var(--c-frame)] p-4">
-                    <p className="text-[11px] font-medium uppercase tracking-[0.05em] text-[var(--c-ink-3)]">{DOMAIN_TITLE[f.domain] ?? f.domain}</p>
-                    <p className="mt-2 text-[14px] font-medium leading-snug">{f.text}</p>
-                    <p className="mt-2 text-[11px] text-[var(--c-ink-3)]">{SOURCE_LABEL[f.source] ?? f.source}</p>
-                  </div>
-                ))}
-              </div>
-            )}
-          </Panel>
+          <ProfileGroups facts={identity} self={!!selected?.self} name={name} onHistory={(f) => setHistoryOf({ kind: "fact", target: f.key, subjectId: selectedId ?? "", owner: selectedId ?? "", label: f.text })} />
+
+          {(p?.activities ?? []).some((a) => !a.paused && a.kind !== "routine") && <HabitStrip acts={(p?.activities ?? []).filter((a) => !a.paused && a.kind !== "routine")} />}
 
           {/* keyed by person: nothing typed, opened or shown for one person carries over to the next; each panel that
               fails shows a note in its place and the rest of the page keeps working */}
           {familyId && selectedId && (
-            <PanelBoundary key={`h-${selectedId}`} name="Saheli's card">
-              <MemoryHealthPanel familyId={familyId} subjectId={selectedId} name={name} canEdit={isCaregiver} />
-            </PanelBoundary>
-          )}
-          {familyId && selectedId && (
-            <PanelBoundary key={`s-${selectedId}`} name="How they like things">
-              <SkillsPanel familyId={familyId} subjectId={selectedId} name={name} canEdit={isCaregiver} />
-            </PanelBoundary>
-          )}
-          {familyId && selectedId && (
-            <PanelBoundary key={`r-${selectedId}`} name="Recent changes">
-              <RecentChangesPanel familyId={familyId} subjectId={selectedId} name={name} onChanged={reload} refresh={data} canEdit={isCaregiver} />
-            </PanelBoundary>
+            <section className="rounded-[24px] bg-[var(--c-card)] p-5">
+              <PanelTitle title={selected?.self ? "Saheli's way with you" : `Saheli's way with ${name || "them"}`} right={<span className="text-[11px] text-[var(--c-ink-3)]">tone, the card she reads first, and every change</span>} />
+              <div className="mt-3 grid gap-3 xl:grid-cols-2 [&_section]:bg-[var(--c-frame)]">
+                <div className="min-w-0 space-y-3">
+                  <PanelBoundary key={`s-${selectedId}`} name="How they like things">
+                    <SkillsPanel familyId={familyId} subjectId={selectedId} name={name} canEdit={isCaregiver} />
+                  </PanelBoundary>
+                  <PanelBoundary key={`r-${selectedId}`} name="Recent changes">
+                    <RecentChangesPanel familyId={familyId} subjectId={selectedId} name={name} onChanged={reload} refresh={data} canEdit={isCaregiver} />
+                  </PanelBoundary>
+                </div>
+                <div className="min-w-0">
+                  <PanelBoundary key={`h-${selectedId}`} name="Saheli's card">
+                    <MemoryHealthPanel familyId={familyId} subjectId={selectedId} name={name} canEdit={isCaregiver} />
+                  </PanelBoundary>
+                </div>
+              </div>
+            </section>
           )}
 
-          {[
-            { label: selected?.self ? "About you" : `About ${name || "them"}`, subject: selectedId ?? "", items: personNotes },
-            { label: "About the family", subject: "family", items: familyNotes },
-          ].map((g) => (
-            <section key={g.subject}>
-              <div className="mb-3 mt-2 flex items-center justify-between">
-                <PanelTitle title={g.label} />
-                <SmallButton icon={Plus} onClick={() => setEditing({ subjectId: g.subject, slug: "", title: "", body: "", isNew: true })}>
-                  Add
-                </SmallButton>
-              </div>
-              {g.items.length === 0 ? (
-                <Panel className="c-hatch py-8 text-center text-[13px] text-[var(--c-ink-2)]">No notes yet. Saheli writes them from conversations; you can add your own.</Panel>
-              ) : (
-                <div className="columns-1 gap-4 md:columns-2 xl:columns-3 [&>*]:mb-4">
-                  {g.items.map((n: MemoryNote) => {
-                    const Icon = iconFor(n.title);
-                    const lines = noteLines(n.body);
-                    return (
-                      <article key={`${n.subjectId}/${n.slug}`} className="break-inside-avoid rounded-[24px] bg-[var(--c-card)] p-5">
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="flex items-center gap-3">
-                            <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--c-frame)]">
-                              <Icon size={18} />
-                            </span>
-                            <div>
-                              <p className="text-[15px] font-medium">{n.title}</p>
-                              <p className="text-[11px] text-[var(--c-ink-3)]">
-                                {lines.length} {lines.length === 1 ? "thing" : "things"} · updated {when(n.updatedAt)}
-                              </p>
-                            </div>
-                          </div>
-                          <div className="flex shrink-0 gap-1.5">
-                            <button
-                              type="button"
-                              onClick={() => setHistoryOf({ kind: "note", target: n.slug, subjectId: selectedId ?? "", owner: n.subjectId, label: n.title })}
-                              className="flex h-9 w-9 items-center justify-center rounded-full border border-[var(--c-line)] bg-[var(--c-frame)] hover:bg-white"
-                              aria-label={`History of ${n.title}`}
-                            >
-                              <ClockCounterClockwise size={15} />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setEditing({ subjectId: n.subjectId, slug: n.slug, title: n.title, body: n.body, isNew: false })}
-                              className="flex h-9 w-9 items-center justify-center rounded-full border border-[var(--c-line)] bg-[var(--c-frame)] hover:bg-white"
-                              aria-label={`Edit ${n.title}`}
-                            >
-                              <NotePencil size={15} />
-                            </button>
-                          </div>
-                        </div>
-                        <ul className="mt-4 space-y-2">
-                          {lines.slice(0, 8).map((l, i) => {
-                            const m = l.match(/^(\d{4}-\d{2}-\d{2}):\s*(.*)$/);
-                            return (
-                              <li key={i} className="flex gap-2.5 text-[13px] leading-relaxed">
-                                <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--c-accent)]" />
-                                <span className="min-w-0">
-                                  {m ? m[2] : l}
-                                  {m && <span className="ml-1.5 text-[11px] text-[var(--c-ink-3)]">{when(`${m[1]}T12:00:00+05:30`)}</span>}
-                                </span>
-                              </li>
-                            );
-                          })}
-                          {lines.length > 8 && <li className="pl-4 text-[12px] text-[var(--c-ink-3)]">+{lines.length - 8} more</li>}
-                        </ul>
-                        <div className="mt-4">
-                          <Tag tone="light">v{n.version}</Tag>
-                        </div>
-                      </article>
-                    );
-                  })}
-                </div>
-              )}
-            </section>
-          ))}
+          <Journal
+            groups={[
+              { label: selected?.self ? "About you" : `About ${name || "them"}`, subject: selectedId ?? "", items: personNotes },
+              { label: "About the family", subject: "family", items: familyNotes },
+            ]}
+            onAdd={(subject) => setEditing({ subjectId: subject, slug: "", title: "", body: "", isNew: true })}
+            onEdit={(n) => setEditing({ subjectId: n.subjectId, slug: n.slug, title: n.title, body: n.body, isNew: false })}
+            onHistory={(n) => setHistoryOf({ kind: "note", target: n.slug, subjectId: selectedId ?? "", owner: n.subjectId, label: n.title })}
+          />
         </>
       )}
 
@@ -589,5 +518,195 @@ export function MemoryPage() {
         </div>
       )}
     </div>
+  );
+}
+
+
+/* ── who they are: the record grouped the way a family thinks about a person ─────────────────────────── */
+
+const PROFILE_GROUPS: Array<{ title: string; icon: PhosphorIcon; domains: string[] }> = [
+  { title: "Basics", icon: IdentificationBadge, domains: ["naming", "language", "home"] },
+  { title: "Health", icon: Heart, domains: ["condition", "doctor", "hospital"] },
+  { title: "Daily life", icon: SunHorizon, domains: ["routine", "occasion"] },
+  { title: "Food & likes", icon: Leaf, domains: ["dish", "diet", "preference"] },
+  { title: "People", icon: UsersThree, domains: ["family", "contact"] },
+];
+
+function ProfileGroups({ facts, self, name, onHistory }: { facts: CareFact[]; self: boolean; name: string; onHistory: (f: CareFact) => void }) {
+  const groups = PROFILE_GROUPS.map((g) => ({ ...g, items: facts.filter((f) => g.domains.includes(f.domain)) })).filter((g) => g.items.length);
+  return (
+    <section className="rounded-[24px] bg-[var(--c-card)] p-5">
+      <PanelTitle title={self ? "About you" : name ? `Who ${name} is` : "Who they are"} right={<span className="text-[11px] text-[var(--c-ink-3)]">{facts.length} things known</span>} />
+      {groups.length === 0 ? (
+        <p className="mt-4 text-[13px] text-[var(--c-ink-2)]">Name, language, routines, dishes and family rules show here as Saheli learns them.</p>
+      ) : (
+        <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+          {groups.map((g) => (
+            <div key={g.title} className="rounded-[18px] bg-[var(--c-frame)] p-4">
+              <p className="flex items-center gap-2 text-[12px] font-medium text-[var(--c-ink-2)]">
+                <g.icon size={15} className="text-[var(--c-solid)]" aria-hidden />
+                {g.title}
+                <span className="text-[var(--c-ink-3)]">· {g.items.length}</span>
+              </p>
+              <ul className="mt-2.5 space-y-1">
+                {g.items.slice(0, 8).map((f) => (
+                  <li key={f.id}>
+                    <button
+                      type="button"
+                      onClick={() => onHistory(f)}
+                      title="See where this came from and its history"
+                      className="group flex w-full items-start gap-2 rounded-[10px] px-1.5 py-1 text-left text-[13px] leading-snug hover:bg-[var(--c-card)]"
+                    >
+                      <span className={cn("mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full", f.source === "inferred" ? "bg-[var(--c-ink-3)]" : "bg-[var(--c-solid)]")} />
+                      <span className="min-w-0 flex-1">{f.text}</span>
+                      <span className="shrink-0 text-[10.5px] text-[var(--c-ink-3)] opacity-0 transition-opacity group-hover:opacity-100">{SOURCE_LABEL[f.source] ?? f.source}</span>
+                    </button>
+                  </li>
+                ))}
+                {g.items.length > 8 && <li className="px-1.5 text-[11.5px] text-[var(--c-ink-3)]">+{g.items.length - 8} more in the care plan</li>}
+              </ul>
+            </div>
+          ))}
+        </div>
+      )}
+      <p className="mt-3 flex items-center gap-3 text-[11px] text-[var(--c-ink-3)]">
+        <span className="flex items-center gap-1.5"><span className="h-1.5 w-1.5 rounded-full bg-[var(--c-solid)]" /> told or confirmed</span>
+        <span className="flex items-center gap-1.5"><span className="h-1.5 w-1.5 rounded-full bg-[var(--c-ink-3)]" /> heard in the chats</span>
+        <span>Tap one for where it came from.</span>
+      </p>
+    </section>
+  );
+}
+
+function HabitStrip({ acts }: { acts: PortraitActivity[] }) {
+  return (
+    <section className="rounded-[24px] bg-[var(--c-card)] p-5">
+      <PanelTitle title="Habits Saheli cheers on" right={<span className="text-[11px] text-[var(--c-ink-3)]">checks in after each one</span>} />
+      <div className="c-scroll mt-3 flex gap-3 overflow-x-auto pb-1">
+        {acts.map((a) => (
+          <div key={a.key} className="min-w-[200px] max-w-[240px] flex-1 rounded-[18px] bg-[var(--c-frame)] p-4">
+            <div className="flex items-center justify-between gap-2">
+              <p className="truncate text-[14px] font-medium">{a.label}</p>
+              <span className="flex shrink-0 items-center gap-1 text-[13px]">
+                <Fire size={14} weight={a.streak ? "fill" : "regular"} className={a.streak ? "text-[var(--c-accent)]" : "text-[var(--c-ink-3)]"} aria-hidden />
+                <span className="c-num">{a.streak}</span>
+              </span>
+            </div>
+            <p className="mt-0.5 truncate text-[11.5px] text-[var(--c-ink-2)]">{a.text.startsWith(a.label) ? a.text.slice(a.label.length).trim().replace(/^\(|\)$/g, "") : a.text}</p>
+            {a.last?.summary && <p className="mt-2 line-clamp-2 text-[12px] leading-snug">&ldquo;{a.last.summary}&rdquo;</p>}
+            <p className="mt-2 text-[11px] text-[var(--c-ink-3)]">{a.week_done} this week</p>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+/* ── notes as a journal: the topics, and the chosen one read like a diary ─────────────────────────────── */
+
+function Journal({
+  groups,
+  onAdd,
+  onEdit,
+  onHistory,
+}: {
+  groups: Array<{ label: string; subject: string; items: MemoryNote[] }>;
+  onAdd: (subject: string) => void;
+  onEdit: (n: MemoryNote) => void;
+  onHistory: (n: MemoryNote) => void;
+}) {
+  const all = groups.flatMap((g) => g.items);
+  const [pick, setPick] = useState<string | null>(null);
+  const current = all.find((n) => `${n.subjectId}/${n.slug}` === pick) ?? all[0] ?? null;
+  const lines = current ? noteLines(current.body) : [];
+  return (
+    <section className="rounded-[24px] bg-[var(--c-card)] p-5">
+      <PanelTitle title="Saheli's notebook" right={<span className="text-[11px] text-[var(--c-ink-3)]">{all.length} topics · written from the chats</span>} />
+      {all.length === 0 ? (
+        <div className="mt-4 flex flex-col items-start gap-3 rounded-[18px] bg-[var(--c-frame)] p-5 text-[13px] text-[var(--c-ink-2)]">
+          No notes yet. Saheli writes them from conversations; you can add your own.
+          <SmallButton icon={Plus} onClick={() => onAdd(groups[0]?.subject ?? "family")}>
+            Add a note
+          </SmallButton>
+        </div>
+      ) : (
+        <div className="mt-4 grid gap-3 lg:grid-cols-[280px_minmax(0,1fr)]">
+          <nav aria-label="Note topics" className="space-y-4">
+            {groups.map((g) => (
+              <div key={g.subject}>
+                <div className="mb-1.5 flex items-center justify-between px-1">
+                  <p className="text-[11.5px] font-medium uppercase tracking-[0.07em] text-[var(--c-ink-3)]">{g.label}</p>
+                  <button type="button" onClick={() => onAdd(g.subject)} aria-label={`Add a note ${g.label.toLowerCase()}`} className="flex h-7 w-7 items-center justify-center rounded-full hover:bg-[var(--c-frame)]">
+                    <Plus size={13} />
+                  </button>
+                </div>
+                {g.items.length === 0 ? (
+                  <p className="px-1 text-[12px] text-[var(--c-ink-3)]">Nothing yet</p>
+                ) : (
+                  <ul className="space-y-1">
+                    {g.items.map((n) => {
+                      const Icon = iconFor(n.title);
+                      const on = current && n.subjectId === current.subjectId && n.slug === current.slug;
+                      return (
+                        <li key={`${n.subjectId}/${n.slug}`}>
+                          <button
+                            type="button"
+                            onClick={() => setPick(`${n.subjectId}/${n.slug}`)}
+                            aria-current={on ? "true" : undefined}
+                            className={cn("flex w-full items-center gap-3 rounded-[14px] px-3 py-2.5 text-left transition-colors", on ? "bg-[var(--c-frame)] shadow-[var(--c-shadow)]" : "hover:bg-[var(--c-frame)]")}
+                          >
+                            <span className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px]", on ? "bg-[var(--c-solid)] text-[var(--c-on-solid)]" : "bg-[var(--c-solid-soft)] text-[var(--c-solid)]")}>
+                              <Icon size={15} />
+                            </span>
+                            <span className="min-w-0 flex-1">
+                              <span className="block truncate text-[13.5px] font-medium">{n.title}</span>
+                              <span className="block text-[11px] text-[var(--c-ink-3)]">
+                                {noteLines(n.body).length} things · {when(n.updatedAt)}
+                              </span>
+                            </span>
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </div>
+            ))}
+          </nav>
+          {current && (
+            <article className="min-w-0 rounded-[20px] bg-[var(--c-frame)] p-5">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-[20px] font-medium tracking-[-0.02em]">{current.title}</p>
+                  <p className="mt-0.5 text-[11.5px] text-[var(--c-ink-3)]">
+                    {lines.length} {lines.length === 1 ? "thing" : "things"} · updated {when(current.updatedAt)} · version {current.version}
+                  </p>
+                </div>
+                <div className="flex shrink-0 gap-1.5">
+                  <SmallButton icon={ClockCounterClockwise} onClick={() => onHistory(current)}>
+                    History
+                  </SmallButton>
+                  <SmallButton icon={NotePencil} onClick={() => onEdit(current)}>
+                    Edit
+                  </SmallButton>
+                </div>
+              </div>
+              <ol className="relative mt-4 space-y-3 pl-5 before:absolute before:bottom-1 before:left-[5px] before:top-1 before:w-px before:bg-[var(--c-line)]">
+                {lines.map((l, i) => {
+                  const m = l.match(/^(\d{4}-\d{2}-\d{2}):\s*(.*)$/);
+                  return (
+                    <li key={i} className="relative text-[13.5px] leading-relaxed">
+                      <span className="absolute -left-5 top-[7px] h-[11px] w-[11px] rounded-full border-2 border-[var(--c-frame)] bg-[var(--c-accent)]" aria-hidden />
+                      {m && <span className="mr-2 text-[11px] font-medium text-[var(--c-ink-3)]">{when(`${m[1]}T12:00:00+05:30`)}</span>}
+                      {m ? m[2] : l}
+                    </li>
+                  );
+                })}
+              </ol>
+            </article>
+          )}
+        </div>
+      )}
+    </section>
   );
 }
