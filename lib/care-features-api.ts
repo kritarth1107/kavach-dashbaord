@@ -211,7 +211,8 @@ export async function restoreForgotten(familyId: string, subjectUserId: string, 
 
 export type MemoryChange = {
   id: number;
-  kind: "note" | "fact" | "skill" | "style";
+  /** The engine may add kinds (D-13 added "link"): never index a closed map with it without a fallback. */
+  kind: "note" | "fact" | "skill" | "style" | "link" | (string & {});
   subjectId: string;
   target: string;
   version: number;

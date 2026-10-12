@@ -21,6 +21,7 @@ import { useCareOverview } from "@/components/dashboard/saheli/saheli-shared";
 import { cn } from "@/lib/utils";
 import { MemoryHealthPanel } from "./memory-health-panel";
 import { MemoryHistoryDrawer, RecentChangesPanel, type HistoryItem } from "./memory-history";
+import { PanelBoundary } from "./panel-boundary";
 import { SkillsPanel } from "./skills-panel";
 import { callName, possessive, usePerson } from "./person-context";
 import { DarkButton, Panel, PanelTitle, SmallButton, Tag } from "./ui";
@@ -204,11 +205,22 @@ export function MemoryPage() {
             )}
           </Panel>
 
-          {/* keyed by person: nothing typed, opened or shown for one person carries over to the next */}
-          {familyId && selectedId && <MemoryHealthPanel key={`h-${selectedId}`} familyId={familyId} subjectId={selectedId} name={name} canEdit={isCaregiver} />}
-          {familyId && selectedId && <SkillsPanel key={`s-${selectedId}`} familyId={familyId} subjectId={selectedId} name={name} canEdit={isCaregiver} />}
+          {/* keyed by person: nothing typed, opened or shown for one person carries over to the next; each panel that
+              fails shows a note in its place and the rest of the page keeps working */}
           {familyId && selectedId && (
-            <RecentChangesPanel key={`r-${selectedId}`} familyId={familyId} subjectId={selectedId} name={name} onChanged={reload} refresh={data} canEdit={isCaregiver} />
+            <PanelBoundary key={`h-${selectedId}`} name="Saheli's card">
+              <MemoryHealthPanel familyId={familyId} subjectId={selectedId} name={name} canEdit={isCaregiver} />
+            </PanelBoundary>
+          )}
+          {familyId && selectedId && (
+            <PanelBoundary key={`s-${selectedId}`} name="How they like things">
+              <SkillsPanel familyId={familyId} subjectId={selectedId} name={name} canEdit={isCaregiver} />
+            </PanelBoundary>
+          )}
+          {familyId && selectedId && (
+            <PanelBoundary key={`r-${selectedId}`} name="Recent changes">
+              <RecentChangesPanel familyId={familyId} subjectId={selectedId} name={name} onChanged={reload} refresh={data} canEdit={isCaregiver} />
+            </PanelBoundary>
           )}
 
           {[
@@ -290,7 +302,11 @@ export function MemoryPage() {
         </>
       )}
 
-      {familyId && <MemoryHistoryDrawer familyId={familyId} item={historyOf} onClose={() => setHistoryOf(null)} onChanged={reload} canEdit={isCaregiver} />}
+      {familyId && (
+        <PanelBoundary name="History">
+          <MemoryHistoryDrawer familyId={familyId} item={historyOf} onClose={() => setHistoryOf(null)} onChanged={reload} canEdit={isCaregiver} />
+        </PanelBoundary>
+      )}
 
       {editing && (
         <div className="fixed inset-0 z-[60]">

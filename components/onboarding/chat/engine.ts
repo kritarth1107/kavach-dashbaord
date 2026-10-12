@@ -241,7 +241,7 @@ export function ask(s: Slot, c: Ctx): Turn {
         { type: "chips", options: SELF_AREAS, multi: true, selected: a.helpWith.filter((h) => SELF_AREAS.some((o) => o.id === h)) }, "Tell me in your own words…", "what you want help with");
     case "self_f": {
       const area = s.key.split(":")[1];
-      const f = SELF_FOLLOWUP[area];
+      const f = SELF_FOLLOWUP[area] ?? { q: "Anything else you'd like a little help with?", options: [], why: "" };
       return t(f.q, { type: "chips", options: f.options.map((o) => ({ id: o, label: o })), skip: "Skip" }, "Or tell me in your own words…", f.q, f.why);
     }
     case "p_name": {
@@ -396,7 +396,7 @@ export function applyChips(s: Slot, ids: string[], c: Ctx): Applied {
       return { a: { ...a, helpWith: ids }, flow: done(flow, s.key), you };
     case "self_f":
     case "extra": {
-      const q = s.base === "extra" ? s.extra!.q : SELF_FOLLOWUP[s.key.split(":")[1]].q;
+      const q = s.base === "extra" ? s.extra!.q : (SELF_FOLLOWUP[s.key.split(":")[1]]?.q ?? "");
       if (ids[0] === "__skip") return { a, flow: done(flow, s.key), you: "Skip" };
       return { a: { ...a, followups: [...a.followups.filter((f) => f.q !== q), { q, a: you }].slice(-12) }, flow: done(flow, s.key), you };
     }
@@ -591,7 +591,7 @@ export function fallbackUnderstood(s: Slot, text: string, c: Ctx): { a: Answers;
     case "anything_else": return { a: { ...a, anythingElse: [a.anythingElse, t].filter(Boolean).join("\n").slice(0, 1500) }, flow: done(c.flow, s.key) };
     case "self_f":
     case "extra": {
-      const q = s.base === "extra" ? s.extra!.q : SELF_FOLLOWUP[s.key.split(":")[1]].q;
+      const q = s.base === "extra" ? s.extra!.q : (SELF_FOLLOWUP[s.key.split(":")[1]]?.q ?? "");
       return { a: { ...a, followups: [...a.followups, { q, a: t.slice(0, 500) }].slice(-12) }, flow: done(c.flow, s.key) };
     }
     default: return null;

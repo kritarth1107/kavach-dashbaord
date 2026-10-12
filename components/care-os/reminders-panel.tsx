@@ -266,7 +266,7 @@ export function ReminderDetail({
             {mine.length
               ? mine
                   .slice(0, 6)
-                  .map((o) => `${o.time} ${STATUS_WORD[o.status].toLowerCase()}${o.status === "sent" ? " ✓" : ""}`)
+                  .map((o) => `${o.time} ${(STATUS_WORD[o.status] ?? String(o.status).replace(/_/g, " ")).toLowerCase()}${o.status === "sent" ? " ✓" : ""}`)
                   .join(" · ") + (mine.length > 6 ? ` · +${mine.length - 6}` : "")
               : "nothing this day"}
           </dd>

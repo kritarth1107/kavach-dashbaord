@@ -82,7 +82,7 @@ function WebsiteLogins() {
                   {[r.lastLoginOkAt && `Last worked ${shortDate(r.lastLoginOkAt)}`, r.state !== "ok" && r.problem].filter(Boolean).join(" · ") || "No successful login yet"}
                 </p>
               </div>
-              <Tag tone={LOGIN_TAG[r.state].tone}>{LOGIN_TAG[r.state].label}</Tag>
+              <Tag tone={(LOGIN_TAG[r.state] ?? LOGIN_TAG.unknown).tone}>{(LOGIN_TAG[r.state] ?? LOGIN_TAG.unknown).label}</Tag>
             </li>
           ))}
         </ul>

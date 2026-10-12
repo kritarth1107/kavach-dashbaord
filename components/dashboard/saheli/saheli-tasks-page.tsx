@@ -18,6 +18,8 @@ const STATUS: Record<CareTask["status"], { label: string; pill: string }> = {
   failed: { label: "Failed", pill: "status-pill-rejected" },
   cancelled: { label: "Cancelled", pill: "status-pill-rejected" },
 };
+/** A status added later in the engine shows as its own word (an unknown key once crashed a page). */
+const statusOf = (s: string) => STATUS[s as CareTask["status"]] ?? { label: s.replace(/_/g, " "), pill: "status-pill-pending" };
 
 const PHASE: Record<CareTask["phase"], string> = {
   browse: "looking it up (no login yet)",
@@ -123,14 +125,14 @@ function TaskCard({
               {t.serviceLabel} · {t.goal}
             </h2>
             <p className="mt-0.5 text-[11px] text-[var(--text-tertiary)]">
-              Started {formatIstDateTime(t.createdAt)} · {t.status === "running" || t.status === "queued" ? PHASE[t.phase] : STATUS[t.status].label}
+              Started {formatIstDateTime(t.createdAt)} · {t.status === "running" || t.status === "queued" ? PHASE[t.phase] : statusOf(t.status).label}
               {t.cancelRequested ? " · cancel requested" : ""}
             </p>
           </div>
         </div>
-        <span className={cn(STATUS[t.status].pill, "shrink-0 rounded-full px-2.5 py-1 text-[10px] font-bold")}>
+        <span className={cn(statusOf(t.status).pill, "shrink-0 rounded-full px-2.5 py-1 text-[10px] font-bold")}>
           {(t.status === "running" || t.status === "queued") && <Loader2 className="mr-1 inline h-3 w-3 animate-spin" />}
-          {STATUS[t.status].label}
+          {statusOf(t.status).label}
         </span>
       </div>
 
@@ -332,7 +334,7 @@ function PastRow({ task: t }: { task: CareTask }) {
           {t.status === "failed" && r.problem ? ` · ${r.problem}` : ""}
         </p>
       </div>
-      <span className={cn(STATUS[t.status].pill, "w-fit shrink-0 rounded-full px-2.5 py-1 text-[10px] font-bold")}>{STATUS[t.status].label}</span>
+      <span className={cn(statusOf(t.status).pill, "w-fit shrink-0 rounded-full px-2.5 py-1 text-[10px] font-bold")}>{statusOf(t.status).label}</span>
     </div>
   );
 }

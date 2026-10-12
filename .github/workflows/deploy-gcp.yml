@@ -36,6 +36,8 @@ jobs:
           npx next typegen   # route types (LayoutProps, PageProps) live in .next/, not in git
           npx tsc --noEmit -p .
           npx eslint . --max-warnings=200
+          npm run test:records
+          npm run test:memory   # the Memory page mounts with every change kind; a broken panel is contained
 
       - uses: google-github-actions/auth@v2
         with:

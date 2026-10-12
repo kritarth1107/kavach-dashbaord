@@ -7,6 +7,7 @@ import {
   ClockCounterClockwise,
   FirstAidKit,
   HandHeart,
+  LinkSimple,
   Notebook,
   type Icon as PhosphorIcon,
 } from "@phosphor-icons/react";
@@ -34,8 +35,11 @@ const STATUS_WORD: Record<string, string> = {
   blocked: "removed",
   archived: "set aside",
   stale: "not used lately",
+  ended: "ended",
 };
-const KIND_ICON: Record<MemoryChange["kind"], PhosphorIcon> = { note: Notebook, fact: FirstAidKit, skill: HandHeart, style: ChatsCircle };
+// A kind the engine adds later (D-13 added "link") gets the plain history icon; an unknown key once crashed the page.
+const KIND_ICON: Record<string, PhosphorIcon> = { note: Notebook, fact: FirstAidKit, skill: HandHeart, style: ChatsCircle, link: LinkSimple };
+const iconOf = (kind: string): PhosphorIcon => KIND_ICON[kind] ?? ClockCounterClockwise;
 const OP_WORD: Record<string, string> = {
   write: "Saved",
   baseline: "Before history",
@@ -49,6 +53,7 @@ const OP_WORD: Record<string, string> = {
   reject: "Rejected",
   remove: "Removed",
   archive: "Set aside",
+  end: "Unlinked",
 };
 
 /** subjectId: the person whose page this is (the URL); owner: whose item it is (that person, or "family" for shared notes). */
@@ -379,7 +384,7 @@ export function RecentChangesPanel({
       ) : (
         <ul className="mt-3 divide-y divide-[var(--c-line)]">
           {rows.map((c) => {
-            const Icon = KIND_ICON[c.kind];
+            const Icon = iconOf(c.kind);
             return (
               <li key={c.id} className="py-3">
                 <div className="flex items-start gap-3">
