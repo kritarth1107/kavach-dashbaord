@@ -584,7 +584,9 @@ function Timeline({ items }: { items: CareHomeSummary["timeline"] }) {
           <li key={t.id} className="relative flex gap-3 py-1.5">
             <span className="absolute -left-4 top-[11px] h-[9px] w-[9px] rounded-full border-2 border-[var(--c-card)] bg-[var(--c-ink-3)]" aria-hidden />
             <span className="c-num w-11 shrink-0 text-[12.5px] text-[var(--c-ink-2)]">{hm(t.at)}</span>
-            <span className="min-w-0 text-[13px] leading-snug">{t.kind === "reminder_sent" ? t.text.replace(/^dose due:\s*/i, "Reminder sent: ") : t.text}</span>
+            <span className="line-clamp-2 min-w-0 text-[13px] leading-snug" title={t.text}>
+              {t.kind === "reminder_sent" ? t.text.replace(/^dose due:\s*/i, "Reminder sent: ") : t.text}
+            </span>
           </li>
         ))}
       </ol>
