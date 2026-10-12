@@ -24,6 +24,8 @@ export type HomeData = {
   person: { id: string; name: string; callAs: string };
   saheliSays: string;
   mood?: string;
+  moodAt?: string;
+  moodNote?: string;
   lastHeard?: string;
   doses: Array<{ id: string; time: string; name: string; dose?: string; status: DoseStatus }>;
   week: { taken: number; scheduled: number; streakDays: number; adherence: number[]; labels: string[] };
@@ -285,8 +287,13 @@ export function CareHome({
               <span key={s} className="absolute rounded-full border border-[var(--c-line)]" style={{ width: s, height: s, left: (300 - s) / 2, top: (300 - s) / 2 }} />
             ))}
             <span className="absolute left-[95px] top-[95px] flex h-[110px] w-[110px] flex-col items-center justify-center rounded-full bg-[var(--c-accent)] text-white shadow-[0_20px_40px_-12px_rgba(211,84,30,0.55)]">
-              <span className="c-num text-[26px] leading-none">{data.mood ?? "—"}</span>
-              <span className="mt-1 text-[10px] font-medium uppercase tracking-[0.06em]">mood</span>
+              <span
+                className={cn("c-num leading-none", (data.mood?.length ?? 0) > 9 ? "text-[17px]" : (data.mood?.length ?? 0) > 6 ? "text-[21px]" : "text-[26px]")}
+                title={data.moodNote}
+              >
+                {data.mood ?? "—"}
+              </span>
+              <span className="mt-1 text-[10px] font-medium uppercase tracking-[0.06em]">{data.moodAt ? `mood · ${data.moodAt}` : "mood"}</span>
             </span>
           </div>
         </Panel>

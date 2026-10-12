@@ -14,6 +14,8 @@ const IST = "Asia/Kolkata";
 const fmtTime = (iso: string) => new Date(iso).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: IST });
 const fmtDay = (day: string) => new Date(`${day}T12:00:00+05:30`).toLocaleDateString("en-IN", { day: "numeric", month: "short", timeZone: IST });
 
+const cap = (w: string) => (w ? w.charAt(0).toUpperCase() + w.slice(1) : undefined);
+
 function ago(iso: string | null): string | undefined {
   if (!iso) return undefined;
   const mins = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
@@ -50,7 +52,10 @@ function toHomeData(s: CareHomeSummary, person: { id: string; name: string; call
     saheliSays:
       snap?.summary?.trim() ||
       (s.timeline.length ? `${s.timeline.length} things logged today. Open the full day to see each one.` : `Nothing logged yet today. Saheli will check in with ${person.callAs}.`),
-    mood: snap?.mood ? snap.mood.charAt(0).toUpperCase() + snap.mood.slice(1) : undefined,
+    // the latest mood heard today (it was only the nightly snapshot's, so "—" all day)
+    mood: cap(s.mood?.word || snap?.mood || ""),
+    moodAt: s.mood ? fmtTime(s.mood.at) : undefined,
+    moodNote: s.mood?.summary,
     lastHeard: ago(s.lastHeardAt),
     doses: s.doses.map((d) => ({ ...d, dose: d.dose ?? undefined })),
     week: { ...s.week, labels: s.week.days.map(fmtDay) },

@@ -232,6 +232,8 @@ export type CareHomeSummary = {
   tasks: CareTask[];
   timeline: Array<{ id: number; at: string; kind: string; text: string }>;
   lastHeardAt: string | null;
+  /** The latest mood heard in the last 24 hours (Saheli in the chat, or the 30-minute re-read). Score 1 very low … 5 very good. */
+  mood?: { score: number | null; word: string | null; summary: string; at: string; source: string } | null;
 };
 
 export async function getCareHome(familyId: string, subjectUserId: string): Promise<CareHomeSummary> {
