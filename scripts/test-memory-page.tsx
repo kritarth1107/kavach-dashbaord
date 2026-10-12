@@ -193,18 +193,21 @@ async function mount(): Promise<{ text: string; crashed: string | null; unmount:
     assert.ok(page.text.includes("Metformin for diabetes"), "a link change shows in recent changes");
     assert.ok(page.text.includes("something_new summary"), "a kind the dashboard does not know still shows");
     assert.ok(page.text.includes("Walks at 6 am"), "the care record facts show");
+    // the order agents' shared store steps are no family's: never on a family's page, even when an old API sends them
+    // (founder 2026-10-13: a new account read "Blinkit browse 7/8 worked" as orders it had never placed)
+    assert.ok(!page.text.includes("What the order agents learned") && !page.text.includes("worked"), "no shared store steps");
     page.unmount();
-    console.log("  ✓ link changes and unknown change kinds render");
+    console.log("  ✓ link changes and unknown change kinds render; no shared store steps");
 
     // 2. a panel whose data breaks it shows a note in its place; the rest of the page keeps working, and we are told
     data = synthetic();
-    (data.skills.store[0] as Record<string, unknown>).title = null; // s.title.replace(...) throws
+    (data.health as Record<string, unknown>).profileCard = 42; // v.profileCard.split(...) throws
     reports.length = 0;
     page = await mount();
     assert.equal(page.crashed, null, `one panel must not take the page down:\n${page.crashed}`);
-    assert.ok(page.text.includes("How they like things couldn't load"), "the broken panel says so");
+    assert.ok(page.text.includes("Saheli's card couldn't load"), "the broken panel says so");
     assert.ok(page.text.includes("Recent changes") && page.text.includes("Walks at 6 am"), "the other panels still show");
-    assert.ok(reports.some((r) => r.includes("panel:How they like things")), "the crash is reported to the server");
+    assert.ok(reports.some((r) => r.includes("panel:Saheli's card")), "the crash is reported to the server");
     page.unmount();
     console.log("  ✓ a broken panel is contained and reported");
   } finally {

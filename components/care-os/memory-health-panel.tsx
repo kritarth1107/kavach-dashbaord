@@ -83,7 +83,7 @@ export function MemoryHealthPanel({ familyId, subjectId, name, canEdit = true }:
         {canEdit && <Panel>
           <PanelTitle title="Forget something" right={<Eraser size={18} />} />
           <div className="mt-3 flex gap-2">
-            <input className={INPUT} placeholder="A few words, e.g. argument with Rahul" value={what} maxLength={200} onChange={(e) => setWhat(e.target.value)} />
+            <input className={INPUT} placeholder="A few words, e.g. the argument last Sunday" value={what} maxLength={200} onChange={(e) => setWhat(e.target.value)} />
             <SmallButton dark className="h-11 shrink-0 px-5" disabled={busy || what.trim().length < 3} onClick={() => void doForget()}>
               Forget
             </SmallButton>

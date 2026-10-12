@@ -307,7 +307,7 @@ export type Skill = {
 };
 
 export async function getSkills(familyId: string, subjectUserId: string) {
-  return (await request<{ skills: Skill[]; store: Skill[] }>(`${base(familyId, subjectUserId)}/skills`))!;
+  return (await request<{ skills: Skill[] }>(`${base(familyId, subjectUserId)}/skills`))!;
 }
 
 export async function addSkill(familyId: string, subjectUserId: string, text: string) {
