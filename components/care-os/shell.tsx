@@ -70,9 +70,9 @@ function useClock() {
 function KMark() {
   return (
     <svg viewBox="0 0 40 40" className="h-9 w-9" role="img" aria-label="Kavach CareOS">
-      <path d="M20 3.5 33 8v10.5c0 8.3-5.4 14.6-13 18-7.6-3.4-13-9.7-13-18V8Z" fill="#143429" />
+      <path d="M20 3.5 33 8v10.5c0 8.3-5.4 14.6-13 18-7.6-3.4-13-9.7-13-18V8Z" fill="var(--c-solid)" />
       <path d="M15 12v16M15 20l9-8M17.5 18l7.5 10" stroke="#f3f4f2" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" fill="none" />
-      <circle cx="28" cy="29" r="3" fill="#d3541e" />
+      <circle cx="28" cy="29" r="3" fill="var(--c-accent)" />
     </svg>
   );
 }
@@ -177,7 +177,7 @@ export function CareShell({
                       href={q.href}
                       title={q.label}
                       aria-label={q.label}
-                      className="flex h-8 w-8 items-center justify-center rounded-full transition-colors hover:bg-[var(--c-card)] hover:text-[var(--c-accent)]"
+                      className="flex h-8 w-8 items-center justify-center rounded-full transition-colors hover:bg-[var(--c-card)] hover:text-[var(--c-accent-text)]"
                     >
                       <q.icon size={18} weight="fill" />
                     </Link>
@@ -203,7 +203,7 @@ export function CareShell({
                 <span
                   className={cn(
                     "flex h-6 min-w-6 items-center justify-center rounded-full bg-[var(--c-solid)] px-1.5 text-[11px] text-[var(--c-on-solid)]",
-                    "max-sm:absolute max-sm:-right-1 max-sm:-top-1 max-sm:h-5 max-sm:min-w-5 max-sm:border-2 max-sm:border-[var(--c-frame)] max-sm:bg-[var(--c-accent)] max-sm:px-1 max-sm:text-[10px]",
+                    "max-sm:absolute max-sm:-right-1 max-sm:-top-1 max-sm:h-5 max-sm:min-w-5 max-sm:border-2 max-sm:border-[var(--c-frame)] max-sm:bg-[var(--c-accent)] max-sm:text-[var(--c-accent-ink)] max-sm:px-1 max-sm:text-[10px]",
                     !alerts && "max-sm:hidden",
                   )}
                 >
@@ -240,7 +240,7 @@ export function CareShell({
               aria-current={on ? "page" : undefined}
               className={cn("flex min-w-0 flex-col items-center gap-0.5 rounded-[20px] py-1.5 text-[10.5px] font-medium", on ? "text-white" : "text-white/60")}
             >
-              <span className={cn("flex h-8 w-8 items-center justify-center rounded-full", on && "bg-[var(--c-accent)]")}>
+              <span className={cn("flex h-8 w-8 items-center justify-center rounded-full", on && "bg-[var(--c-accent)] text-[var(--c-accent-ink)]")}>
                 <n.icon size={18} weight={on ? "fill" : "regular"} />
               </span>
               <span className="max-w-full truncate">{n.short}</span>

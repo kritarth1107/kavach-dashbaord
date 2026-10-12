@@ -114,7 +114,7 @@ export function UploadSheet({
       <div className="mt-4">
         {saving !== null ? (
           <div role="status" aria-live="polite" className="flex flex-col items-center rounded-[20px] bg-[var(--c-card)] px-6 py-12 text-center">
-            <CircleNotch size={28} className="animate-spin text-[var(--c-accent)]" aria-hidden />
+            <CircleNotch size={28} className="animate-spin text-[var(--c-accent-text)]" aria-hidden />
             <p className="mt-4 text-[15px] font-medium">{saving > 1 ? `Saheli is reading ${saving} reports…` : "Saheli is reading it…"}</p>
             <p className="mt-1 text-[12.5px] text-[var(--c-ink-2)]">{saving > 1 ? "This can take up to 40 seconds for each one." : "This can take up to 40 seconds."}</p>
           </div>

@@ -369,7 +369,7 @@ export function LoginForm() {
 
         {cared && (
           <div className="mb-5 rounded-[24px] bg-[var(--c-card)] p-5">
-            <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--c-accent)] text-[17px] font-medium text-white">स</span>
+            <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--c-accent)] text-[17px] font-medium text-[var(--c-accent-ink)]">स</span>
             <p className="mt-3 text-[17px] font-medium leading-snug">Saheli already looks after this number 🙏</p>
             <p className="mt-1.5 text-[13.5px] leading-relaxed text-[var(--c-ink-2)]">
               There&apos;s nothing to sign in to. Just message Saheli on WhatsApp — she talks to you there, in your language, and reminds you of your medicines.
@@ -560,7 +560,7 @@ function LoginShowcase() {
           <span className="block font-light text-[var(--c-ink-3)]">Care for</span>
           <span className="block font-medium">your parents</span>
         </h2>
-        <span className="flex h-[68px] w-[68px] items-center justify-center rounded-full bg-[var(--c-accent)] text-white"><svg viewBox="0 0 24 24" className="h-8 w-8"><path d="M12 3v18M4.2 7.5l15.6 9M4.2 16.5l15.6-9" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" /></svg></span>
+        <span className="flex h-[68px] w-[68px] items-center justify-center rounded-full bg-[var(--c-accent)] text-[var(--c-accent-ink)]"><svg viewBox="0 0 24 24" className="h-8 w-8"><path d="M12 3v18M4.2 7.5l15.6 9M4.2 16.5l15.6-9" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" /></svg></span>
       </div>
       <div className="grid grid-cols-[1fr_1.6fr] gap-4">
         <div className="rounded-[24px] bg-[var(--c-frame)] p-5">

@@ -60,7 +60,7 @@ function VoiceSetting({ familyId, subjectId, self, name, canEdit }: { familyId: 
             : `If ${who} send${self ? "" : "s"} a voice note, Saheli answers with one too (and the text).`}
         {!canEdit && " Only caregivers can change this."}
       </p>
-      {err && <p className="mt-1 text-[12px] text-[var(--c-accent)]">{err}</p>}
+      {err && <p className="mt-1 text-[12px] text-[var(--c-accent-text)]">{err}</p>}
     </div>
   );
 }
@@ -173,7 +173,7 @@ export function SkillsPanel({ familyId, subjectId, name, canEdit = true }: { fam
           Add
         </SmallButton>
       </div>}
-      {error && <p className="mt-2 text-[12px] text-[var(--c-accent)]">{error}</p>}
+      {error && <p className="mt-2 text-[12px] text-[var(--c-accent-text)]">{error}</p>}
       <VoiceSetting familyId={familyId} subjectId={subjectId} self={self} name={name} canEdit={canEdit} />
       {canEdit && removed.length > 0 && (
         <p className="mt-3 text-[11.5px] text-[var(--c-ink-3)]">

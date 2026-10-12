@@ -51,7 +51,7 @@ function Rich({ text }: { text: string }) {
 }
 
 const Avatar = ({ show }: { show: boolean }) =>
-  show ? <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--c-accent)] text-[15px] font-medium text-white">स</span> : <span className="w-8 shrink-0" />;
+  show ? <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--c-accent)] text-[15px] font-medium text-[var(--c-accent-ink)]">स</span> : <span className="w-8 shrink-0" />;
 
 export function OnboardingChat() {
   const router = useRouter();
@@ -201,7 +201,7 @@ export function OnboardingChat() {
   }, [current?.base, busy, answers, flow, proceed, self]);
 
   if (!loaded) {
-    return <div className="flex min-h-screen items-center justify-center"><CircleNotch size={26} className="animate-spin text-[var(--c-accent)]" /></div>;
+    return <div className="flex min-h-screen items-center justify-center"><CircleNotch size={26} className="animate-spin text-[var(--c-accent-text)]" /></div>;
   }
 
   const i = current?.person ?? 0;
@@ -432,7 +432,7 @@ export function OnboardingChat() {
                 onEdit={(key, label) => void proceed(answers, { ...flow, done: flow.done.filter((x) => x !== key), editing: key }, [], { you: you(`Change ${label.toLowerCase()}`) })} />
             ))}
             <div className="flex flex-wrap gap-2 pt-1">
-              <button type="button" onClick={() => void finish()} className="inline-flex h-12 items-center gap-2 rounded-full bg-[var(--c-accent)] px-6 text-[14.5px] font-medium text-white">Set everything up <ArrowRight size={16} /></button>
+              <button type="button" onClick={() => void finish()} className="inline-flex h-12 items-center gap-2 rounded-full bg-[var(--c-accent)] px-6 text-[14.5px] font-medium text-[var(--c-accent-ink)]">Set everything up <ArrowRight size={16} /></button>
               <button type="button" onClick={() => void proceed(answers, flow, ["Sure — tap the pencil next to anything, or just tell me what to change."], { you: you("Change something") })}
                 className="inline-flex h-12 items-center rounded-full border border-[var(--c-line)] bg-[var(--c-frame)] px-5 text-[14px]">Change something</button>
             </div>
@@ -480,7 +480,7 @@ export function OnboardingChat() {
         <main className="flex-1 overflow-y-auto px-4 sm:px-8">
           <div className="mx-auto flex min-h-full w-full max-w-[720px] flex-col justify-end gap-3.5 pb-6 pt-8">
             <div className="mb-4 flex flex-col items-start gap-4">
-              <span className="flex h-14 w-14 items-center justify-center rounded-full bg-[var(--c-accent)] text-[26px] font-medium text-white">स</span>
+              <span className="flex h-14 w-14 items-center justify-center rounded-full bg-[var(--c-accent)] text-[26px] font-medium text-[var(--c-accent-ink)]">स</span>
               <h1 className="text-[36px] leading-[1.02] tracking-[-0.035em] sm:text-[44px]"><span className="block font-light text-[var(--c-ink-3)]">Let&apos;s set up Saheli</span><span className="block font-medium">together.</span></h1>
               <p className="max-w-[460px] text-[14px] text-[var(--c-ink-2)]">Just a chat — she&apos;ll ask what she needs to know about your family, one thing at a time.</p>
             </div>
@@ -503,7 +503,7 @@ export function OnboardingChat() {
                   <Avatar show={lastOfGroup} />
                   <div className="max-w-[84%] sm:max-w-[78%]">
                     <div className={cn("rounded-[22px] bg-[var(--c-card)] px-4 py-3 text-[15px] leading-[1.5]", lastOfGroup && "rounded-bl-[6px]")}><Rich text={m.text} /></div>
-                    {m.why && <p className="mt-1.5 flex items-center gap-1 pl-1 text-[11.5px] text-[var(--c-ink-3)]"><Sparkle size={12} weight="fill" className="text-[var(--c-accent)]" />{m.why}</p>}
+                    {m.why && <p className="mt-1.5 flex items-center gap-1 pl-1 text-[11.5px] text-[var(--c-ink-3)]"><Sparkle size={12} weight="fill" className="text-[var(--c-accent-text)]" />{m.why}</p>}
                   </div>
                 </div>
               );
@@ -537,7 +537,7 @@ export function OnboardingChat() {
                 className={cn("flex h-10 w-10 items-center justify-center rounded-full", rec === "recording" ? "animate-pulse bg-[var(--c-danger)] text-white" : "bg-[var(--c-card)]")}>
                 {rec === "reading" ? <CircleNotch size={18} className="animate-spin" /> : rec === "recording" ? <Stop size={17} weight="fill" /> : <Microphone size={19} />}
               </button>
-              <button type="button" onClick={() => void send()} disabled={busy || !text.trim()} aria-label="Send" className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--c-accent)] text-white disabled:opacity-40"><ArrowUp size={17} weight="bold" /></button>
+              <button type="button" onClick={() => void send()} disabled={busy || !text.trim()} aria-label="Send" className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--c-accent)] text-[var(--c-accent-ink)] disabled:opacity-40"><ArrowUp size={17} weight="bold" /></button>
               <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) void scanPhoto(f); e.target.value = ""; }} />
             </div>
             <p className={cn("mt-2 text-center text-[11.5px]", notice ? "text-[var(--c-danger)]" : "text-[var(--c-ink-3)]")}>{notice || "Tap an answer, type, or tap the mic and just talk — in English, Hindi or your own bhasha."}</p>

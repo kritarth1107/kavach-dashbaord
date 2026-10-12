@@ -382,7 +382,7 @@ export function SettingsPage() {
             ) : (
               <span className="flex h-14 w-14 items-center justify-center rounded-full bg-[var(--c-solid)] text-[18px] font-medium text-white">{initials}</span>
             )}
-            <span className="absolute -bottom-0.5 -right-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-[var(--c-accent)] text-[11px] text-white">
+            <span className="absolute -bottom-0.5 -right-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-[var(--c-accent)] text-[11px] text-[var(--c-accent-ink)]">
               {photoBusy ? <Loader2 className="h-3 w-3 animate-spin" /> : "+"}
             </span>
             <input type="file" accept="image/jpeg,image/png,image/webp,image/heic" className="hidden" onChange={(e) => void changePhoto(e.target.files?.[0])} />
@@ -390,7 +390,7 @@ export function SettingsPage() {
           <div className="min-w-0 leading-tight">
             <p className="flex items-center gap-2 truncate text-[15px] font-medium">
               {profile?.fullName ?? "Your account"}
-              {profile?.emailVerified && <CheckCircle2 className="h-4 w-4 text-[var(--c-accent)]" />}
+              {profile?.emailVerified && <CheckCircle2 className="h-4 w-4 text-[var(--c-accent-text)]" />}
             </p>
             <p className="truncate text-[12px] text-[var(--c-ink-2)]">{profile?.email}</p>
             <p className="text-[11px] text-[var(--c-ink-3)]">Member since {formatMemberSince(profile?.createdAt)}</p>
@@ -422,7 +422,7 @@ export function SettingsPage() {
                 tab === item.id ? "bg-[var(--c-solid)] text-white" : "bg-[var(--c-card)] text-[var(--c-ink-2)] hover:text-[var(--c-ink)]",
               )}
             >
-              <span className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-full", tab === item.id ? "bg-[var(--c-accent)] text-white" : "bg-[var(--c-frame)]")}>
+              <span className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-full", tab === item.id ? "bg-[var(--c-accent)] text-[var(--c-accent-ink)]" : "bg-[var(--c-frame)]")}>
                 <item.icon className="h-4 w-4" strokeWidth={2} />
               </span>
               <div className="min-w-0">

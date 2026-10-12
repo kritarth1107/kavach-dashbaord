@@ -248,7 +248,7 @@ export function MemoryPage() {
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={selected.photo} alt="" className="absolute inset-0 h-full w-full object-cover object-[50%_30%]" />
               ) : (
-                <div className="absolute inset-0 bg-[radial-gradient(120%_120%_at_100%_0%,#2f6f5e,#143429_60%)]" />
+                <div className="absolute inset-0 bg-[var(--c-solid)]" />
               )}
               <div className="absolute inset-0 bg-gradient-to-r from-[rgba(15,42,34,0.92)] via-[rgba(15,42,34,0.72)] to-[rgba(15,42,34,0.05)]" />
               <div className="relative flex h-full min-h-[340px] max-w-[640px] flex-col justify-between gap-6 p-6 sm:p-7">

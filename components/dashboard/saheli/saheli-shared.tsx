@@ -66,14 +66,14 @@ export function SaheliHeader({
               className={cn(
                 "inline-flex h-9 shrink-0 items-center gap-1.5 rounded-[10px] border px-3.5 text-[13px] transition-colors",
                 active
-                  ? "border-transparent bg-[var(--c-accent)] text-white"
+                  ? "border-transparent bg-[var(--c-accent)] text-[var(--c-accent-ink)]"
                   : "border-[var(--c-line)] bg-[var(--c-frame)] text-[var(--c-ink-2)] hover:text-[var(--c-ink)]",
               )}
             >
               <Icon className="h-3.5 w-3.5" />
               {tab.label}
               {badge ? (
-                <span className={cn("rounded-full px-1.5 text-[10px] font-semibold leading-[16px]", active ? "bg-white text-[var(--c-accent)]" : "bg-[var(--c-accent)] text-white")}>
+                <span className={cn("rounded-full px-1.5 text-[10px] font-semibold leading-[16px]", active ? "bg-white text-[var(--c-accent-text)]" : "bg-[var(--c-accent)] text-[var(--c-accent-ink)]")}>
                   {badge}
                 </span>
               ) : null}

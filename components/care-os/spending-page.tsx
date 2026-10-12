@@ -31,7 +31,7 @@ function ServiceMark({ service, size = 34 }: { service: string; size?: number })
   return (
     <span
       aria-hidden
-      className="inline-flex shrink-0 items-center justify-center rounded-[10px] bg-[var(--c-solid)] font-medium text-[var(--c-accent)]"
+      className="inline-flex shrink-0 items-center justify-center rounded-[10px] bg-[var(--c-solid)] font-medium text-[var(--c-accent-text)]"
       style={{ width: size, height: size, fontSize: Math.round(size * 0.42) }}
     >
       {serviceName(service).charAt(0).toUpperCase()}

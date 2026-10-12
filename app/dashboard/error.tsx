@@ -13,7 +13,7 @@ export default function DashboardError({ error, retry }: { error: Error & { dige
   useEffect(() => reportClientError(error, "page"), [error]);
   return (
     <div role="alert" className="mx-auto mt-16 max-w-md rounded-[24px] bg-[var(--c-card)] p-6 text-center">
-      <WarningCircle size={32} className="mx-auto text-[var(--c-accent)]" />
+      <WarningCircle size={32} className="mx-auto text-[var(--c-accent-text)]" />
       <h1 className="mt-3 text-[20px] font-medium">This page couldn&apos;t load</h1>
       <p className="mt-2 text-[13px] text-[var(--c-ink-2)]">Nothing was changed. Try again, or open another page; we have been told about it.</p>
       <div className="mt-5 flex justify-center gap-2">

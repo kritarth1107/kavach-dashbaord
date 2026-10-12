@@ -232,10 +232,10 @@ const PRINT_CSS = `
   body > *:not(.kv-print) { display: none !important; }
   html .kv-print.care-os {
     display: block !important;
-    --c-frame: #ffffff; --c-card: #f3f4f5; --c-chip: #ffffff; --c-line: #e4e6e9;
-    --c-ink: #142a22; --c-ink-2: #66706b; --c-ink-3: #8c948f;
-    --c-accent: #d3541e; --c-accent-ink: #ffffff; --c-accent-soft: #fbe4d6; --c-accent-soft-ink: #9c3a10;
-    background: #fff; color: #142a22; font-size: 12px;
+    --c-frame: #ffffff; --c-card: #f4f5f2; --c-chip: #ffffff; --c-line: #e3e6e0;
+    --c-ink: #1b201e; --c-ink-2: #5e6661; --c-ink-3: #8c948f;
+    --c-accent: #ec9a2f; --c-accent-ink: #2a1804; --c-accent-text: #9a5507; --c-accent-soft: #fcedd5; --c-accent-soft-ink: #8a4b06; --c-solid: #165246; --c-on-solid: #ffffff;
+    background: #fff; color: #1b201e; font-size: 12px;
     -webkit-print-color-adjust: exact; print-color-adjust: exact;
   }
   .kv-print .kv-avoid { break-inside: avoid; }

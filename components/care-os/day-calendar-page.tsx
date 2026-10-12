@@ -412,7 +412,7 @@ export function DayCalendarPage() {
                       >
                         <span className="font-medium tabular-nums text-[var(--c-ink)]">{hm(b.start)}</span>
                         {b.w > 0.5 && <span className="truncate">{b.title}</span>}
-                        {b.look.label === "Sent" ? <CheckCircle size={11} weight="fill" className="shrink-0 text-[#1f7a4d]" /> : b.planned ? <span className="shrink-0 text-[var(--c-accent)]">·</span> : null}
+                        {b.look.label === "Sent" ? <CheckCircle size={11} weight="fill" className="shrink-0 text-[var(--c-ok-ink)]" /> : b.planned ? <span className="shrink-0 text-[var(--c-accent-text)]">·</span> : null}
                       </button>
                     ))}
                   {placed
@@ -430,7 +430,7 @@ export function DayCalendarPage() {
                           b.skipped && "opacity-60 [&_p:first-child]:line-through",
                           !!picked && b.reminderId === picked && "ring-2 ring-[var(--c-accent)]",
                           b.look.tone === "dark" && "bg-[var(--c-solid)] text-white",
-                          b.look.tone === "accent" && "bg-[var(--c-accent)] text-white",
+                          b.look.tone === "accent" && "bg-[var(--c-accent)] text-[var(--c-accent-ink)]",
                           b.look.tone === "soft" && "bg-[var(--c-accent-soft)] text-[var(--c-accent-soft-ink)]",
                           b.look.tone === "plain" && (b.planned ? "c-hatch border border-[var(--c-line)] bg-[var(--c-frame)]" : "bg-[var(--c-frame)] shadow-[0_1px_0_rgba(0,0,0,0.04)]"),
                         )}

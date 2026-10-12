@@ -73,7 +73,7 @@ function Menu({ member, onRemove, onBlock }: { member: FamilyMember; onRemove: (
               setOpen(false);
               if (window.confirm(`Remove ${member.name} from the family?`)) onRemove();
             }}
-            className="flex w-full items-center gap-2 rounded-[12px] px-3 py-2 text-left text-[13px] text-[var(--c-accent)] hover:bg-[var(--c-card)]"
+            className="flex w-full items-center gap-2 rounded-[12px] px-3 py-2 text-left text-[13px] text-[var(--c-accent-text)] hover:bg-[var(--c-card)]"
           >
             <Trash size={15} /> {member.inviteId && member.status === "pending" ? "Cancel invite" : "Remove"}
           </button>
@@ -249,7 +249,7 @@ export function FamilyPage() {
                 {canManage && (
                   <Link
                     href="/dashboard/family/new?role=care_recipient"
-                    className="flex min-h-[260px] flex-col items-center justify-center gap-3 rounded-[24px] border border-dashed border-[var(--c-ink-3)] text-[var(--c-ink-2)] transition-colors hover:border-[var(--c-accent)] hover:text-[var(--c-accent)]"
+                    className="flex min-h-[260px] flex-col items-center justify-center gap-3 rounded-[24px] border border-dashed border-[var(--c-ink-3)] text-[var(--c-ink-2)] transition-colors hover:border-[var(--c-accent)] hover:text-[var(--c-accent-text)]"
                   >
                     <span className="flex h-14 w-14 items-center justify-center rounded-full bg-[var(--c-card)]">
                       <Plus size={22} weight="bold" />
@@ -266,7 +266,7 @@ export function FamilyPage() {
                 title="Care circle"
                 right={
                   canManage ? (
-                    <Link href="/dashboard/family/new?role=co_caregiver" className="flex items-center gap-1.5 text-[12px] font-medium hover:text-[var(--c-accent)]">
+                    <Link href="/dashboard/family/new?role=co_caregiver" className="flex items-center gap-1.5 text-[12px] font-medium hover:text-[var(--c-accent-text)]">
                       <UserPlus size={15} /> Invite
                     </Link>
                   ) : undefined

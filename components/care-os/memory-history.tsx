@@ -179,7 +179,7 @@ function Lines({ c }: { c: MemoryChange }) {
     <ul className="mt-2 space-y-1 text-[12.5px] leading-relaxed">
       {(c.added ?? []).map((l, i) => (
         <li key={`a${i}`} className="flex gap-2">
-          <span className="font-medium text-[var(--c-accent)]">+</span>
+          <span className="font-medium text-[var(--c-accent-text)]">+</span>
           <span className="min-w-0 break-words">{lineText(l)}</span>
         </li>
       ))}

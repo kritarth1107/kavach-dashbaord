@@ -12,15 +12,7 @@ export type CallPerson = { name: string; relation?: string | null; phone: string
 function Ecg({ className }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 800 90" preserveAspectRatio="none" aria-hidden>
-      <defs>
-        <linearGradient id="ecg" x1="0" x2="1">
-          <stop offset="0" stopColor="#d3541e" stopOpacity="0" />
-          <stop offset=".35" stopColor="#ff8a4c" stopOpacity=".55" />
-          <stop offset=".7" stopColor="#d3541e" stopOpacity=".35" />
-          <stop offset="1" stopColor="#d3541e" stopOpacity="0" />
-        </linearGradient>
-      </defs>
-      <path d="M0 50 H250 L270 50 L282 20 L296 82 L310 8 L326 62 L338 50 H520 L534 50 L544 32 L556 70 L566 44 L576 50 H800" fill="none" stroke="url(#ecg)" strokeWidth="2.5" />
+      <path d="M0 50 H250 L270 50 L282 20 L296 82 L310 8 L326 62 L338 50 H520 L534 50 L544 32 L556 70 L566 44 L576 50 H800" fill="none" stroke="currentColor" strokeWidth="2" />
     </svg>
   );
 }
@@ -29,13 +21,7 @@ function BloodDrop({ group }: { group?: string }) {
   return (
     <div className="relative flex h-[132px] w-[118px] shrink-0 flex-col items-center justify-end pb-5">
       <svg viewBox="0 0 118 132" className="absolute inset-0" aria-hidden>
-        <defs>
-          <linearGradient id="drop" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stopColor="#ff7a45" />
-            <stop offset="1" stopColor="#d3541e" />
-          </linearGradient>
-        </defs>
-        <path d="M59 4 C59 4 12 56 12 84 a47 44 0 0 0 94 0 C106 56 59 4 59 4z" fill="url(#drop)" />
+        <path d="M59 4 C59 4 12 56 12 84 a47 44 0 0 0 94 0 C106 56 59 4 59 4z" fill="#d6453f" />
       </svg>
       <span className="relative text-[9.5px] tracking-[0.12em] opacity-90">BLOOD</span>
       <span className="c-num relative text-[40px] leading-none">{group || "?"}</span>
@@ -74,14 +60,12 @@ export function MedicalIdCard({
   const hospital = card.hospital[0];
   const insurance = card.profile.insurance;
   return (
-    <div className="relative pb-6 pt-4">
-      <div aria-hidden className="absolute bottom-2 left-8 right-[-14px] top-0 hidden rotate-[2.2deg] rounded-[32px] bg-gradient-to-br from-[#f6d9c6] to-[#efc2a4] opacity-80 sm:block" />
-      <div aria-hidden className="absolute bottom-4 left-4 right-[-4px] top-2 hidden rotate-1 rounded-[32px] bg-[#dfe5e1] sm:block dark:bg-[#26302c]" />
-      <div className="relative overflow-hidden rounded-[32px] bg-[radial-gradient(120%_90%_at_100%_0%,#24584a_0%,#163a30_38%,#0f2a22_100%)] p-5 text-white shadow-[0_40px_70px_-30px_rgba(15,42,34,0.7)] sm:p-7">
-        <Ecg className="pointer-events-none absolute bottom-7 left-0 right-0 h-14 opacity-50" />
+    <div className="relative">
+      <div className="relative overflow-hidden rounded-[24px] bg-[var(--c-solid)] p-5 text-white shadow-[var(--c-shadow)] sm:p-7">
+        <Ecg className="pointer-events-none absolute bottom-7 left-0 right-0 h-14 text-white/10" />
         <div className="relative flex items-center justify-between gap-3">
           <span className="flex items-center gap-2.5 text-[12px] font-semibold tracking-[0.16em]">
-            <span className="flex h-7 w-7 items-center justify-center rounded-[9px] bg-[var(--c-accent)]">
+            <span className="flex h-7 w-7 items-center justify-center rounded-[9px] bg-[var(--c-accent)] text-[var(--c-accent-ink)]">
               <FirstAidKit size={16} weight="fill" />
             </span>
             MEDICAL ID
@@ -90,7 +74,7 @@ export function MedicalIdCard({
         </div>
 
         <div className="relative mt-7 flex flex-col gap-5 sm:flex-row sm:items-center">
-          <PersonPhoto name={name} src={photo} rounded="rounded-[30px]" className="h-[104px] w-[104px] border-[3px] border-white/90 shadow-[0_16px_30px_-12px_rgba(0,0,0,0.6)] sm:h-[112px] sm:w-[112px]" text={38} />
+          <PersonPhoto name={name} src={photo} rounded="rounded-[24px]" className="h-[104px] w-[104px] border-2 border-white/80 sm:h-[112px] sm:w-[112px]" text={38} />
           <div className="min-w-0 flex-1">
             <p className="break-words text-[32px] font-medium leading-none tracking-[-0.035em] sm:text-[38px]">{name}</p>
             {lines.map((l) => (
@@ -105,7 +89,7 @@ export function MedicalIdCard({
         <div
           className={cn(
             "relative mt-6 flex items-center gap-3 rounded-[18px] px-4 py-3",
-            allergies.length ? "bg-gradient-to-r from-[#e0413a] to-[#c62828] shadow-[0_14px_28px_-14px_rgba(198,40,40,0.9)]" : "border border-white/10 bg-white/[0.07]",
+            allergies.length ? "bg-[#c8352f]" : "border border-white/10 bg-white/[0.07]",
           )}
         >
           <Warning size={22} weight="fill" className="shrink-0" />
@@ -167,7 +151,7 @@ export function MedicalIdCard({
                 <p className="truncate text-[14px] font-medium">{c.name}</p>
                 <p className="truncate text-[11.5px] capitalize text-white/65">{[c.relation, c.note].filter(Boolean).join(" · ")}</p>
               </div>
-              <a href={telHref(c.phone)} aria-label={`Call ${c.name}`} className="flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-full bg-[var(--c-accent)]">
+              <a href={telHref(c.phone)} aria-label={`Call ${c.name}`} className="flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-full bg-[var(--c-accent)] text-[var(--c-accent-ink)]">
                 <Phone size={18} weight="fill" />
               </a>
             </div>
@@ -176,7 +160,7 @@ export function MedicalIdCard({
             <div className="rounded-[18px] border border-dashed border-white/25 p-3 text-[12.5px] text-white/70 sm:col-span-2">No one to call yet. Add an emergency contact with a phone number.</div>
           )}
           {callers.length === 1 && <div className="hidden sm:block" />}
-          <div className="flex flex-col items-center justify-center rounded-[18px] bg-white p-2.5 text-[var(--c-ink)] dark:text-[#142a22]">
+          <div className="flex flex-col items-center justify-center rounded-[18px] bg-white p-2.5 text-[var(--c-ink)] dark:text-[#1b201e]">
             {qrSvg ? (
               <>
                 <span className="block h-[96px] w-[96px] [&>svg]:h-full [&>svg]:w-full" dangerouslySetInnerHTML={{ __html: qrSvg }} />
@@ -184,7 +168,7 @@ export function MedicalIdCard({
               </>
             ) : (
               <button type="button" onClick={onMakeLink} className="flex flex-col items-center gap-1.5 py-2 text-center text-[11px] text-[#66706b]">
-                <QrCode size={40} className="text-[#142a22]" />
+                <QrCode size={40} className="text-[#1b201e]" />
                 Make a link to get a QR
               </button>
             )}

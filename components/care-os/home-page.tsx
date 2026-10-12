@@ -4,96 +4,24 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { getDailySnapshot, type DailySnapshot } from "@/lib/activity-api";
-import { getCareHome, resolveFact, taskInput, type CareHomeSummary } from "@/lib/care-memory-api";
+import { getFamilyIntegrations } from "@/lib/api";
+import { getCareHome, getPortrait, resolveFact, taskInput, type CareHomeSummary, type Portrait } from "@/lib/care-memory-api";
 import { DashboardHome } from "@/components/dashboard/dashboard-home";
-import { CareHome, type HomeData } from "./home";
+import { HomeV3 } from "./home-v3";
 import { callName, usePerson } from "./person-context";
 import { DarkButton, Panel } from "./ui";
 
-const IST = "Asia/Kolkata";
-const fmtTime = (iso: string) => new Date(iso).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: IST });
-const fmtDay = (day: string) => new Date(`${day}T12:00:00+05:30`).toLocaleDateString("en-IN", { day: "numeric", month: "short", timeZone: IST });
-
-const cap = (w: string) => (w ? w.charAt(0).toUpperCase() + w.slice(1) : undefined);
-
-function ago(iso: string | null): string | undefined {
-  if (!iso) return undefined;
-  const mins = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
-  if (mins < 1) return "just now";
-  if (mins < 60) return `${mins} min ago`;
-  const h = Math.round(mins / 60);
-  return h < 24 ? `${h} hr ago` : `${Math.round(h / 24)} d ago`;
-}
-
-function when(iso: string | null) {
-  if (!iso) return "open";
-  const d = new Date(iso);
-  const sameDay = d.toDateString() === new Date().toDateString();
-  return sameDay ? fmtTime(iso) : d.toLocaleDateString("en-IN", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: IST });
-}
-
-const STATUS_LABEL: Record<string, string> = {
-  queued: "starting",
-  running: "working",
-  needs_input: "needs you",
-  awaiting_confirm: "confirm",
-  done: "done",
-  failed: "failed",
-  cancelled: "cancelled",
-};
-
-function toHomeData(s: CareHomeSummary, person: { id: string; name: string; callAs: string }, snap: DailySnapshot | null): HomeData {
-  const bp = s.vitals.bp;
-  const sugar = s.vitals.sugar;
-  const weight = s.vitals.weight;
-  const timelineText = (k: string, t: string) => (k === "reminder_sent" ? t.replace(/^dose due:\s*/i, "Reminder sent: ") : t);
-  return {
-    person,
-    saheliSays:
-      snap?.summary?.trim() ||
-      (s.timeline.length ? `${s.timeline.length} things logged today. Open the full day to see each one.` : `Nothing logged yet today. Saheli will check in with ${person.callAs}.`),
-    // the latest mood heard today (it was only the nightly snapshot's, so "—" all day)
-    mood: cap(s.mood?.word || snap?.mood || ""),
-    moodAt: s.mood ? fmtTime(s.mood.at) : undefined,
-    moodNote: s.mood?.summary,
-    lastHeard: ago(s.lastHeardAt),
-    doses: s.doses.map((d) => ({ ...d, dose: d.dose ?? undefined })),
-    week: { ...s.week, labels: s.week.days.map(fmtDay) },
-    trends: {
-      bp: bp?.trend.length ? { values: bp.trend, labels: bp.trend.map(() => ""), unit: "mmHg" } : undefined,
-      sugar: sugar?.trend.length ? { values: sugar.trend, labels: sugar.trend.map(() => ""), unit: "mg/dL" } : undefined,
-    },
-    bp: bp
-      ? {
-          value: bp.value,
-          at: `${fmtDay(bp.at.slice(0, 10))}, ${fmtTime(bp.at)}`,
-          trend: bp.trend,
-          change: bp.change ? `${bp.change.pct}%` : undefined,
-          changeDir: bp.change?.dir,
-          state: bp.redFlag ? (/low/i.test(bp.redFlag) ? "low" : "high") : "in range",
-        }
-      : undefined,
-    sugar: sugar ? { value: sugar.value.replace(/[^\d.]/g, "") || sugar.value, note: `${fmtDay(sugar.at.slice(0, 10))}, ${fmtTime(sugar.at)}`, change: sugar.change ? `${sugar.change.dir === "up" ? "+" : "−"}${sugar.change.pct}% from last reading` : undefined } : undefined,
-    weight: weight ? { value: weight.value.replace(/[^\d.]/g, "") || weight.value, note: fmtDay(weight.at.slice(0, 10)), change: weight.change ? `${weight.change.dir === "up" ? "+" : "−"}${weight.change.pct}% from last reading` : undefined } : undefined,
-    needsYou: s.needsYou.map((n) => ({
-      id: n.id,
-      title: n.title,
-      meta: n.meta,
-      approveLabel:
-        n.kind === "refill" ? "Reorder" : n.kind === "appointment" ? "Open" : n.kind === "task" ? (n.input === "confirm" ? "Confirm" : "Open") : "Approve",
-      declineLabel:
-        n.kind === "refill" || n.kind === "appointment" ? "Later" : n.kind === "task" && n.input === "confirm" ? "Decline" : n.kind === "task" ? "Later" : "Reject",
-    })),
-    followUps: s.followUps.map((f) => ({ id: f.id, title: f.title, when: when(f.wakeAt) })),
-    tasks: s.tasks.slice(0, 4).map((t) => ({ id: t.id, label: `${t.goal} · ${t.serviceLabel}`, status: STATUS_LABEL[t.status] ?? t.status, total: t.result?.total })),
-    timeline: s.timeline.map((t) => ({ id: String(t.id), time: fmtTime(t.at), text: timelineText(t.kind, t.text) })),
-  };
-}
-
 export function CareHomePage() {
-  const { familyId, selected, selectedId, isCaregiver, isRecipient, loading, people } = usePerson();
+  const { familyId, selected, selectedId, isCaregiver, isRecipient, loading, people, members, me } = usePerson();
   const router = useRouter();
-  const [state, setState] = useState<{ key: string; data: CareHomeSummary | null; snap: DailySnapshot | null; error: string }>({ key: "", data: null, snap: null, error: "" });
+  const [state, setState] = useState<{ key: string; data: CareHomeSummary | null; snap: DailySnapshot | null; portrait: Portrait | null; error: string }>({
+    key: "",
+    data: null,
+    snap: null,
+    portrait: null,
+    error: "",
+  });
+  const [kavachNumber, setKavachNumber] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [dismissed, setDismissed] = useState<string[]>([]);
   const [tick, setTick] = useState(0);
@@ -103,10 +31,17 @@ export function CareHomePage() {
   useEffect(() => {
     if (!familyId || !selectedId || !isCaregiver) return;
     const id = ++req.current;
-    Promise.all([getCareHome(familyId, selectedId), getDailySnapshot(familyId, selectedId).catch(() => null)])
-      .then(([data, snap]) => id === req.current && setState({ key, data, snap, error: "" }))
+    Promise.all([getCareHome(familyId, selectedId), getDailySnapshot(familyId, selectedId).catch(() => null), getPortrait(familyId, selectedId).catch(() => null)])
+      .then(([data, snap, portrait]) => id === req.current && setState({ key, data, snap, portrait, error: "" }))
       .catch((err: unknown) => id === req.current && setState((s) => ({ ...s, key, error: err instanceof Error ? err.message : "Couldn't load" })));
   }, [familyId, selectedId, isCaregiver, key, tick]);
+
+  useEffect(() => {
+    if (!familyId) return;
+    getFamilyIntegrations(familyId)
+      .then(({ data }) => setKavachNumber(data?.whatsapp.kavachNumber ?? null))
+      .catch(() => setKavachNumber(null));
+  }, [familyId]);
 
   useEffect(() => {
     const t = setInterval(() => setTick((n) => n + 1), 60_000);
@@ -167,13 +102,16 @@ export function CareHomePage() {
     }
     return <Skeleton />;
   }
+  const member = members.find((m) => m.userId === selected.id);
+  const phone = member?.phone ? `${member.phoneCountryCode ?? ""}${member.phone}` : null;
   return (
-    <CareHome
-      data={toHomeData(
-        { ...state.data, needsYou: state.data.needsYou.filter((n) => !dismissed.includes(n.id)) },
-        { id: selected.id, name: selected.name, callAs: callName(selected) },
-        state.snap,
-      )}
+    <HomeV3
+      person={{ id: selected.id, name: selected.name, callAs: callName(selected), self: !!selected.self, photo: selected.photo, phone }}
+      me={(me.name || "").split(" ")[0]}
+      home={{ ...state.data, needsYou: state.data.needsYou.filter((n) => !dismissed.includes(n.id)) }}
+      portrait={state.portrait}
+      saheliSays={state.snap?.summary?.trim() || null}
+      kavachNumber={kavachNumber}
       onDecide={decide}
       busy={busy}
     />

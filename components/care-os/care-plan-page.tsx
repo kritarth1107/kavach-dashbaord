@@ -114,7 +114,7 @@ function Pillbox({ week, colorOf }: { week: Portrait["week"]; colorOf: (name: st
             return (
               <div key={d.day} className="pb-0.5 text-center text-[11px] text-[var(--c-ink-3)]">
                 {WEEKDAY[(date.getUTCDay() + 6) % 7]}
-                <b className={cn("block text-[14px] font-medium", today ? "text-[var(--c-accent)]" : "text-[var(--c-ink)]")}>{today ? "Today" : date.getUTCDate()}</b>
+                <b className={cn("block text-[14px] font-medium", today ? "text-[var(--c-accent-text)]" : "text-[var(--c-ink)]")}>{today ? "Today" : date.getUTCDate()}</b>
               </div>
             );
           })}
@@ -269,7 +269,7 @@ export function CarePlanPage() {
                 ) : null}
               </div>
               <div className="mt-3.5 flex gap-2.5 rounded-[18px] bg-[var(--c-frame)] px-3.5 py-3 text-[13.5px] leading-snug">
-                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[var(--c-accent)] text-[12px] font-semibold text-white">S</span>
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[var(--c-accent)] text-[12px] font-semibold text-[var(--c-accent-ink)]">S</span>
                 <p>
                   <b className="font-medium">Saheli: </b>
                   {snap.data?.summary?.trim() || moodNow?.summary || `Nothing written about ${name === "You" ? "your" : `${name}'s`} day yet. Saheli adds a note after her chats.`}
@@ -317,7 +317,7 @@ export function CarePlanPage() {
                   </p>
                 </div>
                 <div className="flex gap-2">
-                  <button type="button" disabled={busy === first.id} onClick={() => void decide(first, true)} className="h-11 flex-1 rounded-full bg-[var(--c-accent)] text-[13px] font-medium text-white disabled:opacity-50">
+                  <button type="button" disabled={busy === first.id} onClick={() => void decide(first, true)} className="h-11 flex-1 rounded-full bg-[var(--c-accent)] text-[13px] font-medium text-[var(--c-accent-ink)] disabled:opacity-50">
                     Approve
                   </button>
                   <button type="button" disabled={busy === first.id} onClick={() => void decide(first, false)} className="h-11 flex-1 rounded-full border border-[var(--c-line)] bg-[var(--c-frame)] text-[13px] font-medium disabled:opacity-50">
@@ -462,7 +462,7 @@ export function CarePlanPage() {
             {p && p.day.length ? (
               <>
                 <div className="relative mt-5 h-3">
-                  <div className="absolute inset-x-0 top-0.5 h-2 rounded-full bg-gradient-to-r from-[#1d3a4a] via-[#fbe4d6] to-[#1d3a4a]" />
+                  <div className="absolute inset-x-0 top-0.5 h-2 rounded-full bg-[var(--c-line)]" />
                   {p.day.map((d, i) => (
                     <span
                       key={d.key}

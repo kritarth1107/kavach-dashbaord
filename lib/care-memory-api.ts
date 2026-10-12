@@ -281,7 +281,31 @@ export type Portrait = {
   enjoys: Array<{ key: string; text: string; domain: string }>;
   avoid: string[];
   week: Array<{ day: string; doses: PortraitDose[] }>;
+  /** Habits, routines, things given up (engine activities): today's state, streak and the last thing they said. */
+  activities?: PortraitActivity[];
+  /** What Saheli does not know yet, most useful first; a "has none" answer counts as known. */
+  gaps?: { known: number; total: number; items: Array<{ key: GapKey; known: boolean }> };
   knownSince: string | null;
+};
+
+export type GapKey = "medicine" | "allergy" | "condition" | "blood_group" | "emergency_contact" | "doctor" | "hospital" | "address" | "routine" | "weight" | "enjoys" | "language";
+
+export type PortraitActivity = {
+  key: string;
+  label: string;
+  type: string;
+  category: string;
+  kind: "habit" | "quit" | "task" | "routine";
+  days: number[];
+  start: string | null;
+  end: string | null;
+  paused: boolean;
+  goal: string | null;
+  today: "done" | "skipped" | "off" | "routine" | "upcoming" | "not_heard";
+  streak: number;
+  week_done: number;
+  last: { at: string; summary: string; done: boolean } | null;
+  text: string;
 };
 
 export async function getPortrait(familyId: string, subjectUserId: string): Promise<Portrait> {

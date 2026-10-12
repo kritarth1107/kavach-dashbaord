@@ -103,7 +103,7 @@ function ReportBody({ r, fullName, print }: { r: CareReport; fullName: string; p
       {print && (
         <div className="flex items-end justify-between border-b border-[var(--c-line)] pb-3">
           <div>
-            <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-[var(--c-accent)]">Care report</p>
+            <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-[var(--c-accent-text)]">Care report</p>
             <p className="text-[24px] font-medium tracking-[-0.02em]">{fullName}</p>
           </div>
           <p className="text-right text-[11px] text-[var(--c-ink-2)]">
@@ -316,7 +316,7 @@ export function ReportPage() {
       <div className="flex flex-col gap-5 pb-2 lg:flex-row lg:items-end lg:justify-between">
         <div className="flex items-end gap-5">
           <PageHeading top={possessive(selected)} bottom="Care report" />
-          <span className="mb-2 hidden h-[68px] w-[68px] items-center justify-center rounded-full bg-[var(--c-accent)] text-white sm:flex">
+          <span className="mb-2 hidden h-[68px] w-[68px] items-center justify-center rounded-full bg-[var(--c-accent)] text-[var(--c-accent-ink)] sm:flex">
             <FileText size={32} weight="fill" />
           </span>
         </div>

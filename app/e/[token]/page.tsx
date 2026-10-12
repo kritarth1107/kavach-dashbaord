@@ -37,7 +37,7 @@ function CallRow({ name, meta, phone, primary }: { name: string; meta?: string |
         {meta && <span className={cn("block truncate text-[12.5px] first-letter:uppercase", primary ? "opacity-75" : "text-[var(--c-ink-2)]")}>{meta}</span>}
         <span className={cn("block text-[13px] tabular-nums", primary ? "opacity-90" : "text-[var(--c-ink-2)]")}>{phone}</span>
       </span>
-      <span className={cn("flex h-11 shrink-0 items-center gap-1.5 rounded-full px-4 text-[14px] font-medium", primary ? "bg-[var(--c-accent)] text-white" : "bg-[var(--c-solid)] text-[var(--c-on-solid)]")}>
+      <span className={cn("flex h-11 shrink-0 items-center gap-1.5 rounded-full px-4 text-[14px] font-medium", primary ? "bg-[var(--c-accent)] text-[var(--c-accent-ink)]" : "bg-[var(--c-solid)] text-[var(--c-on-solid)]")}>
         <Phone size={16} weight="fill" /> Call
       </span>
     </a>
@@ -61,7 +61,7 @@ export default function PublicEmergencyPage() {
   return (
     <div className="care-os h-dvh overflow-y-auto">
       <main className="mx-auto w-full max-w-[560px] px-4 pb-10 pt-5">
-        <p className="flex items-center gap-1.5 text-[12px] font-semibold uppercase tracking-[0.08em] text-[var(--c-accent)]">
+        <p className="flex items-center gap-1.5 text-[12px] font-semibold uppercase tracking-[0.08em] text-[var(--c-accent-text)]">
           <FirstAidKit size={15} weight="fill" /> Emergency card
         </p>
 
@@ -122,7 +122,7 @@ function Card({ data }: { data: PublicEmergency }) {
           <span className="text-[11px] font-medium uppercase tracking-[0.07em] opacity-70">Blood group</span>
           <span className="c-num mt-1 text-[44px] leading-none">{blood || "—"}</span>
         </div>
-        <section className="rounded-[22px] bg-[var(--c-accent)] p-4 text-white">
+        <section className="rounded-[22px] bg-[var(--c-accent)] p-4 text-[var(--c-accent-ink)]">
           <h2 className="flex items-center gap-1.5 text-[12px] font-semibold uppercase tracking-[0.08em]">
             <Warning size={16} weight="fill" /> Allergies
           </h2>

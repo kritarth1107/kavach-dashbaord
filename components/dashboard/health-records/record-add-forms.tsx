@@ -66,7 +66,7 @@ export function RecordAddForms({
           <span
             className={cn(
               "flex items-center justify-center rounded-full",
-              dragOver ? "bg-[var(--c-accent)] text-white" : "bg-[var(--c-solid)] text-[var(--c-on-solid)]",
+              dragOver ? "bg-[var(--c-accent)] text-[var(--c-accent-ink)]" : "bg-[var(--c-solid)] text-[var(--c-on-solid)]",
               compact ? "mb-2 h-10 w-10" : "mb-3 h-12 w-12",
             )}
           >
@@ -82,7 +82,7 @@ export function RecordAddForms({
           <p className="mt-1 max-w-sm text-[12px] text-[var(--c-ink-2)]">
             A PDF or a photo (JPG, PNG, HEIC), up to 15 MB. A tilted or dim phone photo is fine.
           </p>
-          <p className="mt-2 flex items-center gap-1.5 text-[11.5px] font-medium text-[var(--c-accent)]">
+          <p className="mt-2 flex items-center gap-1.5 text-[11.5px] font-medium text-[var(--c-accent-text)]">
             <span className="h-1.5 w-1.5 rounded-full bg-[var(--c-accent)]" />
             Nothing is saved until you check what Saheli read
           </p>

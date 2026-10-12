@@ -269,7 +269,7 @@ export function IntegrationsPage() {
           </Panel>
           <Panel>
             <p className="flex items-center gap-2 text-[14px] font-medium">
-              <Lightning size={16} className="text-[var(--c-accent)]" /> Linked vs not linked
+              <Lightning size={16} className="text-[var(--c-accent-text)]" /> Linked vs not linked
             </p>
             <ul className="mt-3 space-y-2 text-[12.5px] text-[var(--c-ink-2)]">
               <li className="flex gap-2">

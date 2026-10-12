@@ -137,7 +137,7 @@ export function FamilyTasksPage() {
                 <Avatar name={fullName(t.assignee)} src={avatarOf(t.assignee)} size={20} /> {nameOf(t.assignee)}
               </span>
               {due && (
-                <span className={cn("flex items-center gap-1 tabular-nums", late && "font-medium text-[var(--c-accent)]")}>
+                <span className={cn("flex items-center gap-1 tabular-nums", late && "font-medium text-[var(--c-accent-text)]")}>
                   <Clock size={13} /> {dayWord(due, now)}, {clock(due)}
                 </span>
               )}
@@ -302,7 +302,7 @@ export function FamilyTasksPage() {
               </select>
             </label>
             <p className="flex items-start gap-2 rounded-[14px] bg-[var(--c-card)] px-4 py-3 text-[12.5px] leading-relaxed text-[var(--c-ink-2)]">
-              <BellRinging size={15} className="mt-[2px] shrink-0 text-[var(--c-accent)]" />
+              <BellRinging size={15} className="mt-[2px] shrink-0 text-[var(--c-accent-text)]" />
               {draft.date
                 ? `Saheli reminds ${draft.assignee === myId ? "you" : nameOf(draft.assignee).split(" ")[0]} on WhatsApp at ${draft.time || "09:00"} on the day.`
                 : "Saheli tells the assignee on WhatsApp. Add a due time and she reminds them when it's due."}

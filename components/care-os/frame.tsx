@@ -180,7 +180,7 @@ function Drawer({ open, onClose }: { open: boolean; onClose: () => void }) {
                     <span className="block truncate text-[13px] font-medium">{f.name}</span>
                     <span className="block text-[11px] text-[var(--c-ink-3)]">{f.roleLabel}</span>
                   </span>
-                  {f.familyId === activeFamilyId && <Check size={15} weight="bold" className="text-[var(--c-accent)]" />}
+                  {f.familyId === activeFamilyId && <Check size={15} weight="bold" className="text-[var(--c-accent-text)]" />}
                 </button>
               ))}
             </section>
@@ -197,7 +197,7 @@ function Drawer({ open, onClose }: { open: boolean; onClose: () => void }) {
                     onClick={onClose}
                     className={cn("flex items-center gap-3 rounded-[16px] px-3 py-2.5 text-[14px]", on ? "bg-[var(--c-card)] font-medium" : "hover:bg-[var(--c-card)]")}
                   >
-                    <span className={cn("flex h-9 w-9 items-center justify-center rounded-full border", on ? "border-transparent bg-[var(--c-accent)] text-white" : "border-[var(--c-line)]")}>
+                    <span className={cn("flex h-9 w-9 items-center justify-center rounded-full border", on ? "border-transparent bg-[var(--c-accent)] text-[var(--c-accent-ink)]" : "border-[var(--c-line)]")}>
                       <m.icon size={17} />
                     </span>
                     {m.label}

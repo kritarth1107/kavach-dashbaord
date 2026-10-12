@@ -97,7 +97,7 @@ export function PersonPicker({
                   <span className="block truncate text-[13px] font-medium">{p.name}</span>
                   <span className="block truncate text-[11px] text-[var(--c-ink-3)]">{handle(p)}</span>
                 </span>
-                {on && <Check size={16} weight="bold" className="text-[var(--c-accent)]" />}
+                {on && <Check size={16} weight="bold" className="text-[var(--c-accent-text)]" />}
               </button>
             );
           })}
@@ -106,7 +106,7 @@ export function PersonPicker({
           <Link
             href="/dashboard/family/new?role=care_recipient"
             onClick={() => setOpen(false)}
-            className="mt-1 flex items-center gap-3 rounded-[16px] border-t border-[var(--c-line)] px-2 pb-1.5 pt-3 text-[13px] font-medium hover:text-[var(--c-accent)]"
+            className="mt-1 flex items-center gap-3 rounded-[16px] border-t border-[var(--c-line)] px-2 pb-1.5 pt-3 text-[13px] font-medium hover:text-[var(--c-accent-text)]"
           >
             <span className="flex h-9 w-9 items-center justify-center rounded-full border border-dashed border-[var(--c-ink-3)]">
               <Plus size={15} weight="bold" />

@@ -17,7 +17,7 @@ function PanelFallback({ name, className }: { name: string; className?: string }
       <Reported error={error} where={`panel:${name}`} />
       <div className="flex items-center justify-between gap-3">
         <p className="flex items-center gap-2 text-[13px] text-[var(--c-ink-2)]">
-          <WarningCircle size={18} className="shrink-0 text-[var(--c-accent)]" />
+          <WarningCircle size={18} className="shrink-0 text-[var(--c-accent-text)]" />
           {name} couldn&apos;t load. The rest of the page works.
         </p>
         <SmallButton onClick={() => reset()}>Try again</SmallButton>

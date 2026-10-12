@@ -122,7 +122,7 @@ export function RefillsPanel() {
               <li key={r.key} className="rounded-[18px] bg-[var(--c-frame)] p-4">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
                   <div className="flex min-w-0 flex-1 items-center gap-3">
-                    <span className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-full", r.low ? "bg-[var(--c-accent)] text-white" : "bg-[var(--c-solid)] text-white")}>
+                    <span className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-full", r.low ? "bg-[var(--c-accent)] text-[var(--c-accent-ink)]" : "bg-[var(--c-solid)] text-white")}>
                       <Pill size={18} weight={r.low ? "fill" : "regular"} />
                     </span>
                     <div className="min-w-0">
@@ -137,7 +137,7 @@ export function RefillsPanel() {
                             {r.asOf && <span className="text-[var(--c-ink-3)]"> · as of {shortDate(parseIst(r.asOf))}</span>}
                           </>
                         ) : (
-                          <span className="text-[var(--c-accent)]">Count the strip and set it</span>
+                          <span className="text-[var(--c-accent-text)]">Count the strip and set it</span>
                         )}
                       </p>
                     </div>
@@ -146,7 +146,7 @@ export function RefillsPanel() {
                   {known && (
                     <div className="w-full sm:w-[150px]">
                       <div className="flex items-baseline justify-between text-[12px]">
-                        <span className={cn("c-num text-[18px] leading-none", r.low && "text-[var(--c-accent)]")}>{r.daysLeft}</span>
+                        <span className={cn("c-num text-[18px] leading-none", r.low && "text-[var(--c-accent-text)]")}>{r.daysLeft}</span>
                         <span className="text-[var(--c-ink-3)]">{r.daysLeft === 1 ? "day left" : "days left"}</span>
                       </div>
                       <div className="mt-1.5 h-1.5 rounded-full bg-[var(--c-card)]">
@@ -207,7 +207,7 @@ export function RefillsPanel() {
                           onClick={() => setService(p.id)}
                           className={cn(
                             "h-8 rounded-[10px] border px-3.5 text-[13px] transition-colors",
-                            service === p.id ? "border-transparent bg-[var(--c-accent)] text-white" : "border-[var(--c-line)] bg-[var(--c-frame)] text-[var(--c-ink-2)] hover:text-[var(--c-ink)]",
+                            service === p.id ? "border-transparent bg-[var(--c-accent)] text-[var(--c-accent-ink)]" : "border-[var(--c-line)] bg-[var(--c-frame)] text-[var(--c-ink-2)] hover:text-[var(--c-ink)]",
                           )}
                         >
                           {p.label}

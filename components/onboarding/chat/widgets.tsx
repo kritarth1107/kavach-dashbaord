@@ -44,7 +44,7 @@ export function Chips({ options, multi, selected = [], exclusive = [], skip, onP
         );
       })}
       {multi && (
-        <button type="button" onClick={() => on.length && onPick(on)} disabled={!on.length} className="inline-flex h-10 items-center gap-2 rounded-full bg-[var(--c-accent)] px-4 text-[14px] font-medium text-white disabled:opacity-40">
+        <button type="button" onClick={() => on.length && onPick(on)} disabled={!on.length} className="inline-flex h-10 items-center gap-2 rounded-full bg-[var(--c-accent)] px-4 text-[14px] font-medium text-[var(--c-accent-ink)] disabled:opacity-40">
           Done <ArrowRight size={15} />
         </button>
       )}
@@ -120,7 +120,7 @@ export function MedicinesAsk({ busy, onPhoto, onType, onNone, self }: { busy: bo
   const file = useRef<HTMLInputElement>(null);
   return (
     <div className="flex flex-wrap gap-2">
-      <button type="button" disabled={busy} onClick={() => file.current?.click()} className="inline-flex h-11 items-center gap-2 rounded-full bg-[var(--c-accent)] px-5 text-[14px] font-medium text-white disabled:opacity-50">
+      <button type="button" disabled={busy} onClick={() => file.current?.click()} className="inline-flex h-11 items-center gap-2 rounded-full bg-[var(--c-accent)] px-5 text-[14px] font-medium text-[var(--c-accent-ink)] disabled:opacity-50">
         {busy ? <CircleNotch size={16} className="animate-spin" /> : <Camera size={18} />} Photo of prescription or strips
       </button>
       <button type="button" onClick={onType} className={GHOST}>Type them</button>
@@ -255,7 +255,7 @@ export function SetupProgress({ steps, finished }: { steps: string[]; finished: 
     <div className={cn(CARD, "max-w-[480px] p-3")}>
       {steps.map((s, k) => (
         <div key={s} className={cn("flex items-center gap-3 rounded-[14px] px-3 py-2.5 text-[14px]", k === upto && "bg-[var(--c-card)]")}>
-          {k < upto ? <CheckCircle size={19} weight="fill" className="text-[var(--c-ok-ink)]" /> : k === upto ? <CircleNotch size={19} className="animate-spin text-[var(--c-accent)]" /> : <span className="h-[19px] w-[19px] rounded-full border border-[var(--c-line)]" />}
+          {k < upto ? <CheckCircle size={19} weight="fill" className="text-[var(--c-ok-ink)]" /> : k === upto ? <CircleNotch size={19} className="animate-spin text-[var(--c-accent-text)]" /> : <span className="h-[19px] w-[19px] rounded-full border border-[var(--c-line)]" />}
           <span className={k > upto ? "text-[var(--c-ink-3)]" : ""}>{s}</span>
         </div>
       ))}

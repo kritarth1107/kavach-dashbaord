@@ -136,7 +136,7 @@ export function apiMemberToFamilyMember(
   member: ApiFamilyMember,
   index: number,
 ): FamilyMember {
-  const colors = ["#142a22", "#d3541e", "#2f5446", "#66706b", "#9c3a10"];
+  const colors = ["#165246", "#c77a14", "#2f5446", "#5e6661", "#8a4b06"];
   const phoneFields = normalizePhoneFields(member.phone, member.phoneCountryCode);
 
   const explicitPrefix = member.namePrefix?.trim() ?? "";

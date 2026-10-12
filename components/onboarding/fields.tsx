@@ -60,7 +60,7 @@ export function Choice<T extends string>({ options, value, onPick, columns = 2 }
               <span className="block text-[15px] font-medium">{o.native ? <><span className="mr-2">{o.native}</span><span className={on ? "text-white/70" : "text-[var(--c-ink-3)]"}>{o.label}</span></> : o.label}</span>
               {o.hint && <span className={cn("mt-0.5 block text-[12px]", on ? "text-white/70" : "text-[var(--c-ink-2)]")}>{o.hint}</span>}
             </span>
-            <span className={cn("flex h-6 w-6 shrink-0 items-center justify-center rounded-full", on ? "bg-[var(--c-accent)]" : "bg-[var(--c-frame)]")}>
+            <span className={cn("flex h-6 w-6 shrink-0 items-center justify-center rounded-full", on ? "bg-[var(--c-accent)] text-[var(--c-accent-ink)]" : "bg-[var(--c-frame)]")}>
               {on && <Check size={13} weight="bold" />}
             </span>
           </button>
@@ -84,7 +84,7 @@ export function Chips({ options, values, onChange, allowOther = true, otherLabel
           return (
             <button key={o} type="button" aria-pressed={on} onClick={() => toggle(o)}
               className={cn("inline-flex h-10 items-center gap-1.5 rounded-full px-4 text-[14px] transition", on ? "bg-[var(--c-solid)] text-white" : "bg-[var(--c-card)] text-[var(--c-ink)] hover:bg-[var(--c-line)]")}>
-              {on && <Check size={13} weight="bold" className="text-[var(--c-accent)]" />}
+              {on && <Check size={13} weight="bold" className="text-[var(--c-accent-text)]" />}
               {o}
             </button>
           );
@@ -177,7 +177,7 @@ export function VerifyWhatsApp({ target, phone, who, verified, onVerified, sahel
     try {
       const c = await onboardingApi.startVerify(target, phone, "message");
       setMsg({ text: c.text!, link: c.link!, saheliNumber: c.saheliNumber! });
-      setQr(await QRCode.toString(c.link!, { type: "svg", margin: 1, width: 180, color: { dark: "#142a22", light: "#ffffff" } }));
+      setQr(await QRCode.toString(c.link!, { type: "svg", margin: 1, width: 180, color: { dark: "#1b201e", light: "#ffffff" } }));
       setMode("message");
     } catch (e) {
       setError((e as Error).message);
@@ -226,7 +226,7 @@ export function VerifyWhatsApp({ target, phone, who, verified, onVerified, sahel
       {mode === "idle" && (
         <>
           <p className="text-[14px] text-[var(--c-ink-2)]">Saheli will send a 6-digit code to {their} WhatsApp. {self ? "Type it here." : `${who} reads it out to you, or you check ${who}'s phone.`}</p>
-          <button type="button" onClick={sendOtp} disabled={busy || !validPhone(phone)} className="mt-4 inline-flex h-11 items-center gap-2 rounded-full bg-[var(--c-accent)] px-5 text-[14px] font-medium text-white disabled:opacity-40">
+          <button type="button" onClick={sendOtp} disabled={busy || !validPhone(phone)} className="mt-4 inline-flex h-11 items-center gap-2 rounded-full bg-[var(--c-accent)] px-5 text-[14px] font-medium text-[var(--c-accent-ink)] disabled:opacity-40">
             {busy ? <CircleNotch size={16} className="animate-spin" /> : <WhatsappLogo size={18} weight="fill" />} Send code to {their} WhatsApp
           </button>
         </>
@@ -257,7 +257,7 @@ export function VerifyWhatsApp({ target, phone, who, verified, onVerified, sahel
             <p className="mt-1 text-[15px]">Send <b className="rounded-md bg-[var(--c-frame)] px-2 py-0.5 font-mono font-semibold tracking-wide">{msg.text}</b> to Saheli ({msg.saheliNumber}).</p>
             <p className="mt-1 text-[13px] text-[var(--c-ink-2)]">{self ? "Scan the code or tap the button on your phone." : `With ${who}? Scan the code with their phone. Not together? Send them the link; they just tap Send. Saheli can then greet ${who} as soon as you finish.`}</p>
             <div className="mt-4 flex flex-wrap gap-2">
-              <a href={msg.link} target="_blank" rel="noreferrer" className="inline-flex h-10 items-center gap-2 rounded-full bg-[var(--c-accent)] px-4 text-[13px] font-medium text-white"><WhatsappLogo size={16} weight="fill" /> Open WhatsApp</a>
+              <a href={msg.link} target="_blank" rel="noreferrer" className="inline-flex h-10 items-center gap-2 rounded-full bg-[var(--c-accent)] px-4 text-[13px] font-medium text-[var(--c-accent-ink)]"><WhatsappLogo size={16} weight="fill" /> Open WhatsApp</a>
               {!self && <button type="button" onClick={share} className="inline-flex h-10 items-center gap-2 rounded-full bg-[var(--c-frame)] px-4 text-[13px] font-medium">{copied ? <Check size={15} /> : canShare ? <ShareNetwork size={15} /> : <Copy size={15} />} {copied ? "Link copied" : `Send link to ${who}`}</button>}
             </div>
             <p className="mt-4 flex items-center gap-2 text-[12px] text-[var(--c-ink-2)]"><span className="relative flex h-2.5 w-2.5"><span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[var(--c-accent)] opacity-60" /><span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-[var(--c-accent)]" /></span> Waiting for the message…</p>
@@ -381,7 +381,7 @@ export function MedicineEditor({ person, onChange }: { person: Person; onChange:
   return (
     <div>
       <div className="mb-4 flex flex-wrap gap-2">
-        <button type="button" onClick={() => file.current?.click()} disabled={reading} className="inline-flex h-11 items-center gap-2 rounded-full bg-[var(--c-accent)] px-5 text-[14px] font-medium text-white disabled:opacity-60">
+        <button type="button" onClick={() => file.current?.click()} disabled={reading} className="inline-flex h-11 items-center gap-2 rounded-full bg-[var(--c-accent)] px-5 text-[14px] font-medium text-[var(--c-accent-ink)] disabled:opacity-60">
           {reading ? <CircleNotch size={16} className="animate-spin" /> : <Camera size={18} />} {reading ? "Reading the prescription…" : "Scan a prescription"}
         </button>
         <button type="button" onClick={() => onChange([...meds, { name: "", times: [], food: undefined }])} className="inline-flex h-11 items-center gap-2 rounded-full bg-[var(--c-card)] px-5 text-[14px] font-medium"><Plus size={16} /> Add by hand</button>

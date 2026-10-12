@@ -21,7 +21,7 @@ export function PersonPhoto({ name, src, className, rounded = "rounded-[24px]", 
   return (
     <span
       aria-hidden
-      className={cn("flex shrink-0 items-center justify-center bg-gradient-to-br from-[#f6dcc8] to-[#d9a47d] font-medium text-[#7a4a25]", rounded, className)}
+      className={cn("flex shrink-0 items-center justify-center bg-[var(--c-accent-soft)] font-medium text-[var(--c-accent-soft-ink)]", rounded, className)}
       style={{ fontSize: text }}
     >
       {initials(name)}
@@ -112,7 +112,7 @@ export function Bubble({ children, meta, mine = true, className }: { children: R
 }
 
 /** Each medicine gets its own pill colour, the same in the pillbox and the list. */
-export const PILL_COLORS = ["#2f6f5e", "#d3541e", "#e9b44c", "#5b6fb7", "#b0527a", "#3f8fa6"];
+export const PILL_COLORS = ["#165246", "#ec9a2f", "#d6453f", "#5b6fb7", "#b0527a", "#3f8fa6"];
 
 export function PillShape({ color, round, faded, className }: { color: string; round?: boolean; faded?: boolean; className?: string }) {
   return (

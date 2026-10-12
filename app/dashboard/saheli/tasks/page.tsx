@@ -1,11 +1,11 @@
 import { Suspense } from "react";
 import { PageSpinner } from "@/components/dashboard/activity/activity-shared";
-import { SaheliTasksPage } from "@/components/dashboard/saheli/saheli-tasks-page";
+import { OrdersPage } from "@/components/care-os/orders-page";
 
 export default function Page() {
   return (
     <Suspense fallback={<PageSpinner />}>
-      <SaheliTasksPage />
+      <OrdersPage />
     </Suspense>
   );
 }

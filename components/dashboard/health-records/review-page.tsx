@@ -389,7 +389,7 @@ function PersonBanner({
                           type="button"
                           disabled={working}
                           onClick={() => onMove(c.id)}
-                          className="rounded-sm text-[var(--c-ink)] underline underline-offset-2 outline-none hover:text-[var(--c-accent)] focus-visible:ring-2 focus-visible:ring-[var(--c-accent)] disabled:opacity-50"
+                          className="rounded-sm text-[var(--c-ink)] underline underline-offset-2 outline-none hover:text-[var(--c-accent-text)] focus-visible:ring-2 focus-visible:ring-[var(--c-accent)] disabled:opacity-50"
                         >
                           {c.self ? `${c.name} (you)` : c.name}
                         </button>
@@ -496,7 +496,7 @@ function FailedPanel({
     <section className="rounded-[22px] bg-[var(--c-card)] p-5" aria-live="polite">
       {busy === "reread" ? (
         <div role="status" className="flex flex-col items-center py-10 text-center">
-          <CircleNotch size={28} className="animate-spin text-[var(--c-accent)]" aria-hidden />
+          <CircleNotch size={28} className="animate-spin text-[var(--c-accent-text)]" aria-hidden />
           <p className="mt-4 text-[15px] font-medium">Saheli is reading it again…</p>
           <p className="mt-1 text-[12.5px] text-[var(--c-ink-2)]">This can take up to 40 seconds.</p>
         </div>

@@ -249,15 +249,15 @@ export function callPeople(card: EmergencyCard, members: FamilyMember[], subject
 function HelperPreview({ card, name, photo, callers }: { card: EmergencyCard; name: string; photo?: string | null; callers: CallPerson[] }) {
   return (
     <div className="mx-auto w-[248px] rounded-[40px] bg-[#0d0f0e] p-[9px] shadow-[0_30px_50px_-28px_rgba(0,0,0,0.6)]">
-      <div className="relative h-[470px] overflow-hidden rounded-[32px] bg-[#102a22] px-3.5 pt-8 text-white">
-        <p className="text-center text-[10.5px] font-semibold tracking-[0.14em] text-[#ff9b6a]">MEDICAL ID</p>
+      <div className="relative h-[470px] overflow-hidden rounded-[32px] bg-[#123f36] px-3.5 pt-8 text-white">
+        <p className="text-center text-[10.5px] font-semibold tracking-[0.14em] text-[#f5b866]">MEDICAL ID</p>
         <div className="mt-3 flex flex-col items-center">
           <PersonPhoto name={name} src={photo} rounded="rounded-[20px]" className="h-16 w-16 border-2 border-white" text={22} />
           <p className="mt-2 text-[18px] font-medium">{name}</p>
           <p className="text-[11px] opacity-70">{[card.profile.blood_group, card.conditions[0]].filter(Boolean).join(" · ")}</p>
         </div>
         {card.allergies.length > 0 && (
-          <p className="mt-3 rounded-[12px] bg-[#c62828] px-3 py-2 text-[11.5px]">
+          <p className="mt-3 rounded-[12px] bg-[#c8352f] px-3 py-2 text-[11.5px]">
             <b>Allergic:</b> {card.allergies.map((a) => a.allergen).join(", ")}
           </p>
         )}
@@ -266,7 +266,7 @@ function HelperPreview({ card, name, photo, callers }: { card: EmergencyCard; na
             <div key={c.name} className="flex items-center gap-2 rounded-[12px] bg-white/[0.08] p-1.5">
               <PersonPhoto name={c.name} src={c.photo} rounded="rounded-full" className="h-[30px] w-[30px]" text={11} />
               <span className="min-w-0 flex-1 truncate text-[12px]">Call {c.name}</span>
-              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[var(--c-accent)]">
+              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[var(--c-accent)] text-[var(--c-accent-ink)]">
                 <Phone size={13} weight="fill" />
               </span>
             </div>
@@ -277,11 +277,11 @@ function HelperPreview({ card, name, photo, callers }: { card: EmergencyCard; na
           {card.home && (
             <>
               <br />
-              {card.home} · <span className="text-[#ff9b6a]">Maps</span>
+              {card.home} · <span className="text-[#f5b866]">Maps</span>
             </>
           )}
         </p>
-        <span className="absolute bottom-3.5 left-3.5 right-3.5 flex h-10 items-center justify-center rounded-full bg-[#c62828] text-[13px] font-semibold">Call 112</span>
+        <span className="absolute bottom-3.5 left-3.5 right-3.5 flex h-10 items-center justify-center rounded-full bg-[#c8352f] text-[13px] font-semibold">Call 112</span>
       </div>
     </div>
   );
@@ -313,7 +313,7 @@ export function EmergencyPage() {
   useEffect(() => {
     if (!active?.url || qrState?.url === active.url) return;
     let off = false;
-    QRCode.toString(active.url, { type: "svg", margin: 0, width: 192, color: { dark: "#142a22", light: "#ffffff" } })
+    QRCode.toString(active.url, { type: "svg", margin: 0, width: 192, color: { dark: "#1b201e", light: "#ffffff" } })
       .then((svg) => !off && setQrState({ url: active.url, svg }))
       .catch(() => undefined);
     return () => {
@@ -499,14 +499,14 @@ export function EmergencyPage() {
 
         <aside className="flex flex-col gap-4">
           <div className="grid grid-cols-2 gap-2.5">
-            <a href="tel:112" className="flex flex-col gap-6 rounded-[22px] bg-gradient-to-br from-[#e0413a] to-[#b71c1c] p-4 text-white transition-opacity hover:opacity-95">
+            <a href="tel:112" className="flex flex-col gap-6 rounded-[22px] bg-[#c8352f] p-4 text-white transition-opacity hover:opacity-95">
               <span className="text-[11.5px] opacity-85">Police · fire · medical</span>
               <span>
                 <span className="c-num block text-[34px] leading-none">112</span>
                 <span className="mt-1 block text-[11.5px] opacity-85">Tap to call</span>
               </span>
             </a>
-            <a href="tel:108" className="flex flex-col gap-6 rounded-[22px] bg-gradient-to-br from-[#ff7a45] to-[#d3541e] p-4 text-white transition-opacity hover:opacity-95">
+            <a href="tel:108" className="flex flex-col gap-6 rounded-[22px] bg-[var(--c-accent)] p-4 text-[var(--c-accent-ink)] transition-opacity hover:opacity-95">
               <Ambulance size={20} weight="fill" />
               <span>
                 <span className="c-num block text-[34px] leading-none">108</span>

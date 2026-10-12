@@ -380,7 +380,7 @@ export function WellbeingPage() {
                       </SmallButton>
                     </div>
                   )}
-                  {draft.error && <p className="mt-2 text-[12px] text-[var(--c-accent)]">{draft.error}</p>}
+                  {draft.error && <p className="mt-2 text-[12px] text-[var(--c-accent-text)]">{draft.error}</p>}
                 </div>
                 <label className="mt-4 flex cursor-pointer items-start gap-3 text-[12.5px] leading-snug text-[var(--c-ink-2)]">
                   <input

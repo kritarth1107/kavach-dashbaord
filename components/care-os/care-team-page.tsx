@@ -352,7 +352,7 @@ export function CareTeamPage() {
       <div className="flex flex-col gap-5 pb-2 lg:flex-row lg:items-end lg:justify-between">
         <div className="flex items-end gap-5">
           <PageHeading top={possessive(selected)} bottom="Care team" />
-          <span className="mb-2 hidden h-[68px] w-[68px] items-center justify-center rounded-full bg-[var(--c-accent)] text-white sm:flex">
+          <span className="mb-2 hidden h-[68px] w-[68px] items-center justify-center rounded-full bg-[var(--c-accent)] text-[var(--c-accent-ink)] sm:flex">
             <Stethoscope size={32} weight="fill" />
           </span>
         </div>

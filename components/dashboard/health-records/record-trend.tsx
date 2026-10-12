@@ -119,7 +119,7 @@ export function NoticedBox({
   return (
     <div className="mt-5 rounded-[18px] bg-[var(--c-frame)] p-3.5 text-[12.5px] leading-relaxed text-[var(--c-ink-2)]">
       <p className="flex items-center gap-1.5 text-[13px] font-medium text-[var(--c-ink)]">
-        <Sparkle size={15} weight="fill" className="text-[var(--c-accent)]" aria-hidden />
+        <Sparkle size={15} weight="fill" className="text-[var(--c-accent-text)]" aria-hidden />
         Saheli noticed
       </p>
       <p className="mt-1">{shown}</p>

@@ -147,7 +147,7 @@ export function Avatar({ name, src, size = 36, className }: { name: string; src?
   return (
     <span
       aria-hidden
-      className={cn("inline-flex shrink-0 items-center justify-center rounded-full bg-[var(--c-solid)] font-medium text-[var(--c-accent)]", className)}
+      className={cn("inline-flex shrink-0 items-center justify-center rounded-full bg-[var(--c-solid)] font-medium text-[var(--c-accent-text)]", className)}
       style={{ width: size, height: size, fontSize: Math.round(size * 0.36) }}
     >
       {initials || "•"}

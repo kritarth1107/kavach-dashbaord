@@ -137,7 +137,7 @@ export function LearningPage() {
             const h = hoursSince(data.backup?.lastOkAt);
             const stale = h == null || h > 26;
             return (
-              <p className={`text-[12px] ${stale ? "text-[var(--c-accent)]" : "text-[var(--c-ink-3)]"}`}>
+              <p className={`text-[12px] ${stale ? "text-[var(--c-accent-text)]" : "text-[var(--c-ink-3)]"}`}>
                 {h == null
                   ? "No backup has finished yet. Backups run nightly at 03:30 to Cloudflare R2, encrypted."
                   : `Last backup ${h < 1 ? "under an hour" : `${Math.round(h)} h`} ago (encrypted, Cloudflare R2)${stale ? " — overdue, check the backup job." : "."}`}
@@ -153,7 +153,7 @@ export function LearningPage() {
               <PanelTitle title="Needs a look" right={<Siren size={18} />} />
               <ul className="mt-3 space-y-1.5 text-[13px]">
                 {data.calibration?.trusted === false && (
-                  <li className="text-[var(--c-accent)]">
+                  <li className="text-[var(--c-accent-text)]">
                     The everyday grader agrees with the strong judge only {pct(data.calibration.agreement)} of the time ({data.calibration.n} checked). Trials
                     will not promote anything until this is fixed.
                   </li>
@@ -203,7 +203,7 @@ export function LearningPage() {
                       </p>
                     )}
                     {p.gate?.passed === false && (
-                      <p className="mt-2 text-[12px] text-[var(--c-accent)]">
+                      <p className="mt-2 text-[12px] text-[var(--c-accent-text)]">
                         Safety gate stopped it: {Object.values(p.gate.lessons ?? {}).flat().slice(0, 2).join("; ")}
                       </p>
                     )}
@@ -294,7 +294,7 @@ export function LearningPage() {
                       <tr key={s} className="border-t border-[var(--c-line)]">
                         <td className="py-1.5">{s.replace("_", " ")}</td>
                         <td>{r.n}</td>
-                        <td className={cn(r.last != null && r.prev != null && (r.last >= r.prev ? "font-medium" : "text-[var(--c-accent)]"))}>{sc(r.last)}</td>
+                        <td className={cn(r.last != null && r.prev != null && (r.last >= r.prev ? "font-medium" : "text-[var(--c-accent-text)]"))}>{sc(r.last)}</td>
                         <td className="text-[var(--c-ink-2)]">{sc(r.prev)}</td>
                       </tr>
                     ))}

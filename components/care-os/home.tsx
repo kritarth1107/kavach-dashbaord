@@ -69,7 +69,7 @@ export function CareHome({
             <span className="block font-medium">Today</span>
           </h1>
           <div className="relative mb-2 hidden sm:block">
-            <span className="flex h-[68px] w-[68px] items-center justify-center rounded-full bg-[var(--c-accent)] text-white">
+            <span className="flex h-[68px] w-[68px] items-center justify-center rounded-full bg-[var(--c-accent)] text-[var(--c-accent-ink)]">
               <Asterisk size={34} weight="bold" />
             </span>
             <span className="absolute -bottom-1 -right-2 flex h-7 w-7 items-center justify-center rounded-full bg-[var(--c-solid)] text-[var(--c-on-solid)]">
@@ -286,7 +286,7 @@ export function CareHome({
             {[300, 230, 160].map((s) => (
               <span key={s} className="absolute rounded-full border border-[var(--c-line)]" style={{ width: s, height: s, left: (300 - s) / 2, top: (300 - s) / 2 }} />
             ))}
-            <span className="absolute left-[95px] top-[95px] flex h-[110px] w-[110px] flex-col items-center justify-center rounded-full bg-[var(--c-accent)] text-white shadow-[0_20px_40px_-12px_rgba(211,84,30,0.55)]">
+            <span className="absolute left-[95px] top-[95px] flex h-[110px] w-[110px] flex-col items-center justify-center rounded-full bg-[var(--c-accent)] text-[var(--c-accent-ink)] shadow-[0_20px_40px_-12px_rgba(211,84,30,0.55)]">
               <span
                 className={cn("c-num leading-none", (data.mood?.length ?? 0) > 9 ? "text-[17px]" : (data.mood?.length ?? 0) > 6 ? "text-[21px]" : "text-[26px]")}
                 title={data.moodNote}
@@ -327,7 +327,7 @@ export function CareHome({
         {data.bp && (
           <Panel accent className="flex flex-col max-md:order-5">
             <div className="flex items-start justify-between">
-              <Tag tone="light" trend={data.bp.changeDir} className="!text-[var(--c-accent)]">
+              <Tag tone="light" trend={data.bp.changeDir} className="!text-[var(--c-accent-text)]">
                 {data.bp.change ?? data.bp.state}
               </Tag>
               <span className="text-right text-[10px] font-medium uppercase leading-tight tracking-[0.04em]">

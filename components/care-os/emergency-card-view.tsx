@@ -66,7 +66,7 @@ export function EmergencyCardView({
         <div className="flex min-w-0 items-center gap-4">
           <Avatar name={name || "?"} src={photo} size={64} />
           <div className="min-w-0">
-            <p className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-[0.08em] text-[var(--c-accent)]">
+            <p className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-[0.08em] text-[var(--c-accent-text)]">
               <FirstAidKit size={13} weight="fill" /> Emergency card
             </p>
             <p className="mt-0.5 break-words text-[26px] font-medium leading-tight tracking-[-0.02em]">{name}</p>

@@ -344,41 +344,45 @@ input[type="checkbox"] {
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
-   Care OS: neutral frame, grey cards, black + lime accents. Scoped while pages migrate.
+   Care OS v3 (founder 2026-10-13: "looks AI generated … choose a different green and a different orange").
+   Jade pine for filled elements, marigold as the one warm accent, charcoal text on soft sage-grey neutrals.
+   Flat surfaces: one hairline and one soft shadow level, no gradients.
    ───────────────────────────────────────────────────────────────────────────── */
 .care-os {
-  --c-page: #e8eaed;
+  --c-page: #eceeea;
   --c-frame: #ffffff;
-  --c-card: #f3f4f5;
+  --c-card: #f4f5f2;
   --c-chip: #ffffff;
-  --c-line: #e4e6e9;
-  /* Brand from the Kavach CareOS logo: forest for dark fills and text, saffron as the one accent. */
-  --c-ink: #142a22;
-  --c-ink-2: #66706b;
-  --c-ink-3: #a3aaa6;
-  --c-accent: #d3541e;
-  --c-accent-ink: #ffffff;
-  --c-accent-soft: #fbe4d6;
-  --c-accent-soft-ink: #9c3a10;
-  --c-forest: #143429;
-  --c-saffron: #d3541e;
+  --c-line: #e3e6e0;
+  --c-ink: #1b201e;
+  --c-ink-2: #5e6661;
+  --c-ink-3: #99a09b;
+  /* Marigold: fills, dots, focus rings. Text on it is dark; marigold as text on light uses accent-text. */
+  --c-accent: #ec9a2f;
+  --c-accent-ink: #2a1804;
+  --c-accent-text: #9a5507;
+  --c-accent-soft: #fcedd5;
+  --c-accent-soft-ink: #8a4b06;
+  --c-accent-wash: #fff9f0;
+  --c-forest: #165246;
+  --c-saffron: #ec9a2f;
   --c-danger: #e5484d;
-  --c-warn: #f5a524;
-  /* Filled elements (dark buttons, selected pills, avatars, badges, bars) and the text on them. In light mode they
-     are the forest ink; in dark mode they stay a lifted forest green instead of turning white. */
-  --c-solid: #142a22;
+  --c-warn: #e2b100;
+  /* Filled elements (dark buttons, selected pills, avatars, badges, bars) and the text on them: jade pine. */
+  --c-solid: #165246;
   --c-on-solid: #ffffff;
+  --c-solid-soft: #e3efea;
   /* Status tints: soft backgrounds and the ink that reads on them. */
-  --c-ok-ink: #1f7a4d;
-  --c-ok-soft: #dff3e8;
-  --c-ok-band: #e7efe9;
+  --c-ok-ink: #1e7458;
+  --c-ok-soft: #dff1e8;
+  --c-ok-band: #e6f0ea;
   --c-danger-ink: #b4232a;
   --c-danger-soft: #ffe1e1;
   --c-danger-wash: #fff6f6;
   --c-danger-line: #f3c4c4;
-  --c-warn-ink: #9a6700;
-  --c-warn-soft: #fff1cc;
-  --c-accent-wash: #fffaf5;
+  --c-warn-ink: #7d6100;
+  --c-warn-soft: #fbf1c7;
+  --c-shadow: 0 1px 2px rgba(20, 32, 27, 0.05), 0 8px 24px -12px rgba(20, 32, 27, 0.12);
   color: var(--c-ink);
   font-family: var(--font-geist), ui-sans-serif, system-ui;
   background: var(--c-frame);
@@ -386,20 +390,23 @@ input[type="checkbox"] {
 }
 
 .dark .care-os {
-  /* Near-black with a hint of the brand forest, so panels read as one family with the green fills. */
-  --c-page: #090c0b;
-  --c-frame: #111513;
-  --c-card: #181d1b;
-  --c-chip: #1f2523;
-  --c-line: #262d2a;
-  --c-ink: #eef1ef;
-  --c-ink-2: #a3aca7;
-  --c-ink-3: #6d7672;
-  --c-accent: #e5652c;
-  --c-accent-soft: rgba(229, 101, 44, 0.16);
-  --c-accent-soft-ink: #f4a274;
-  --c-solid: #1f4536;
+  --c-page: #0a0d0c;
+  --c-frame: #111614;
+  --c-card: #181e1b;
+  --c-chip: #1f2622;
+  --c-line: #26302b;
+  --c-ink: #eef2ef;
+  --c-ink-2: #a2aca6;
+  --c-ink-3: #6c7670;
+  --c-accent: #f2a848;
+  --c-accent-ink: #241503;
+  --c-accent-text: #f5b866;
+  --c-accent-soft: rgba(242, 168, 72, 0.16);
+  --c-accent-soft-ink: #f5b866;
+  --c-accent-wash: rgba(242, 168, 72, 0.06);
+  --c-solid: #23685a;
   --c-on-solid: #f4f7f5;
+  --c-solid-soft: rgba(35, 104, 90, 0.25);
   --c-ok-ink: #6fd39d;
   --c-ok-soft: rgba(52, 168, 108, 0.16);
   --c-ok-band: rgba(52, 168, 108, 0.12);
@@ -407,10 +414,10 @@ input[type="checkbox"] {
   --c-danger-soft: rgba(229, 72, 77, 0.16);
   --c-danger-wash: rgba(229, 72, 77, 0.08);
   --c-danger-line: rgba(229, 72, 77, 0.35);
-  --c-warn-ink: #f5c862;
-  --c-warn-soft: rgba(245, 165, 36, 0.16);
-  --c-accent-wash: rgba(229, 101, 44, 0.06);
-  background: #090c0b;
+  --c-warn-ink: #f0d060;
+  --c-warn-soft: rgba(226, 177, 0, 0.16);
+  --c-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+  background: #0a0d0c;
   color-scheme: dark;
 }
 
@@ -426,7 +433,7 @@ input[type="checkbox"] {
 }
 
 .care-os .c-hatch {
-  background-image: repeating-linear-gradient(135deg, transparent 0 6px, rgba(20, 42, 34, 0.05) 6px 7px);
+  background-image: repeating-linear-gradient(135deg, transparent 0 6px, rgba(27, 32, 30, 0.05) 6px 7px);
 }
 
 /* ── Bridge: older pages inside the Care OS frame take its look ─────────────── */
@@ -434,10 +441,10 @@ input[type="checkbox"] {
   --background: var(--c-frame);
   --foreground: var(--c-ink);
   --primary: var(--c-accent);
-  --primary-dark: #b4461a;
+  --primary-dark: #c97d18;
   --primary-light: var(--c-accent-soft);
-  --primary-muted: #f2a77e;
-  --primary-ring: rgba(211, 84, 30, 0.18);
+  --primary-muted: #f5c47f;
+  --primary-ring: rgba(236, 154, 47, 0.22);
   --main-surface: var(--c-frame);
   --card: var(--c-card);
   --surface: var(--c-frame);
@@ -463,7 +470,7 @@ input[type="checkbox"] {
 
 .care-os .dashboard-card-hover:hover {
   box-shadow: none;
-  background: #eceeef;
+  background: #eef0ec;
 }
 
 .care-os .lime-card {
