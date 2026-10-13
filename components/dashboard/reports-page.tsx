@@ -16,6 +16,7 @@ import {
   type DoctorBrief,
 } from "@/lib/api";
 import { CareRecordTimeline } from "@/components/dashboard/care-record/care-record-timeline";
+import { useRun } from "@/lib/use-run";
 
 export function ReportsPage() {
   const { activeFamilyId, activeFamily, userId } = useFamily();
@@ -75,13 +76,14 @@ export function ReportsPage() {
     }
   }, [activeFamilyId, isRecipient, userId, loadBrief]);
 
-  useEffect(() => {
-    void load();
-  }, [load]);
+  useRun(load);
 
   useEffect(() => {
-    setDoctorBrief(null);
-    if (subjectUserId) void loadBrief(subjectUserId);
+    const t = setTimeout(() => {
+      setDoctorBrief(null);
+      if (subjectUserId) void loadBrief(subjectUserId);
+    }, 0);
+    return () => clearTimeout(t);
   }, [subjectUserId, loadBrief]);
 
   return (

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
   getRecipientBriefing,
   getRecipientLabs,
@@ -20,10 +20,10 @@ import {
   formatShortDate,
   isDocumentOnDate,
   isIsoOnDate,
-  isSameDay,
   toDateKey,
 } from "@/lib/date-utils";
 import { countDocumentsInMonth, parseAllMetrics } from "@/lib/health-metrics";
+import { useRun } from "@/lib/use-run";
 
 const WEEK_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
@@ -77,11 +77,9 @@ export function useRecipientDashboardData(
     }
   }, [activeFamilyId, recipientUserId, selectedDate]);
 
-  useEffect(() => {
-    void load();
-  }, [load]);
+  useRun(load);
 
-  const schedules = scheduleCtx?.schedules ?? [];
+  const schedules = useMemo(() => scheduleCtx?.schedules ?? [], [scheduleCtx?.schedules]);
   const daySchedules = useMemo(
     () => getActiveSchedulesForDate(schedules, selectedDate),
     [schedules, selectedDate],
@@ -198,7 +196,6 @@ export function useRecipientDashboardData(
   ]);
 
   const vitalsSnapshot = useMemo(() => {
-    const keys = ["bp_systolic", "bp_diastolic", "heart_rate", "glucose", "spo2"] as const;
     const latest = new Map<string, (typeof metrics)[0]>();
     for (const m of metrics) latest.set(m.key, m);
 

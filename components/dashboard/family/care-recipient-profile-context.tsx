@@ -4,7 +4,6 @@ import {
   createContext,
   useCallback,
   useContext,
-  useEffect,
   useMemo,
   useState,
   type ReactNode,
@@ -13,6 +12,7 @@ import { useParams } from "next/navigation";
 import { getFamilyMembers } from "@/lib/api";
 import { useFamily } from "@/components/dashboard/family-context";
 import { apiMemberToFamilyMember, type FamilyMember } from "./family-data";
+import { useRun } from "@/lib/use-run";
 
 type CareRecipientProfileContextValue = {
   member: FamilyMember | null;
@@ -71,9 +71,7 @@ export function CareRecipientProfileProvider({ children }: { children: ReactNode
     }
   }, [activeFamilyId, userId]);
 
-  useEffect(() => {
-    void refresh();
-  }, [refresh]);
+  useRun(refresh);
 
   const applyMembersList = useCallback(
     (members: FamilyMember[]) => {

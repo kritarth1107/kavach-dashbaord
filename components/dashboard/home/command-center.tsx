@@ -10,12 +10,13 @@ import {
   User,
 } from "lucide-react";
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { formatWhen } from "@/components/dashboard/family/morning-briefing-card";
 import { SaheliInsightsBanner } from "@/components/dashboard/saheli-insights-banner";
 import { useFamily } from "@/components/dashboard/family-context";
 import { getCommandCenter, type CommandCenterRecipient } from "@/lib/api";
 import { cn } from "@/lib/utils";
+import { useRun } from "@/lib/use-run";
 
 function RecipientCard({
   recipient,
@@ -139,9 +140,7 @@ export function CommandCenterHome() {
     }
   }, [activeFamilyId]);
 
-  useEffect(() => {
-    void load();
-  }, [load]);
+  useRun(load);
 
   const selected = data?.recipients.find((r) => r.userId === selectedId) ?? data?.recipients[0];
   const chatHref = selected

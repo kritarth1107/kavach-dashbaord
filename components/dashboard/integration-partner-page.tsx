@@ -28,6 +28,7 @@ import {
   type PartnerOrderSettings,
 } from "@/lib/api";
 import { cn } from "@/lib/utils";
+import { useRun } from "@/lib/use-run";
 
 function ConnectionPill({ connected }: { connected: boolean }) {
   return (
@@ -90,7 +91,10 @@ function OrderApprovalSettings({
   );
   const [dirty, setDirty] = useState(false);
 
-  useEffect(() => {
+  // new settings from the server reset the form (adjusted while rendering, not in an effect)
+  const [shownSettings, setShownSettings] = useState(settings);
+  if (shownSettings !== settings) {
+    setShownSettings(settings);
     setAllowDirect(settings.allowRecipientDirectOrders);
     setThresholdEnabled(settings.approvalThresholdPaise != null);
     setThresholdRupees(
@@ -99,7 +103,7 @@ function OrderApprovalSettings({
         : "2000",
     );
     setDirty(false);
-  }, [settings]);
+  }
 
   async function handleSave() {
     await onSave({
@@ -253,13 +257,12 @@ export function IntegrationPartnerPage({ partner }: { partner: McpIntegrationPar
     }
   }, [activeFamilyId, partner]);
 
-  useEffect(() => {
-    void load();
-  }, [load]);
+  useRun(load);
 
   useEffect(() => {
     const result = searchParams.get(partner);
     const message = searchParams.get("message");
+    const t = setTimeout(() => {
     if (result === "connected") {
       setBanner({
         type: "success",
@@ -272,6 +275,8 @@ export function IntegrationPartnerPage({ partner }: { partner: McpIntegrationPar
         text: message ? decodeURIComponent(message) : `${meta.title} connection failed.`,
       });
     }
+    }, 0);
+    return () => clearTimeout(t);
   }, [searchParams, partner, meta.title, load]);
 
   async function handleConnect() {

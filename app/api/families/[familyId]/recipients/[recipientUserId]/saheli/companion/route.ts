@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { proxyAuthGet, proxyAuthPatch, proxyAuthPost } from "@/lib/auth-proxy";
+import { proxyAuthGet, proxyAuthPatch } from "@/lib/auth-proxy";
 
 type RouteParams = {
   params: Promise<{ familyId: string; recipientUserId: string }>;

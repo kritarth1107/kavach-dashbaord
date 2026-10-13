@@ -48,11 +48,14 @@ function CalendarPopover({
     () => new Date(selected.getFullYear(), selected.getMonth(), 1),
   );
 
-  useEffect(() => {
-    if (open) {
-      setViewMonth(new Date(selected.getFullYear(), selected.getMonth(), 1));
-    }
-  }, [open, selected]);
+  // opening the picker shows the selected day's month (adjusted while rendering, not in an effect)
+  const [openedAt, setOpenedAt] = useState<{ open: boolean; selected: Date } | null>(null);
+  if (open && (!openedAt?.open || openedAt.selected !== selected)) {
+    setOpenedAt({ open, selected });
+    setViewMonth(new Date(selected.getFullYear(), selected.getMonth(), 1));
+  } else if (!open && openedAt?.open) {
+    setOpenedAt({ open: false, selected });
+  }
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {

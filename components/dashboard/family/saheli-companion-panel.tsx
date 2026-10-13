@@ -1,7 +1,7 @@
 "use client";
 
 import { AlertTriangle, Bell, Heart, Loader2, Moon, Sparkles, Sun } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import {
   correctFamilyMemory,
   forgetFamilyMemory,
@@ -17,6 +17,7 @@ import {
 } from "@/lib/api";
 import { useFamily } from "@/components/dashboard/family-context";
 import { SaheliMemoryPanel } from "@/components/dashboard/family/saheli-memory-panel";
+import { useRun } from "@/lib/use-run";
 
 type SaheliCompanionPanelProps = {
   recipientUserId: string;
@@ -102,9 +103,7 @@ export function SaheliCompanionPanel({
     }
   }, [activeFamilyId, recipientUserId]);
 
-  useEffect(() => {
-    void load();
-  }, [load]);
+  useRun(load);
 
   async function saveProfile(patch: Partial<SaheliCompanionProfile>) {
     if (!activeFamilyId || !profile) return;

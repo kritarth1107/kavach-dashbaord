@@ -4,7 +4,6 @@ import {
   createContext,
   useCallback,
   useContext,
-  useEffect,
   useMemo,
   useState,
 } from "react";
@@ -18,6 +17,7 @@ import {
   type CareSchedulePayload,
 } from "@/lib/api";
 import { useFamily } from "@/components/dashboard/family-context";
+import { useRun } from "@/lib/use-run";
 
 type CareScheduleContextValue = {
   schedules: CareScheduleItem[];
@@ -71,9 +71,7 @@ export function CareRecipientScheduleProvider({
     }
   }, [activeFamilyId, recipientUserId]);
 
-  useEffect(() => {
-    void refresh();
-  }, [refresh]);
+  useRun(refresh);
 
   const addSchedule = useCallback(
     async (payload: CareSchedulePayload) => {

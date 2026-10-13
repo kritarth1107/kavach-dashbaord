@@ -1,7 +1,7 @@
 "use client";
 
 import { Loader2 } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import {
   approveOrder,
   getOrderHistory,
@@ -12,6 +12,7 @@ import {
 } from "@/lib/api";
 import { useFamily } from "@/components/dashboard/family-context";
 import { canApproveOrders } from "@/components/dashboard/family/family-data";
+import { useRun } from "@/lib/use-run";
 
 function partnerDisplay(order: PendingOrder): { label: string; openLabel: string } {
   const raw = (order.partner_label || order.partner || "").toLowerCase();
@@ -70,9 +71,7 @@ export function ApprovalsPage() {
     }
   }, [activeFamilyId]);
 
-  useEffect(() => {
-    void load();
-  }, [load]);
+  useRun(load);
 
   async function handleApproveAndPlace(order: PendingOrder) {
     if (!activeFamilyId || !canApprove) return;

@@ -4,7 +4,6 @@ import Link from "next/link";
 import {
   ChevronRight,
   Heart,
-  Loader2,
   Mail,
   MapPin,
   Pencil,

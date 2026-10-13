@@ -1,9 +1,10 @@
 "use client";
 
 import { Loader2 } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { getFamilyActivity, type ActivityItem } from "@/lib/api";
 import { useFamily } from "@/components/dashboard/family-context";
+import { useRun } from "@/lib/use-run";
 
 export function ActivityLogPage() {
   const { activeFamilyId } = useFamily();
@@ -26,9 +27,7 @@ export function ActivityLogPage() {
     }
   }, [activeFamilyId]);
 
-  useEffect(() => {
-    void load();
-  }, [load]);
+  useRun(load);
 
   if (!activeFamilyId) {
     return (

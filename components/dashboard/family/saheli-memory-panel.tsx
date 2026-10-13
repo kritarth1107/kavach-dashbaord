@@ -1,7 +1,7 @@
 "use client";
 
 import { Loader2 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
   correctFamilyMemory,
   forgetFamilyMemory,
@@ -12,6 +12,7 @@ import {
   type SaheliMemoryEntityHit,
 } from "@/lib/api";
 import { useFamily } from "@/components/dashboard/family-context";
+import { useRun } from "@/lib/use-run";
 
 const KIND_LABELS: Record<string, string> = {
   medication: "Medicines",
@@ -69,9 +70,7 @@ export function SaheliMemoryPanel({ recipientUserId }: SaheliMemoryPanelProps) {
     }
   }, [activeFamilyId, recipientUserId]);
 
-  useEffect(() => {
-    void load();
-  }, [load]);
+  useRun(load);
 
   async function openEntity(slug: string) {
     if (!activeFamilyId) return;

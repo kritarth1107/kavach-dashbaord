@@ -35,7 +35,7 @@ jobs:
           npm ci
           npx next typegen   # route types (LayoutProps, PageProps) live in .next/, not in git
           npx tsc --noEmit -p .
-          npx eslint . --max-warnings=200
+          npx eslint . --max-warnings=0
           npm run test:records
           npm run test:memory   # the Memory page mounts with every change kind; a broken panel is contained
 

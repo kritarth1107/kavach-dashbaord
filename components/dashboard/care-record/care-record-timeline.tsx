@@ -1,8 +1,9 @@
 "use client";
 
 import { Loader2 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { getCareRecordTimeline, type CareRecordEventItem } from "@/lib/api";
+import { useRun } from "@/lib/use-run";
 
 const FILTERS = ["all", "dose", "vital", "symptom", "check_in", "order", "message"] as const;
 
@@ -28,9 +29,7 @@ export function CareRecordTimeline({ familyId, subjectUserId }: CareRecordTimeli
     }
   }, [familyId, subjectUserId]);
 
-  useEffect(() => {
-    void load();
-  }, [load]);
+  useRun(load);
 
   const filtered = useMemo(() => {
     if (filter === "all") return events;

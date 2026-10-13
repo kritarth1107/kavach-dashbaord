@@ -47,11 +47,15 @@ export function MemberFormModal({
   const [error, setError] = useState("");
   const isEdit = mode === "edit";
 
-  useEffect(() => {
-    if (!open) return;
+  // a fresh form each time it opens (adjusted while rendering, not in an effect)
+  const [openedFor, setOpenedFor] = useState<{ open: boolean; data: typeof initialData } | null>(null);
+  if (open && (!openedFor?.open || openedFor.data !== initialData)) {
+    setOpenedFor({ open, data: initialData });
     setForm(initialData ?? emptyMemberForm);
     setError("");
-  }, [open, initialData]);
+  } else if (!open && openedFor?.open) {
+    setOpenedFor({ open: false, data: initialData });
+  }
 
   useEffect(() => {
     if (!open) return;

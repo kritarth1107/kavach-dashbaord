@@ -30,6 +30,7 @@ import {
 import { countryCodeOptions } from "@/components/dashboard/family/form-options";
 import { cn } from "@/lib/utils";
 import { useFamily } from "@/components/dashboard/family-context";
+import { useRun } from "@/lib/use-run";
 
 type SettingsTab = "profile" | "security" | "sessions" | "notifications";
 
@@ -261,12 +262,12 @@ export function SettingsPage() {
     }
   }, []);
 
-  useEffect(() => {
-    void loadProfile();
-  }, [loadProfile]);
+  useRun(loadProfile);
 
   useEffect(() => {
-    if (tab === "sessions") void loadSessions();
+    if (tab !== "sessions") return;
+    const t = setTimeout(() => void loadSessions(), 0);
+    return () => clearTimeout(t);
   }, [tab, loadSessions]);
 
   useEffect(() => {

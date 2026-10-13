@@ -83,8 +83,9 @@ function attachSessionCookie(response: NextResponse, data: AuthPayload) {
 }
 
 function stripToken<T extends AuthPayload>(data: T): Omit<T, "token"> {
-  const { token: _token, ...rest } = data;
-  return rest;
+  const rest: Partial<T> = { ...data };
+  delete rest.token;
+  return rest as Omit<T, "token">;
 }
 
 /** `timeoutMs` for slow writes (a report read takes 15 to 40 seconds); defaults to the normal write timeout. */

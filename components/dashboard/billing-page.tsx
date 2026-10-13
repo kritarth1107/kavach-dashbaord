@@ -1,10 +1,11 @@
 "use client";
 
 import { Loader2 } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import Link from "next/link";
 import { useFamily } from "@/components/dashboard/family-context";
 import { getOrderHistory, type OrderHistoryItem } from "@/lib/api";
+import { useRun } from "@/lib/use-run";
 
 export function BillingPage() {
   const { activeFamilyId } = useFamily();
@@ -28,9 +29,7 @@ export function BillingPage() {
     }
   }, [activeFamilyId]);
 
-  useEffect(() => {
-    void load();
-  }, [load]);
+  useRun(load);
 
   return (
     <div className="space-y-4">

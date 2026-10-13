@@ -1,13 +1,14 @@
 "use client";
 
 import { Loader2, Sun } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { getRecipientBriefing, type RecipientBriefing } from "@/lib/api";
 import { useFamily } from "@/components/dashboard/family-context";
 import { useOptionalCareSchedule } from "./care-recipient-schedule-context";
 import { getActiveSchedulesForDate } from "./care-schedule-data";
 import { useOptionalRecipientDate } from "@/components/dashboard/recipient/recipient-date-context";
 import { formatDayLabel, isIsoOnDate } from "@/lib/date-utils";
+import { useRun } from "@/lib/use-run";
 
 export function formatWhen(iso: string | null) {
   if (!iso) return "Not yet";
@@ -36,7 +37,8 @@ export function MorningBriefingCard({
   const { activeFamilyId } = useFamily();
   const dateCtx = useOptionalRecipientDate();
   const scheduleCtx = useOptionalCareSchedule();
-  const selectedDate = dateCtx?.selectedDate ?? new Date();
+  const [fallbackDate] = useState(() => new Date());
+  const selectedDate = dateCtx?.selectedDate ?? fallbackDate;
   const isToday = dateCtx?.isToday ?? true;
   const [briefing, setBriefing] = useState<RecipientBriefing | null>(null);
   const [loading, setLoading] = useState(true);
@@ -63,9 +65,7 @@ export function MorningBriefingCard({
     }
   }, [activeFamilyId, recipientUserId, isToday]);
 
-  useEffect(() => {
-    void load();
-  }, [load]);
+  useRun(load);
 
   const dateLabel = formatDayLabel(selectedDate);
   const pendingCount = isToday

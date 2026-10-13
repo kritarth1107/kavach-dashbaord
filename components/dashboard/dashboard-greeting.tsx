@@ -52,7 +52,10 @@ export function DashboardGreeting({
 
   // Server render has no idea of the viewer's clock: re-compute after mount (browser zone).
   const [now, setNow] = useState(() => new Date());
-  useEffect(() => setNow(new Date()), []);
+  useEffect(() => {
+    const t = setTimeout(() => setNow(new Date()), 0);
+    return () => clearTimeout(t);
+  }, []);
   const greeting = getTimeGreeting(now);
   const heading = name ? `${greeting}, ${name}` : greeting;
 

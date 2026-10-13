@@ -23,7 +23,8 @@ export function CareScheduleSection({ subjectName }: CareScheduleSectionProps) {
   const { schedules, loading, saving, canManage, addSchedule, updateSchedule, removeSchedule } =
     useCareSchedule();
   const dateCtx = useOptionalRecipientDate();
-  const selectedDate = dateCtx?.selectedDate ?? new Date();
+  const [fallbackDate] = useState(() => new Date());
+  const selectedDate = dateCtx?.selectedDate ?? fallbackDate;
   const dateLabel = formatDayLabel(selectedDate);
   const [modalOpen, setModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<"add" | "edit">("add");

@@ -1,7 +1,7 @@
 "use client";
 
 import { Check, Clock, Loader2, X } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   getRecipientBriefing,
   setScheduleCompletion,
@@ -12,6 +12,7 @@ import { useFamily } from "@/components/dashboard/family-context";
 import { toDateKey } from "@/lib/date-utils";
 import { cn } from "@/lib/utils";
 import { getScheduleTypeMeta } from "./care-schedule-data";
+import { useRun } from "@/lib/use-run";
 
 const statusMeta: Record<
   ScheduleDayStatus,
@@ -67,6 +68,12 @@ export function CareScheduleDayList({
 
   const dateKey = toDateKey(selectedDate);
 
+  // the latest callback without reloading when the parent passes a new function each render
+  const statsRef = useRef(onStatsChange);
+  useEffect(() => {
+    statsRef.current = onStatsChange;
+  });
+
   const load = useCallback(async () => {
     if (!activeFamilyId || !recipientUserId) {
       setItems([]);
@@ -80,7 +87,7 @@ export function CareScheduleDayList({
       const { data } = await getRecipientBriefing(activeFamilyId, recipientUserId, dateKey);
       const statuses = data?.scheduleStatuses ?? [];
       setItems(statuses);
-      onStatsChange?.({
+      statsRef.current?.({
         completedCount: data?.completedCount ?? 0,
         missedCount: data?.missedCount ?? 0,
         upcomingCount: data?.upcomingCount ?? 0,
@@ -94,9 +101,7 @@ export function CareScheduleDayList({
     }
   }, [activeFamilyId, recipientUserId, dateKey]);
 
-  useEffect(() => {
-    void load();
-  }, [load]);
+  useRun(load);
 
   async function markItem(
     scheduleId: string,

@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  ArrowRight,
   CheckCircle2,
   Clock,
   MessageCircle,
@@ -10,7 +9,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { DashboardGreeting } from "@/components/dashboard/dashboard-greeting";
 import { CommandCenterHome } from "@/components/dashboard/home/command-center";
 import { MorningBriefingCard, formatWhen } from "@/components/dashboard/family/morning-briefing-card";
@@ -28,6 +27,7 @@ import {
   isCareRecipientRole,
 } from "@/components/dashboard/family/family-data";
 import { cn } from "@/lib/utils";
+import { useRun } from "@/lib/use-run";
 
 function firstName(name: string): string {
   return name.trim().split(/\s+/).filter((p) => p !== "Mrs.")[0] || name || "them";
@@ -190,9 +190,7 @@ export function CaregiverDashboardHome() {
     }
   }, [activeFamilyId]);
 
-  useEffect(() => {
-    void load();
-  }, [load]);
+  useRun(load);
 
   const who = firstName(recipientName);
   const subtitle = useMemo(

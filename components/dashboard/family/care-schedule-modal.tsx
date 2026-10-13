@@ -39,11 +39,15 @@ export function CareScheduleModal({
   const isEdit = mode === "edit";
   const showDosage = form.type === "MEDICINE";
 
-  useEffect(() => {
-    if (!open) return;
+  // a fresh form each time it opens (adjusted while rendering, not in an effect)
+  const [openedFor, setOpenedFor] = useState<{ open: boolean; item: typeof initialItem } | null>(null);
+  if (open && (!openedFor?.open || openedFor.item !== initialItem)) {
+    setOpenedFor({ open, item: initialItem });
     setForm(initialItem ? scheduleToForm(initialItem) : emptyScheduleForm());
     setError("");
-  }, [open, initialItem]);
+  } else if (!open && openedFor?.open) {
+    setOpenedFor({ open: false, item: initialItem });
+  }
 
   useEffect(() => {
     if (!open) return;
