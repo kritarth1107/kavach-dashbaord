@@ -8,6 +8,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Alarm, ArrowsClockwise, CheckCircle, Prohibit, SkipForward, X } from "@phosphor-icons/react";
 import {
   changeReminder,
+  deliveryTicks,
   getReminderDay,
   listReminders,
   skipReminder,
@@ -30,6 +31,24 @@ export const STATUS_WORD: Record<ReminderOccurrence["status"], string> = {
   skipped: "Skipped",
   done: "Already done",
 };
+
+/** WhatsApp's ticks for a sent reminder, as WhatsApp draws them: ✓ sent, ✓✓ delivered, ✓✓ in blue once read. */
+export function Ticks({ delivery }: { delivery?: ReminderOccurrence["delivery"] }) {
+  const t = deliveryTicks(delivery);
+  if (!t || !t.ticks) return null;
+  return (
+    <span title={`WhatsApp: ${t.word}`} aria-label={`WhatsApp: ${t.word}`} className={cn("ml-1 font-semibold tracking-[-0.12em]", t.read ? "text-[#34b7f1]" : "text-[var(--c-ink-3)]")}>
+      {t.ticks}
+    </span>
+  );
+}
+
+/** "sent ✓✓ read" for places that hold plain text. */
+export function deliveryText(o: Pick<ReminderOccurrence, "status" | "delivery">): string {
+  const t = deliveryTicks(o.delivery);
+  if (o.status !== "sent" || !t) return o.status === "sent" ? " ✓" : "";
+  return t.ticks ? ` ${t.ticks}${t.word === "sent" ? "" : ` ${t.word}`}` : ` (${t.word})`;
+}
 
 export function dayWord(day: string, today: string): string {
   if (day === today) return "today";
@@ -263,12 +282,20 @@ export function ReminderDetail({
           )}
           <dt className="text-[var(--c-ink-2)]">{day === today ? "Today" : dayWord(day, today)}</dt>
           <dd className="font-medium">
-            {mine.length
-              ? mine
-                  .slice(0, 6)
-                  .map((o) => `${o.time} ${(STATUS_WORD[o.status] ?? String(o.status).replace(/_/g, " ")).toLowerCase()}${o.status === "sent" ? " ✓" : ""}`)
-                  .join(" · ") + (mine.length > 6 ? ` · +${mine.length - 6}` : "")
-              : "nothing this day"}
+            {mine.length ? (
+              <>
+                {mine.slice(0, 6).map((o, i) => (
+                  <span key={o.time}>
+                    {i > 0 && " · "}
+                    {o.time} {(STATUS_WORD[o.status] ?? String(o.status).replace(/_/g, " ")).toLowerCase()}
+                    {o.status === "sent" && <Ticks delivery={o.delivery ?? "sent"} />}
+                  </span>
+                ))}
+                {mine.length > 6 ? ` · +${mine.length - 6}` : ""}
+              </>
+            ) : (
+              "nothing this day"
+            )}
           </dd>
           {active && (
             <>
@@ -308,7 +335,12 @@ export function ReminderDetail({
         )}
         {editing && <ChangeEditor reminder={reminder} busy={!!a.busy} onCancel={() => setEditing(false)} onSave={(c) => a.change(reminder, c).then((ok) => ok && setEditing(false))} />}
         {a.err && <p className="mt-2 text-[12px] text-[#b4232a]">{a.err}</p>}
-        {sentNow.length > 0 && <p className="mt-2 flex items-center gap-1 text-[11.5px] text-[var(--c-ink-2)]"><CheckCircle size={12} weight="fill" /> Sent on WhatsApp</p>}
+        {sentNow.length > 0 && (
+          <p className="mt-2 flex items-center gap-1 text-[11.5px] text-[var(--c-ink-2)]">
+            <CheckCircle size={12} weight="fill" />
+            {sentNow.some((o) => o.delivery === "read") ? "Read on WhatsApp" : sentNow.some((o) => o.delivery === "delivered") ? "Delivered on WhatsApp (not read yet)" : "Sent on WhatsApp"}
+          </p>
+        )}
         <p className="mt-2 text-[11.5px] leading-relaxed text-[var(--c-ink-2)]">Same on WhatsApp: tell Saheli &quot;skip it tomorrow&quot;, &quot;change it to 7 pm&quot; or &quot;stop this reminder&quot;.</p>
       </div>
       {confirm && <StopDialog reminder={reminder} busy={!!a.busy} onCancel={() => setConfirm(false)} onStop={() => a.stop(reminder).then((ok) => ok && setConfirm(false))} />}

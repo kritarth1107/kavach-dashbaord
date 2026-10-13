@@ -22,7 +22,7 @@ import { closeLoop, resolveFact, type CareEvent } from "@/lib/care-memory-api";
 import { useCareOverview } from "@/components/dashboard/saheli/saheli-shared";
 import { cn } from "@/lib/utils";
 import { callName, possessive, usePerson } from "./person-context";
-import { AllReminders, ReminderDetail, STATUS_WORD, useAllReminders, useReminderDay } from "./reminders-panel";
+import { AllReminders, deliveryText, ReminderDetail, STATUS_WORD, useAllReminders, useReminderDay } from "./reminders-panel";
 import { Panel, PanelTitle, PillTabs, SmallButton, Tag } from "./ui";
 
 const IST = "Asia/Kolkata";
@@ -271,7 +271,7 @@ export function DayCalendarPage() {
         lane: "reminders",
         start: h * 60 + m,
         title: o.text,
-        sub: `${STATUS_WORD[o.status]}${o.status === "sent" ? " ✓" : ""} · ${o.schedule}`,
+        sub: `${STATUS_WORD[o.status]}${deliveryText(o)} · ${o.schedule}`,
         look: reminderLook(o.status),
         planned: o.status === "scheduled",
         reminderId: o.reminderId,

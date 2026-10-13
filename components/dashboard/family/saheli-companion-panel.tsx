@@ -381,7 +381,16 @@ export function SaheliCompanionPanel({
                   <p className="text-[10px] font-bold uppercase tracking-wide text-[var(--text-tertiary)]">
                     {NUDGE_LABELS[n.nudgeKind] ?? n.nudgeKind}
                     {" · "}
-                    {n.doseStatus ?? (n.delivered ? "sent" : "failed")}
+                    {n.delivery === "read" ? "read" : n.delivery === "delivered" ? "delivered" : n.doseStatus ?? (n.delivered ? "sent" : "failed")}
+                    {n.delivery && n.delivery !== "failed" ? (
+                      <span
+                        aria-label={`WhatsApp: ${n.delivery}`}
+                        title={`WhatsApp: ${n.delivery}`}
+                        className={n.delivery === "read" ? "ml-1 tracking-[-0.12em] text-[#34b7f1]" : "ml-1 tracking-[-0.12em]"}
+                      >
+                        {n.delivery === "sent" ? "✓" : "✓✓"}
+                      </span>
+                    ) : null}
                   </p>
                   {n.messagePreview ? (
                     <p className="mt-0.5 text-[11px] text-[var(--text-secondary)]">

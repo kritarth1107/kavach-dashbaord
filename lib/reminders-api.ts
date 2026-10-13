@@ -31,6 +31,18 @@ export type Reminder = {
   stoppedBy: string | null;
 };
 
+/** WhatsApp's own receipt for a message Saheli sent (trust plan B1.3). */
+export type DeliveryState = "sent" | "delivered" | "read" | "failed";
+
+/** ✓ sent (Meta took it), ✓✓ delivered (on their phone), ✓✓ read (blue, as in WhatsApp), or not delivered. */
+export function deliveryTicks(d?: DeliveryState | null): { ticks: string; word: string; read: boolean } | null {
+  if (d === "read") return { ticks: "✓✓", word: "read", read: true };
+  if (d === "delivered") return { ticks: "✓✓", word: "delivered", read: false };
+  if (d === "sent") return { ticks: "✓", word: "sent", read: false };
+  if (d === "failed") return { ticks: "", word: "not delivered", read: false };
+  return null;
+}
+
 export type ReminderOccurrence = {
   reminderId: string;
   text: string;
@@ -42,6 +54,8 @@ export type ReminderOccurrence = {
   /** More than three times that day (an hourly one): drawn smaller. */
   many: boolean;
   stopped: boolean;
+  /** WhatsApp's receipt for a sent (or failed) one: ✓ sent, ✓✓ delivered, read (blue). */
+  delivery?: DeliveryState;
 };
 
 export type ReminderDay = { day: string; occurrences: ReminderOccurrence[]; reminders: Reminder[] };

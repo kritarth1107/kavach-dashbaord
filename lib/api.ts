@@ -1179,6 +1179,10 @@ export type SaheliCompanionActivity = {
     channel?: string;
     reason?: string | null;
     doseStatus?: "sent" | "skipped" | "failed";
+    /** WhatsApp's own receipt: ✓ sent, ✓✓ delivered (on the phone), ✓✓ read (blue), failed. */
+    delivery?: "sent" | "delivered" | "read" | "failed" | null;
+    deliveredAt?: string | null;
+    readAt?: string | null;
     createdAt: string | null;
   }>;
   escalations: Array<{
