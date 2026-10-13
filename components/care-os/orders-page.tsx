@@ -7,12 +7,12 @@
 
 import { CaretRight, Car, CheckCircle, Circle, Clock, ShoppingBag, SpinnerGap, X } from "@phosphor-icons/react";
 import { useMemo, useState } from "react";
-import { cancelTask, taskInput, type CareTask } from "@/lib/care-memory-api";
+import { cancelTask, forPerson, taskInput, type CareTask } from "@/lib/care-memory-api";
 import { cn } from "@/lib/utils";
 import { AccessGate, useRecipientSelection } from "@/components/dashboard/activity/activity-shared";
 import { Banner, useAction, useCareOverview } from "@/components/dashboard/saheli/saheli-shared";
 import { PageHeading, SideDrawer } from "./care-kit";
-import { possessive, usePerson } from "./person-context";
+import { callName, possessive, usePerson } from "./person-context";
 import { ServiceLogo } from "./service-logo";
 import { Panel, PanelTitle, PillTabs, SmallButton, Tag } from "./ui";
 
@@ -96,15 +96,16 @@ type Run = (id: string, fn: () => Promise<unknown>, ok?: string) => Promise<bool
 
 export function OrdersPage() {
   const sel = useRecipientSelection();
-  const { familyId, selectedId } = sel;
-  const { selected } = usePerson();
+  // the person picked in the switcher (URL, else the saved choice): the heading and the data are always the same person
+  const { familyId, selectedId, selected } = usePerson();
   const { data, error, loading, reload } = useCareOverview(familyId, selectedId, undefined, 10_000);
   const { busy, banner, run } = useAction();
   const [kind, setKind] = useState<"all" | "order" | "ride">("all");
   const [open, setOpen] = useState<string | null>(null);
   const [showAll, setShowAll] = useState(false);
 
-  const all = useMemo(() => data?.tasks ?? [], [data]);
+  // only what was placed for this person, never the rest of the family's (founder 2026-10-13)
+  const all = useMemo(() => forPerson(data?.tasks ?? [], selectedId), [data, selectedId]);
   const tasks = kind === "all" ? all : all.filter((t) => t.kind === kind);
   const { comparing, hidden } = compareGroups(tasks);
   const inCard = new Set(comparing.flat().map((t) => t.id));
@@ -126,7 +127,8 @@ export function OrdersPage() {
           <div>
             <PageHeading top={possessive(selected)} bottom="Orders & rides" />
             <p className="mt-3 max-w-xl text-[13.5px] text-[var(--c-ink-2)]">
-              Saheli uses the family&apos;s own accounts, cash on delivery only. Nothing is placed or booked without a yes.
+              {selected?.self ? "Only what was placed for you" : `Only what was placed for ${callName(selected) || "them"}`}, not the rest of the family&apos;s. Saheli uses the
+              family&apos;s own accounts, cash on delivery only. Nothing is placed or booked without a yes.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -156,7 +158,7 @@ export function OrdersPage() {
                 <ServiceLogo key={s} service={s} size={40} className="ring-2 ring-[var(--c-card)]" />
               ))}
             </div>
-            <p className="text-[16px] font-medium">No orders or rides yet</p>
+            <p className="text-[16px] font-medium">No orders or rides {selected?.self ? "for you" : `for ${callName(selected) || "them"}`} yet</p>
             <p className="max-w-sm text-[13px] text-[var(--c-ink-2)]">
               Ask Saheli on WhatsApp, e.g. &ldquo;order 1 kg atta&rdquo; or &ldquo;book a cab to the hospital at 10&rdquo;. Each one shows here with its status.
             </p>

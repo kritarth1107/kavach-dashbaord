@@ -36,6 +36,10 @@ const PAGES = [
   { name: "settings", path: "/dashboard/settings" },
   { name: "notifications", path: "/dashboard/notifications" },
   { name: "limits", path: "/dashboard/limits" },
+  { name: "spending", path: "/dashboard/spending" },
+  { name: "tasks", path: "/dashboard/tasks" },
+  { name: "approvals", path: "/dashboard/approvals" },
+  { name: "billing", path: "/dashboard/billing" },
   { name: "emergency-link", path: "/e/world-link", public: true },
   { name: "sign-in", path: "/auth/login", public: true },
 ].filter((p) => !process.env.PAGES_ONLY || process.env.PAGES_ONLY.split(",").includes(p.name));
@@ -66,6 +70,11 @@ function api(fam, url) {
   }
   if (p === `/api/families/${fid}/notifications`) return { notifications: [], unreadCount: 0 };
   if (p === `/api/families/${fid}/integrations`) return { whatsapp: { kavachNumber: "+919999900000" } };
+  if (p === `/api/families/${fid}/approvals/pending` || p === `/api/families/${fid}/orders/history`) {
+    const who = url.searchParams.get("subjectUserId");
+    // leakOrders: answer with every person's orders whatever was asked (the page must still show only the one asked for)
+    return { orders: (fam.orders || []).filter((o) => fam.leakOrders || !who || o.subject_user_id === who) };
+  }
   if (p === `/api/families/${fid}`) return { family: famRow };
   const cm = p.match(new RegExp(`^/api/families/${fid}/subjects/([^/]+)/care-memory(?:/(.+))?$`));
   if (cm) {
@@ -137,6 +146,148 @@ async function visit(ctx, fam, pg, width) {
   return { problems, missing: [...missing] };
 }
 
+// ── Every page is about the person picked in the switcher (founder 2026-10-13: on his mother's profile, Orders & rides
+// showed his own orders and rides). Two people with different orders; switching person shows only theirs. Maa's
+// answers also carry one of his orders, as the engine sent before the fix: the page must still leave it out.
+const SCOPE_MAA = "5c09e000-0000-4000-8000-00000000a001";
+const SCOPE_SON = "5c09e000-0000-4000-8000-00000000a002";
+function scopeFamily(base = world.families[0], { leak = true, oldEngine = false } = {}) {
+  const at = new Date(Date.now() - 2 * 3600_000).toISOString();
+  const task = (id, subjectId, goal, kind, service, serviceLabel, total) => ({
+    id, ...(oldEngine ? {} : { subjectId }), service, serviceLabel, kind, goal, details: {}, status: "done", phase: "place", inputNeeded: null,
+    cancelRequested: false, result: kind === "ride" ? { booked: true, total } : { placed: true, total }, history: [], requestedBy: SCOPE_SON,
+    hasLiveView: false, createdAt: at, updatedAt: at, audit: [],
+  });
+  const maaOrder = task("5c09e000-0000-4000-8000-0000000000b1", SCOPE_MAA, "Sugar and atta for Maa", "order", "instamart", "Instamart", "₹240");
+  const sonOrder = task("5c09e000-0000-4000-8000-0000000000b2", SCOPE_SON, "Protein bars for Ravi", "order", "zepto", "Zepto", "₹300");
+  const sonRide = task("5c09e000-0000-4000-8000-0000000000b3", SCOPE_SON, "Cab to the office", "ride", "uber", "Uber", "₹250");
+  const spend = (items) => ({ month: at.slice(0, 7), total: items.reduce((n, t) => n + Number(t.result.total.slice(1)), 0), count: items.length,
+    byService: Object.fromEntries(items.map((t) => [t.service, Number(t.result.total.slice(1))])), byPerson: {},
+    byKind: Object.fromEntries(items.map((t) => [t.kind, Number(t.result.total.slice(1))])),
+    items: items.map((t) => ({ at: t.createdAt, service: t.service, kind: t.kind, goal: t.goal, subjectId: t.subjectId ?? SCOPE_MAA, total: Number(t.result.total.slice(1)) })) });
+  const answers = Object.values(base.engine)[0];
+  const forPerson = (tasks, spent) => ({
+    ...structuredClone(answers),
+    overview: { ...structuredClone(answers.overview), tasks },
+    home: { ...structuredClone(answers.home), tasks, needsYou: [] },
+    spending: spend(spent),
+  });
+  // the old engine answered every person's page with the whole family's orders
+  const family = [sonRide, sonOrder, maaOrder];
+  return {
+    id: "person-scope", household: "caregiver + mother", leakOrders: leak, language: "en", familyId: "5c09e000-0000-4000-8000-0000000000f1", shapes: [], places: [],
+    people: [
+      { id: SCOPE_MAA, backendRole: "CARE_RECIPIENT", careRecipient: true, first: "Kamla", surname: "Devi", name: "Kamla Devi", key: "maa", relation: "Mother", city: "Pune", phone: "+919000000201" },
+      { id: SCOPE_SON, backendRole: "PRIMARY_CAREGIVER", careRecipient: false, first: "Ravi", surname: "Kumar", name: "Ravi Kumar", key: "self", relation: "self", city: "Pune", phone: "+919000000202" },
+    ],
+    engine: {
+      [SCOPE_MAA]: forPerson(oldEngine ? family : leak ? [maaOrder, sonOrder] : [maaOrder], oldEngine ? family : [maaOrder]),
+      [SCOPE_SON]: forPerson(oldEngine ? family : [sonRide, sonOrder], oldEngine ? family : [sonOrder, sonRide]),
+    },
+    orders: [
+      { order_id: "o-maa", status: "awaiting_approval", partner: "zepto", partner_label: "Zepto", total_paise: 24000, items: [{ name: "Sugar for Maa", quantity: 1, unitPricePaise: 24000 }], subject_user_id: SCOPE_MAA, created_at: at },
+      { order_id: "o-son", status: "awaiting_approval", partner: "zepto", partner_label: "Zepto", total_paise: 30000, items: [{ name: "Protein bars for Ravi", quantity: 1, unitPricePaise: 30000 }], subject_user_id: SCOPE_SON, created_at: at },
+    ],
+  };
+}
+
+/** Opens a page of the scope family; returns the page, every person an engine read was asked for, and page errors. */
+async function scopePage(browser, fam, pathAndQuery, { stored } = {}) {
+  const ctx = await browser.newContext({ viewport: { width: 1440, height: 1000 }, timezoneId: "Asia/Kolkata", locale: "en-IN" });
+  await ctx.addCookies([{ name: "kavach_session", value: "world", url: BASE }]);
+  if (stored) await ctx.addInitScript(([k, v]) => window.localStorage.setItem(k, v), [`kavach:person:${fam.familyId}`, stored]);
+  const page = await ctx.newPage();
+  const asked = [];
+  const errors = [];
+  page.on("pageerror", (e) => errors.push(e.message.slice(0, 160)));
+  await page.route(/^https?:\/\/[^/]+\/api\//, (r) => {
+    const u = new URL(r.request().url());
+    if (u.pathname === "/api/client-error") return r.fulfill({ status: 204 });
+    if (u.pathname === "/api/auth/session") return r.fulfill({ json: { user: { name: "Ravi Kumar", email: "self@world.kavach.test" }, expires: "2099-01-01T00:00:00.000Z" } });
+    if (u.pathname.startsWith("/api/auth/") && u.pathname !== "/api/auth/me") return r.fulfill({ json: {} });
+    const m = u.pathname.match(/\/subjects\/([^/]+)\/care-memory\/(overview|home|spending|work|boundaries)$/);
+    if (m) asked.push(`${m[2]}:${m[1]}`);
+    if (r.request().method() !== "GET") return r.fulfill({ json: { success: true, data: {} } });
+    const data = api(fam, u);
+    return data === undefined ? r.fulfill({ status: 404, json: { success: false } }) : r.fulfill({ json: { success: true, data } });
+  });
+  await page.goto(`${BASE}${pathAndQuery}`, { waitUntil: "networkidle", timeout: 90000 });
+  return { ctx, page, asked, errors };
+}
+
+// PAGES_SCOPE_ENGINE=old answers as the engine did before the fix (every page: the whole family's orders, no person on
+// them) and new as it does now; the default adds one leaked order to Maa's answers to prove the page's own guard.
+async function personScope(browser) {
+  const mode = process.env.PAGES_SCOPE_ENGINE || "leak";
+  const fam = scopeFamily(world.families[0], { leak: mode === "leak", oldEngine: mode === "old" });
+  const shot = (page, name) => (process.env.PAGES_SHOTS ? page.screenshot({ path: path.join(OUT, `person-scope-${name}.png`), fullPage: true }) : null);
+  const problems = [];
+  const check = (cond, what) => !cond && problems.push(what);
+  const text = (page) => page.evaluate(() => document.body.innerText || "");
+  const show = async (page, words) => page.getByText(words).first().waitFor({ timeout: 20000 }).then(() => true, () => false);
+
+  // 1. Orders & rides on his mother's profile: her order only, never his order or his ride
+  let v = await scopePage(browser, fam, `/dashboard/saheli/tasks?recipient=${SCOPE_MAA}`);
+  check(await show(v.page, "Sugar and atta for Maa"), "orders (Maa): her order is not shown");
+  let t = await text(v.page);
+  check(!t.includes("Protein bars for Ravi"), "orders (Maa): HIS order shows on her page");
+  check(!t.includes("Cab to the office"), "orders (Maa): HIS ride shows on her page");
+  check(/Maa.s\s+Orders & rides/.test(t), "orders (Maa): the heading is not hers");
+  await shot(v.page, "orders-maa");
+  // 2. switch to his own self care in the person switcher: only his
+  await v.page.getByRole("button", { name: /Switch person/ }).first().click();
+  await v.page.getByRole("option", { name: /Ravi Kumar/ }).first().click();
+  check(await show(v.page, "Cab to the office"), "orders (switched to self): his ride is not shown");
+  await v.page.waitForTimeout(600);
+  t = await text(v.page);
+  check(t.includes("Protein bars for Ravi"), "orders (switched to self): his order is not shown");
+  check(!t.includes("Sugar and atta for Maa"), "orders (switched to self): HER order shows on his page");
+  check(/Your\s+Orders & rides/.test(t), "orders (switched to self): the heading is not his");
+  check(!v.errors.length, `orders: page error ${v.errors[0]}`);
+  await shot(v.page, "orders-self");
+  await v.ctx.close();
+
+  // 3. arriving without ?recipient= after picking himself earlier: the data is asked for him only, never first for her
+  v = await scopePage(browser, fam, "/dashboard/saheli/tasks", { stored: SCOPE_SON });
+  check(await show(v.page, "Cab to the office"), "orders (saved choice: self): his ride is not shown");
+  await v.page.waitForTimeout(600);
+  t = await text(v.page);
+  check(!t.includes("Sugar and atta for Maa"), "orders (saved choice: self): HER order shows");
+  check(!v.asked.includes(`overview:${SCOPE_MAA}`), `orders (saved choice: self): her orders were fetched for his page (${v.asked.join(", ")})`);
+  await v.ctx.close();
+
+  // 4. Home on her profile: her errands only
+  v = await scopePage(browser, fam, `/dashboard?recipient=${SCOPE_MAA}`);
+  check(await show(v.page, "Sugar and atta for Maa"), "home (Maa): her order is not in Orders & rides");
+  t = await text(v.page);
+  check(!t.includes("Protein bars for Ravi"), "home (Maa): HIS order shows on her Home");
+  await shot(v.page, "home-maa");
+  await v.ctx.close();
+
+  // 5. Spending: hers, then his after the switch; the request is for the person on screen
+  v = await scopePage(browser, fam, `/dashboard/spending?recipient=${SCOPE_MAA}`);
+  check(await show(v.page, "Sugar and atta for Maa"), "spending (Maa): her order is not listed");
+  t = await text(v.page);
+  check(/Maa.s\s+Spending/.test(t) && !t.includes("By person"), "spending (Maa): not her own spending page");
+  check(!t.includes("Protein bars for Ravi") && !v.asked.includes(`spending:${SCOPE_SON}`), "spending (Maa): his spending shows");
+  await shot(v.page, "spending-maa");
+  await v.page.getByRole("button", { name: /Switch person/ }).first().click();
+  await v.page.getByRole("option", { name: /Ravi Kumar/ }).first().click();
+  check(await show(v.page, "Protein bars for Ravi"), "spending (switched to self): his order is not listed");
+  t = await text(v.page);
+  check(!t.includes("Sugar and atta for Maa"), "spending (switched to self): HER order shows");
+  await v.ctx.close();
+
+  // 6. Approvals (older order flow): only the selected person's
+  v = await scopePage(browser, fam, `/dashboard/approvals?recipient=${SCOPE_MAA}`);
+  check(await show(v.page, "Sugar for Maa"), "approvals (Maa): her order is not listed");
+  t = await text(v.page);
+  check(!t.includes("Protein bars for Ravi"), "approvals (Maa): HIS order shows on her page");
+  await shot(v.page, "approvals-maa");
+  await v.ctx.close();
+  return problems;
+}
+
 (async () => {
   fs.mkdirSync(OUT, { recursive: true });
   const fams = world.families.slice(0, FAMILIES);
@@ -163,6 +314,11 @@ async function visit(ctx, fam, pg, width) {
     }
   }
   await Promise.all(Array.from({ length: PARALLEL }, worker));
+  if (!process.env.PAGES_ONLY || process.env.PAGES_ONLY.split(",").includes("person-scope")) {
+    const scope = await personScope(browser);
+    console.log(scope.length ? `person scope: ${scope.length} problems` : "person scope: every page showed only the selected person's");
+    for (const pr of scope) failures.push(`person-scope: ${pr}`);
+  }
   await browser.close();
   console.log(`${done} pages in ${Math.round((Date.now() - t0) / 1000)}s`);
   if (missingAll.size) {

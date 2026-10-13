@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { getDailySnapshot, type DailySnapshot } from "@/lib/activity-api";
 import { getFamilyIntegrations } from "@/lib/api";
-import { getCareHome, getPortrait, resolveFact, taskInput, type CareHomeSummary, type Portrait } from "@/lib/care-memory-api";
+import { forPerson, getCareHome, getPortrait, resolveFact, taskInput, type CareHomeSummary, type Portrait } from "@/lib/care-memory-api";
 import { DashboardHome } from "@/components/dashboard/dashboard-home";
 import { HomeV3 } from "./home-v3";
 import { callName, usePerson } from "./person-context";
@@ -104,11 +104,15 @@ export function CareHomePage() {
   }
   const member = members.find((m) => m.userId === selected.id);
   const phone = member?.phone ? `${member.phoneCountryCode ?? ""}${member.phone}` : null;
+  // only this person's orders and rides, and only their decisions (founder 2026-10-13: his own showed on his mother's page)
+  const tasks = forPerson(state.data.tasks, selected.id);
+  const others = new Set(state.data.tasks.filter((t) => !tasks.includes(t)).map((t) => t.id));
+  const needsYou = state.data.needsYou.filter((n) => !dismissed.includes(n.id) && !(n.kind === "task" && n.taskId && others.has(n.taskId)));
   return (
     <HomeV3
       person={{ id: selected.id, name: selected.name, callAs: callName(selected), self: !!selected.self, photo: selected.photo, phone }}
       me={(me.name || "").split(" ")[0]}
-      home={{ ...state.data, needsYou: state.data.needsYou.filter((n) => !dismissed.includes(n.id)) }}
+      home={{ ...state.data, tasks, needsYou }}
       portrait={state.portrait}
       saheliSays={state.snap?.summary?.trim() || null}
       kavachNumber={kavachNumber}

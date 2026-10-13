@@ -115,10 +115,18 @@ export type CareTask = {
   history: Array<{ at: string; phase: string; status: string; note: string }>;
   audit?: string[];
   requestedBy: string;
+  /** Who it was placed FOR (start_task's for_whom); missing from an engine before 2026-10-13. */
+  subjectId?: string;
   hasLiveView: boolean;
   createdAt: string;
   updatedAt: string;
 };
+
+/** Only the orders and rides placed for this person (founder 2026-10-13: his mother's page showed his own). The engine
+ *  already sends only theirs; this keeps a page right if an answer ever carries someone else's. */
+export function forPerson<T extends { subjectId?: string }>(tasks: T[], personId: string | null): T[] {
+  return personId ? tasks.filter((t) => !t.subjectId || t.subjectId === personId) : [];
+}
 
 export type MemoryNote = { subjectId: string; slug: string; title: string; body: string; version: number; updatedAt: string };
 

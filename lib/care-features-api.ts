@@ -385,7 +385,17 @@ export type BoundaryPolicy = {
   approvers: string[];
   members: Record<string, { can_order: boolean; can_ride: boolean }>;
 };
-export type ApprovalWaiting = { taskId: string; title: string; reasons?: string[]; approvers?: string[]; amount?: number | null; asked_at?: string; asked_by?: string };
+/** subjectId: who the order is for (only that person's waiting orders come for a person's page; missing before 2026-10-13). */
+export type ApprovalWaiting = {
+  taskId: string;
+  title: string;
+  subjectId?: string;
+  reasons?: string[];
+  approvers?: string[];
+  amount?: number | null;
+  asked_at?: string;
+  asked_by?: string;
+};
 export type Boundaries = {
   policy: BoundaryPolicy;
   plain: string;
@@ -416,6 +426,7 @@ export type WorkItem = {
   due_at: string | null;
   updated_at: string | null;
   requested_by: string | null;
+  /** Who the job is for: the person of the page, or "family" for one shared by the whole family. */
   subject: string;
   source: "task" | "loop";
   stuck: string | null;

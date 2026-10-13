@@ -4,37 +4,40 @@ import { Loader2 } from "lucide-react";
 import { useCallback, useState } from "react";
 import Link from "next/link";
 import { useFamily } from "@/components/dashboard/family-context";
+import { possessive, usePerson } from "@/components/care-os/person-context";
 import { getOrderHistory, type OrderHistoryItem } from "@/lib/api";
 import { useRun } from "@/lib/use-run";
 
 export function BillingPage() {
   const { activeFamilyId } = useFamily();
+  // only the selected person's orders (founder 2026-10-13: his mother's page showed his own)
+  const { selectedId, selected } = usePerson();
   const [orders, setOrders] = useState<OrderHistoryItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
-    if (!activeFamilyId) {
+    if (!activeFamilyId || !selectedId) {
       setOrders([]);
       setLoading(false);
       return;
     }
     setLoading(true);
     try {
-      const { data } = await getOrderHistory(activeFamilyId);
-      setOrders(data?.orders ?? []);
+      const { data } = await getOrderHistory(activeFamilyId, selectedId);
+      setOrders((data?.orders ?? []).filter((o) => o.subject_user_id === selectedId));
     } catch {
       setOrders([]);
     } finally {
       setLoading(false);
     }
-  }, [activeFamilyId]);
+  }, [activeFamilyId, selectedId]);
 
   useRun(load);
 
   return (
     <div className="space-y-4">
       <div className="panel-card p-5">
-        <h1 className="text-[18px] font-extrabold text-[var(--text-primary)]">Billing & orders</h1>
+        <h1 className="text-[18px] font-extrabold text-[var(--text-primary)]">Billing · {possessive(selected)} orders</h1>
         <p className="mt-1 text-[13px] text-[var(--text-tertiary)]">
           Care-commerce order history — approve and pay in{" "}
           <Link href="/dashboard/approvals" className="font-semibold text-primary hover:underline">

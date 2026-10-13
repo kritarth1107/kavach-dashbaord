@@ -5,5 +5,6 @@ type RouteParams = { params: Promise<{ familyId: string }> };
 
 export async function GET(req: NextRequest, { params }: RouteParams) {
   const { familyId } = await params;
-  return proxyAuthGet(req, `/api/families/${familyId}/approvals/pending`);
+  const qs = req.nextUrl.searchParams.toString(); // ?subjectUserId=: one person's orders
+  return proxyAuthGet(req, `/api/families/${familyId}/approvals/pending${qs ? `?${qs}` : ""}`);
 }

@@ -1,12 +1,13 @@
 "use client";
 
 import { CaretLeft, CaretRight, Car, Money, ShoppingBag, Wallet } from "@phosphor-icons/react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { getSpending, type Spending } from "@/lib/care-features-api";
 import { cn } from "@/lib/utils";
+import Link from "next/link";
 import { ErrorNote, IST, OnWhatsApp, PageHeading, parseIst, rupees, shortDate } from "./feature-kit";
-import { usePerson } from "./person-context";
-import { Avatar, Bars, IconCircle, Panel, PanelTitle, Tag } from "./ui";
+import { callName, possessive, usePerson } from "./person-context";
+import { Bars, IconCircle, Panel, PanelTitle, Tag } from "./ui";
 
 const SERVICE: Record<string, { name: string; logo?: string }> = {
   swiggy: { name: "Swiggy", logo: "/assets/brands/swiggy.png" },
@@ -56,17 +57,28 @@ function Share({ value, total, hi }: { value: number; total: number; hi?: boolea
 }
 
 export function SpendingPage() {
-  const { familyId, selectedId, people, members } = usePerson();
+  // one person's spending: only the orders and rides placed for them (founder 2026-10-13: his mother's page counted his)
+  const { familyId, selectedId, selected } = usePerson();
+  const name = selected?.self ? "you" : callName(selected) || "them";
   const [current] = useState(() => monthKey(new Date()));
   const [month, setMonth] = useState(current);
-  const [result, setResult] = useState<{ month: string; data: Spending | null; error: string } | null>(null);
+  const [result, setResult] = useState<{ key: string; data: Spending | null; error: string } | null>(null);
+  const key = `${selectedId}|${month}`;
+
+  const latest = useRef(key);
+  useEffect(() => {
+    latest.current = key;
+  }, [key]);
 
   const load = useCallback(async () => {
     if (!familyId || !selectedId) return;
+    const k = `${selectedId}|${month}`;
+    // an answer for a person or month no longer on screen is dropped (a slow one used to land on the next person)
+    const keep = (r: { key: string; data: Spending | null; error: string }) => latest.current === k && setResult(r);
     try {
-      setResult({ month, data: await getSpending(familyId, selectedId, month), error: "" });
+      keep({ key: k, data: await getSpending(familyId, selectedId, month), error: "" });
     } catch (e) {
-      setResult({ month, data: null, error: e instanceof Error ? e.message : "Couldn't load spending" });
+      keep({ key: k, data: null, error: e instanceof Error ? e.message : "Couldn't load spending" });
     }
   }, [familyId, selectedId, month]);
 
@@ -75,22 +87,12 @@ export function SpendingPage() {
     return () => clearTimeout(t);
   }, [load]);
 
-  const loading = !result || result.month !== month;
+  // keyed by person and month: the previous person's numbers never show while the next one's load
+  const loading = !result || result.key !== key;
   const data = loading ? null : result.data;
   const total = data?.total ?? 0;
 
-  const who = useCallback(
-    (id: string) => {
-      const p = people.find((x) => x.id === id);
-      if (p) return { name: p.self ? "You" : p.name, sub: p.self ? "self care" : p.relation, photo: p.photo };
-      const m = members.find((x) => x.userId === id);
-      return { name: m?.name ?? "Family", sub: m?.relationship, photo: m?.avatarUrl };
-    },
-    [people, members],
-  );
-
   const services = useMemo(() => Object.entries(data?.byService ?? {}).sort((a, b) => b[1] - a[1]), [data]);
-  const persons = useMemo(() => Object.entries(data?.byPerson ?? {}).sort((a, b) => b[1] - a[1]), [data]);
   const items = useMemo(() => [...(data?.items ?? [])].sort((a, b) => parseIst(b.at).getTime() - parseIst(a.at).getTime()), [data]);
   const weeks = useMemo(() => {
     const w = [0, 0, 0, 0, 0];
@@ -111,9 +113,18 @@ export function SpendingPage() {
   return (
     <div className="space-y-4">
       <PageHeading
-        light="Family"
+        light={possessive(selected)}
         dark="Spending"
-        sub="Everything Saheli ordered or booked for the family this month: groceries, medicines and rides."
+        sub={
+          <>
+            Everything Saheli ordered or booked for {name} this month: groceries, medicines and rides. Only {selected?.self ? "yours" : "theirs"}, not the rest of
+            the family&apos;s; the whole family&apos;s total is on{" "}
+            <Link href={`/dashboard/limits${selectedId ? `?recipient=${selectedId}` : ""}`} className="underline underline-offset-2">
+              Limits &amp; approvals
+            </Link>
+            .
+          </>
+        }
         right={
           <div className="flex items-center gap-2 self-start lg:self-auto">
             <IconCircle icon={CaretLeft} label="Previous month" onClick={() => setMonth((m) => shiftMonth(m, -1))} />
@@ -137,18 +148,18 @@ export function SpendingPage() {
             <Wallet size={24} />
           </span>
           <p className="mt-4 text-[18px] font-medium">Nothing spent in {monthLabel(month).split(" ")[0]}</p>
-          <p className="mt-1 max-w-sm text-[13px] text-[var(--c-ink-2)]">Orders and rides Saheli places show here with who they were for. All are cash on delivery.</p>
+          <p className="mt-1 max-w-sm text-[13px] text-[var(--c-ink-2)]">Orders and rides Saheli places for {name} show here. All are cash on delivery.</p>
         </Panel>
       ) : (
         <>
           <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1.5fr)]">
             <Panel accent className="flex flex-col">
               <div className="flex items-center justify-between">
-                <p className="text-[11px] font-medium uppercase tracking-[0.06em] text-white/80">Spent in {monthLabel(month).split(" ")[0]}</p>
-                <Wallet size={18} weight="fill" className="text-white" />
+                <p className="text-[11px] font-medium uppercase tracking-[0.06em] opacity-80">Spent in {monthLabel(month).split(" ")[0]}</p>
+                <Wallet size={18} weight="fill" />
               </div>
-              <p className="c-num mt-6 text-[52px] leading-none text-white sm:text-[60px]">{rupees(total)}</p>
-              <p className="mt-auto pt-6 text-[12px] text-white/80">
+              <p className="c-num mt-6 text-[52px] leading-none sm:text-[60px]">{rupees(total)}</p>
+              <p className="mt-auto pt-6 text-[12px] opacity-80">
                 {data.count} {data.count === 1 ? "order or ride" : "orders and rides"} · all cash on delivery
               </p>
             </Panel>
@@ -166,7 +177,7 @@ export function SpendingPage() {
             </Panel>
           </div>
 
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          <div className="grid gap-4 md:grid-cols-2">
             <Panel>
               <PanelTitle title="By service" />
               <ul className="mt-4 space-y-3.5">
@@ -184,30 +195,7 @@ export function SpendingPage() {
                 ))}
               </ul>
             </Panel>
-            <Panel>
-              <PanelTitle title="By person" />
-              <ul className="mt-4 space-y-3.5">
-                {persons.map(([id, v], i) => {
-                  const w = who(id);
-                  return (
-                    <li key={id} className="flex items-center gap-3">
-                      <Avatar name={w.name} src={w.photo} size={34} />
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center justify-between gap-2 text-[13px]">
-                          <span className="truncate">
-                            {w.name}
-                            {w.sub && <span className="text-[var(--c-ink-3)]"> · {w.sub}</span>}
-                          </span>
-                          <span className="c-num shrink-0">{rupees(v)}</span>
-                        </div>
-                        <Share value={v} total={total} hi={i === 0} />
-                      </div>
-                    </li>
-                  );
-                })}
-              </ul>
-            </Panel>
-            <Panel className="flex flex-col md:col-span-2 xl:col-span-1">
+            <Panel className="flex flex-col">
               <PanelTitle title="Orders vs rides" />
               <div className="mt-5 grid grid-cols-2 gap-3">
                 {[
@@ -239,35 +227,29 @@ export function SpendingPage() {
           <Panel>
             <PanelTitle title="Every order and ride" right={<span className="text-[11px] text-[var(--c-ink-3)]">{items.length}</span>} />
             <ul className="mt-3">
-              {items.map((it, i) => {
-                const w = who(it.subjectId);
-                return (
-                  <li key={`${it.at}-${i}`} className="flex items-center gap-3 border-b border-[var(--c-line)] py-3 last:border-0">
-                    <ServiceMark service={it.service} size={38} />
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-[14px] font-medium">{it.goal}</p>
-                      <p className="mt-0.5 flex flex-wrap items-center gap-x-1.5 text-[12px] text-[var(--c-ink-3)]">
-                        <span>{shortDate(parseIst(it.at))}</span>·<span>{serviceName(it.service)}</span>·
-                        <span className="flex items-center gap-1">
-                          <Avatar name={w.name} src={w.photo} size={16} /> {w.name.split(" ")[0]}
-                        </span>
-                      </p>
-                    </div>
-                    {it.kind === "ride" && (
-                      <span className="hidden sm:inline">
-                        <Tag tone="light">Ride</Tag>
-                      </span>
-                    )}
-                    <span className="c-num shrink-0 text-[15px]">{rupees(it.total)}</span>
-                  </li>
-                );
-              })}
+              {items.map((it, i) => (
+                <li key={`${it.at}-${i}`} className="flex items-center gap-3 border-b border-[var(--c-line)] py-3 last:border-0">
+                  <ServiceMark service={it.service} size={38} />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-[14px] font-medium">{it.goal}</p>
+                    <p className="mt-0.5 flex flex-wrap items-center gap-x-1.5 text-[12px] text-[var(--c-ink-3)]">
+                      <span>{shortDate(parseIst(it.at))}</span>·<span>{serviceName(it.service)}</span>
+                    </p>
+                  </div>
+                  {it.kind === "ride" && (
+                    <span className="hidden sm:inline">
+                      <Tag tone="light">Ride</Tag>
+                    </span>
+                  )}
+                  <span className="c-num shrink-0 text-[15px]">{rupees(it.total)}</span>
+                </li>
+              ))}
             </ul>
           </Panel>
         </>
       )}
 
-      <OnWhatsApp>ask Saheli &ldquo;How much did we spend this month?&rdquo;</OnWhatsApp>
+      <OnWhatsApp>ask Saheli &ldquo;How much did we spend this month?&rdquo; for the whole family.</OnWhatsApp>
     </div>
   );
 }

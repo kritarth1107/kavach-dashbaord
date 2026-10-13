@@ -12,6 +12,7 @@ import {
 } from "@/lib/api";
 import { useFamily } from "@/components/dashboard/family-context";
 import { canApproveOrders } from "@/components/dashboard/family/family-data";
+import { possessive, usePerson } from "@/components/care-os/person-context";
 import { useRun } from "@/lib/use-run";
 
 function partnerDisplay(order: PendingOrder): { label: string; openLabel: string } {
@@ -35,6 +36,8 @@ function statusLabel(status: string): string {
 
 export function ApprovalsPage() {
   const { activeFamilyId, activeFamily } = useFamily();
+  // only the selected person's orders (founder 2026-10-13: his mother's page showed his own)
+  const { selectedId, selected } = usePerson();
   const [orders, setOrders] = useState<PendingOrder[]>([]);
   const [recentPlaced, setRecentPlaced] = useState<PendingOrder[]>([]);
   const [loading, setLoading] = useState(true);
@@ -44,7 +47,7 @@ export function ApprovalsPage() {
   const canApprove = canApproveOrders(activeFamily?.role);
 
   const load = useCallback(async () => {
-    if (!activeFamilyId) {
+    if (!activeFamilyId || !selectedId) {
       setOrders([]);
       setRecentPlaced([]);
       setLoading(false);
@@ -54,12 +57,13 @@ export function ApprovalsPage() {
     setError("");
     try {
       const [{ data }, history] = await Promise.all([
-        getPendingApprovals(activeFamilyId),
-        getOrderHistory(activeFamilyId).catch(() => ({ data: { orders: [] as PendingOrder[] } })),
+        getPendingApprovals(activeFamilyId, selectedId),
+        getOrderHistory(activeFamilyId, selectedId).catch(() => ({ data: { orders: [] as PendingOrder[] } })),
       ]);
-      setOrders(data?.orders ?? []);
+      const theirs = (o: PendingOrder) => o.subject_user_id === selectedId;
+      setOrders((data?.orders ?? []).filter(theirs));
       const placed = (history.data?.orders ?? [])
-        .filter((o) => o.status === "paid" || o.status === "delivered")
+        .filter((o) => theirs(o) && (o.status === "paid" || o.status === "delivered"))
         .slice(0, 8);
       setRecentPlaced(placed);
     } catch (err) {
@@ -69,7 +73,7 @@ export function ApprovalsPage() {
     } finally {
       setLoading(false);
     }
-  }, [activeFamilyId]);
+  }, [activeFamilyId, selectedId]);
 
   useRun(load);
 
@@ -144,10 +148,10 @@ export function ApprovalsPage() {
   return (
     <div className="space-y-4">
       <div className="panel-card p-5">
-        <h1 className="text-[18px] font-extrabold text-[var(--text-primary)]">Approvals</h1>
+        <h1 className="text-[18px] font-extrabold text-[var(--text-primary)]">{possessive(selected)} approvals</h1>
         <p className="mt-1 text-[13px] text-[var(--text-tertiary)]">
-          Caregiver-initiated baskets needing action. Elder WhatsApp orders place directly — they
-          show below as placed / notified, not pending approve.
+          Only the orders placed for {selected?.self ? "you" : "this person"}. Caregiver-initiated baskets needing action. Elder WhatsApp orders place
+          directly — they show below as placed / notified, not pending approve.
         </p>
       </div>
 

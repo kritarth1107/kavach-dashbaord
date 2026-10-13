@@ -10,5 +10,6 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
   if (!ALLOWED.has(partner)) {
     return new Response(JSON.stringify({ message: "Unknown partner" }), { status: 404 });
   }
-  return proxyAuthGet(req, `/api/families/${familyId}/integrations/${partner}/detail`);
+  const qs = req.nextUrl.searchParams.toString(); // ?subjectUserId=: one person's recent orders
+  return proxyAuthGet(req, `/api/families/${familyId}/integrations/${partner}/detail${qs ? `?${qs}` : ""}`);
 }

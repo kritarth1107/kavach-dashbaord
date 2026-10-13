@@ -15,6 +15,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useFamily } from "@/components/dashboard/family-context";
+import { possessive, usePerson } from "@/components/care-os/person-context";
 import { canApproveOrders } from "@/components/dashboard/family/family-data";
 import { INTEGRATION_PARTNER_BY_KEY } from "@/components/dashboard/integrations-data";
 import {
@@ -233,6 +234,8 @@ function OrderApprovalSettings({
 export function IntegrationPartnerPage({ partner }: { partner: McpIntegrationPartner }) {
   const meta = INTEGRATION_PARTNER_BY_KEY[partner];
   const { activeFamilyId, activeFamily } = useFamily();
+  // the account is the family's; its recent orders are the selected person's only (founder 2026-10-13)
+  const { selectedId, selected } = usePerson();
   const searchParams = useSearchParams();
   const [data, setData] = useState<PartnerIntegrationDetail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -248,14 +251,14 @@ export function IntegrationPartnerPage({ partner }: { partner: McpIntegrationPar
     }
     setLoading(true);
     try {
-      const { data: detail } = await getPartnerIntegrationDetail(activeFamilyId, partner);
-      setData(detail ?? null);
+      const { data: detail } = await getPartnerIntegrationDetail(activeFamilyId, partner, selectedId);
+      setData(detail ? { ...detail, recentOrders: detail.recentOrders.filter((o) => !o.subject_user_id || o.subject_user_id === selectedId) } : null);
     } catch {
       setData(null);
     } finally {
       setLoading(false);
     }
-  }, [activeFamilyId, partner]);
+  }, [activeFamilyId, partner, selectedId]);
 
   useRun(load);
 
@@ -566,10 +569,10 @@ export function IntegrationPartnerPage({ partner }: { partner: McpIntegrationPar
           {data.recentOrders.length > 0 && (
             <section className="panel-card overflow-hidden">
               <div className="border-b border-[var(--border-strong)] px-5 py-4">
-                <h2 className="text-[15px] font-extrabold text-[var(--text-primary)]">Recent orders</h2>
+                <h2 className="text-[15px] font-extrabold text-[var(--text-primary)]">{possessive(selected)} recent orders</h2>
                 {data.pendingApprovals > 0 && (
                   <p className="mt-0.5 text-[12px] text-[var(--text-secondary)]">
-                    {data.pendingApprovals} awaiting action ·{" "}
+                    {data.pendingApprovals} awaiting action in the whole family ·{" "}
                     <Link href="/dashboard/approvals" className="font-semibold text-primary hover:underline">
                       View approvals
                     </Link>

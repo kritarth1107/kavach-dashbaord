@@ -69,7 +69,9 @@ function WebsiteLogins() {
   return (
     <Panel>
       <PanelTitle title="Website logins" />
-      <p className="mt-1 text-[12px] text-[var(--c-ink-3)]">What Saheli saw the last time it used each website. A login that ran out asks for an OTP on the next order.</p>
+      <p className="mt-1 text-[12px] text-[var(--c-ink-3)]">
+        The family&apos;s own accounts, shared by everyone: what Saheli saw the last time it used each website. A login that ran out asks for an OTP on the next order.
+      </p>
       {rows.length === 0 ? (
         <p className="mt-3 text-[12.5px] text-[var(--c-ink-2)]">Saheli has not used any website for this family yet.</p>
       ) : (

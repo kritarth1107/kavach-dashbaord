@@ -1,12 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useFamily } from "@/components/dashboard/family-context";
 import { getBoundaries, saveBoundaries, type BoundaryPolicy, type Boundaries } from "@/lib/care-features-api";
 import { taskInput } from "@/lib/care-memory-api";
 import { cn } from "@/lib/utils";
 import { ErrorNote, OnWhatsApp, PageHeading, ago, parseIst, rupees } from "./feature-kit";
-import { callName, usePerson } from "./person-context";
+import { callName, possessive, usePerson } from "./person-context";
 import { Avatar, DarkButton, Panel, PanelTitle, SmallButton, Tag } from "./ui";
 
 const CATEGORIES: Array<{ id: BoundaryPolicy["approval_categories"][number]; label: string; stores: string }> = [
@@ -78,15 +78,23 @@ export function LimitsPage() {
   const [busy, setBusy] = useState<string | null>(null);
   const [now] = useState(() => Date.now());
 
+  // the person on screen: an answer that comes back after a switch is dropped (its waiting orders are another person's)
+  const latest = useRef(selectedId);
+  useEffect(() => {
+    latest.current = selectedId;
+  }, [selectedId]);
+
   const load = useCallback(async () => {
     if (!familyId || !selectedId) return;
     try {
       const d = await getBoundaries(familyId, selectedId);
-      setData(d);
+      if (latest.current !== selectedId) return;
+      // only this person's orders wait here (the engine sends only theirs; an older one sent the whole family's)
+      setData({ ...d, waiting: d.waiting.filter((w) => !w.subjectId || w.subjectId === selectedId) });
       setDraft(d.policy);
       setError("");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Couldn't load the limits");
+      if (latest.current === selectedId) setError(e instanceof Error ? e.message : "Couldn't load the limits");
     }
   }, [familyId, selectedId]);
 
@@ -143,7 +151,7 @@ export function LimitsPage() {
       <PageHeading
         light="Limits"
         dark="& approvals"
-        sub={`What Saheli may do on her own for ${who}, and when she must ask first. Checked in code on every order and ride.`}
+        sub={`The family's limits, the same for everyone: what Saheli may do on her own for ${who}, and when she must ask first. Checked in code on every order and ride.`}
         right={
           canEdit ? (
             <DarkButton onClick={() => void save()} disabled={!dirty || saving}>
@@ -158,7 +166,7 @@ export function LimitsPage() {
 
       {!!data?.waiting.length && (
         <Panel className="border border-[var(--c-accent-soft)] bg-[var(--c-accent-wash)]">
-          <PanelTitle title="Waiting for approval" />
+          <PanelTitle title={`${possessive(person)} orders waiting for approval`} />
           <div className="mt-3">
             {data.waiting.map((w) => (
               <Row
@@ -201,10 +209,10 @@ export function LimitsPage() {
                 <Money label="Anyone limit" value={draft.anyone_over} disabled={!canEdit} onChange={(v) => set({ anyone_over: v })} />
               </Row>
               <Row
-                title="Monthly limit"
+                title="Monthly limit · whole family"
                 meta={
                   <>
-                    <span>Placed this month: {rupees(spent)}{cap ? ` of ${rupees(cap)}` : ""}</span>
+                    <span>Whole family, placed this month: {rupees(spent)}{cap ? ` of ${rupees(cap)}` : ""}</span>
                     {cap ? (
                       <span className="mt-1.5 block h-2 w-[220px] overflow-hidden rounded-full bg-[var(--c-line)]">
                         <span className="block h-full bg-[var(--c-solid)]" style={{ width: `${Math.min(100, Math.round((spent / cap) * 100))}%` }} />

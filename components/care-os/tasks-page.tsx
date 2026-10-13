@@ -1,11 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useFamily } from "@/components/dashboard/family-context";
 import { getWork, type WorkItem } from "@/lib/care-features-api";
 import { taskInput } from "@/lib/care-memory-api";
 import { ErrorNote, OnWhatsApp, PageHeading, ago, clock, dayWord, parseIst } from "./feature-kit";
-import { usePerson } from "./person-context";
+import { callName, possessive, usePerson } from "./person-context";
 import { Panel, PanelTitle, SmallButton, Tag } from "./ui";
 
 const KIND: Record<string, string> = {
@@ -33,6 +33,7 @@ function ItemRow({ item, tone, who, now, onDecide, busy }: { item: WorkItem; ton
         </p>
       </div>
       <div className="flex shrink-0 flex-wrap items-center gap-2.5">
+        {item.subject === "family" && <Tag tone="light">Whole family</Tag>}
         {item.stuck ? <Tag tone="danger">Stuck · {item.stuck}</Tag> : <Tag tone={tone}>{who} · {item.next_action}</Tag>}
         {when && <span className="text-[12px] text-[var(--c-ink-2)]">{when}</span>}
         {onDecide && (
@@ -50,28 +51,36 @@ function ItemRow({ item, tone, who, now, onDecide, busy }: { item: WorkItem; ton
 
 export function TasksPage() {
   const { userId } = useFamily();
-  const { familyId, selectedId, me } = usePerson();
+  const { familyId, selectedId, selected, me } = usePerson();
   const myId = userId ?? me.id;
-  const [items, setItems] = useState<WorkItem[]>([]);
-  const [doneWeek, setDoneWeek] = useState(0);
-  const [loading, setLoading] = useState(true);
+  // keyed by person: the previous person's jobs never show while the next one's load (founder 2026-10-13)
+  const [state, setState] = useState<{ key: string; all: WorkItem[] }>({ key: "", all: [] });
   const [error, setError] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
   const [now] = useState(() => Date.now());
+  const key = `${familyId}|${selectedId}`;
+  const latest = useRef(key);
+  useEffect(() => {
+    latest.current = key;
+  }, [key]);
 
   const load = useCallback(async () => {
     if (!familyId || !selectedId) return;
+    const k = `${familyId}|${selectedId}`;
     try {
       const all = await getWork(familyId, selectedId, true);
-      setItems(all.items.filter((i) => i.state === "working" || i.state === "waiting"));
-      setDoneWeek(all.items.filter((i) => i.state === "done" && i.updated_at && now - parseIst(i.updated_at).getTime() < 7 * 86_400_000).length);
+      if (latest.current !== k) return;
+      // this person's jobs and the family's shared ones, never another person's
+      setState({ key: k, all: all.items.filter((i) => !i.subject || i.subject === selectedId || i.subject === "family") });
       setError("");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Couldn't load tasks");
-    } finally {
-      setLoading(false);
+      if (latest.current === k) setError(e instanceof Error ? e.message : "Couldn't load tasks");
     }
-  }, [familyId, selectedId, now]);
+  }, [familyId, selectedId]);
+
+  const loading = state.key !== key;
+  const items = useMemo(() => (loading ? [] : state.all.filter((i) => i.state === "working" || i.state === "waiting")), [loading, state]);
+  const doneWeek = loading ? 0 : state.all.filter((i) => i.state === "done" && i.updated_at && now - parseIst(i.updated_at).getTime() < 7 * 86_400_000).length;
 
   useEffect(() => {
     const t = setTimeout(() => void load(), 0);
@@ -108,9 +117,9 @@ export function TasksPage() {
   return (
     <div className="space-y-5">
       <PageHeading
-        light="Tasks"
+        light={`${possessive(selected)} tasks`}
         dark="Everything handed over"
-        sub="Every job shows who acts next, what, and by when. Stuck ones come first."
+        sub={`Every job for ${selected?.self ? "you" : callName(selected) || "them"}, and the ones shared by the whole family, shows who acts next, what, and by when. Stuck ones come first.`}
         right={
           <div className="flex flex-wrap gap-2">
             <Tag tone="light">Open {items.length}</Tag>

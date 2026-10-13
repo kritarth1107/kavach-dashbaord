@@ -56,9 +56,12 @@ export function FamilyTasksPage() {
   );
   const avatarOf = (id: string | null) => members.find((x) => x.userId === id)?.avatarUrl ?? null;
   const fullName = (id: string | null) => members.find((x) => x.userId === id)?.name ?? nameOf(id);
+  // a family task is shared by everyone, so each one says whom it is for
   const aboutOf = (id: string) => {
     const p = people.find((x) => x.id === id);
-    return p ? (p.self ? "Self care" : callName(p)) : null;
+    if (p) return p.self ? "Self care" : callName(p);
+    const m = members.find((x) => x.userId === id);
+    return m ? m.name.split(" ")[0] : null;
   };
 
   const shown = useMemo(
@@ -171,7 +174,7 @@ export function FamilyTasksPage() {
       <PageHeading
         light="Family"
         dark="Tasks"
-        sub="Who's doing what for the people you care for. Anyone in the family can pick up a task and mark it done."
+        sub="Shared by the whole family: who's doing what for everyone you care for, each marked with whom it is for. Anyone in the family can pick up a task and mark it done."
         right={<DarkButton onClick={openForm} className="self-start lg:self-auto">New task</DarkButton>}
       />
 
@@ -218,9 +221,9 @@ export function FamilyTasksPage() {
 
         <aside className="space-y-4">
           <Panel accent className="flex flex-col">
-            <p className="text-[11px] font-medium uppercase tracking-[0.06em] text-white/80">Open tasks</p>
-            <p className="c-num mt-4 text-[56px] leading-none text-white">{allOpen.length}</p>
-            <p className="mt-2 text-[12px] text-white/80">
+            <p className="text-[11px] font-medium uppercase tracking-[0.06em] opacity-80">Open tasks</p>
+            <p className="c-num mt-4 text-[56px] leading-none">{allOpen.length}</p>
+            <p className="mt-2 text-[12px] opacity-80">
               {overdue ? `${overdue} overdue · ` : ""}
               {mineOpen} {mineOpen === 1 ? "is" : "are"} yours
             </p>

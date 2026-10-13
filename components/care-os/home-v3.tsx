@@ -110,7 +110,7 @@ export function HomeV3({
         <div className="space-y-4 lg:col-span-5">
           {home.doses.length > 0 && <Medicines person={person} home={home} />}
           {home.followUps.length > 0 && <ComingUp items={home.followUps} />}
-          {home.tasks.length > 0 && <Errands tasks={home.tasks} />}
+          {home.tasks.length > 0 && <Errands tasks={home.tasks} personId={person.id} />}
           {portrait?.gaps && <KnowMore person={person} gaps={portrait.gaps} kavachNumber={kavachNumber} />}
         </div>
       </div>
@@ -546,13 +546,13 @@ const TASK_STATUS: Record<string, { label: string; tone: "ok" | "danger" | "acce
   cancelled: { label: "Cancelled", tone: "light" },
 };
 
-function Errands({ tasks }: { tasks: CareHomeSummary["tasks"] }) {
+function Errands({ tasks, personId }: { tasks: CareHomeSummary["tasks"]; personId: string }) {
   return (
     <Panel>
       <PanelTitle
         title="Orders & rides"
         right={
-          <Link href="/dashboard/saheli/tasks" className="text-[12px] text-[var(--c-ink-2)] underline-offset-2 hover:underline">
+          <Link href={`/dashboard/saheli/tasks?recipient=${personId}`} className="text-[12px] text-[var(--c-ink-2)] underline-offset-2 hover:underline">
             All
           </Link>
         }

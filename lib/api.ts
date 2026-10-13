@@ -2003,8 +2003,11 @@ export async function getDoctorBrief(familyId: string, subjectUserId: string) {
   return parseResponse<DoctorBrief>(res);
 }
 
-export async function getPendingApprovals(familyId: string) {
-  const res = await timedFetch(`/api/families/${familyId}/approvals/pending`);
+/** subjectUserId: only that person's orders (a person's page); without it the whole family's. */
+const forSubject = (subjectUserId?: string | null) => (subjectUserId ? `?subjectUserId=${encodeURIComponent(subjectUserId)}` : "");
+
+export async function getPendingApprovals(familyId: string, subjectUserId?: string | null) {
+  const res = await timedFetch(`/api/families/${familyId}/approvals/pending${forSubject(subjectUserId)}`);
   return parseResponse<{ orders: PendingOrder[] }>(res);
 }
 
@@ -2062,8 +2065,8 @@ export async function rejectOrder(familyId: string, orderId: string) {
 
 export type OrderHistoryItem = PendingOrder;
 
-export async function getOrderHistory(familyId: string) {
-  const res = await timedFetch(`/api/families/${familyId}/orders/history`);
+export async function getOrderHistory(familyId: string, subjectUserId?: string | null) {
+  const res = await timedFetch(`/api/families/${familyId}/orders/history${forSubject(subjectUserId)}`);
   return parseResponse<{ orders: OrderHistoryItem[] }>(res);
 }
 
@@ -2208,6 +2211,8 @@ export type PartnerIntegrationDetail = {
   orderSettings: PartnerOrderSettings;
   recentOrders: Array<{
     order_id: string;
+    /** who the order was for (missing from a backend before 2026-10-13) */
+    subject_user_id?: string;
     status: string;
     total_paise: number;
     created_at: string | null;
@@ -2217,9 +2222,10 @@ export type PartnerIntegrationDetail = {
 export async function getPartnerIntegrationDetail(
   familyId: string,
   partner: McpIntegrationPartner,
+  subjectUserId?: string | null,
 ) {
   const res = await timedFetch(
-    `/api/families/${familyId}/integrations/${partner}/detail`,
+    `/api/families/${familyId}/integrations/${partner}/detail${forSubject(subjectUserId)}`,
   );
   return parseResponse<PartnerIntegrationDetail>(res);
 }
