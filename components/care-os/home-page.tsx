@@ -3,9 +3,8 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { getDailySnapshot, type DailySnapshot } from "@/lib/activity-api";
 import { getFamilyIntegrations } from "@/lib/api";
-import { forPerson, getCareHome, getPortrait, resolveFact, taskInput, type CareHomeSummary, type Portrait } from "@/lib/care-memory-api";
+import { forPerson, getCareHome, getCareOverview, getPortrait, latestDiaryLine, resolveFact, taskInput, type CareHomeSummary, type Portrait } from "@/lib/care-memory-api";
 import { DashboardHome } from "@/components/dashboard/dashboard-home";
 import { HomeV3 } from "./home-v3";
 import { callName, usePerson } from "./person-context";
@@ -14,7 +13,7 @@ import { DarkButton, Panel } from "./ui";
 export function CareHomePage() {
   const { familyId, selected, selectedId, isCaregiver, isRecipient, loading, people, members, me } = usePerson();
   const router = useRouter();
-  const [state, setState] = useState<{ key: string; data: CareHomeSummary | null; snap: DailySnapshot | null; portrait: Portrait | null; error: string }>({
+  const [state, setState] = useState<{ key: string; data: CareHomeSummary | null; snap: string | null; portrait: Portrait | null; error: string }>({
     key: "",
     data: null,
     snap: null,
@@ -31,7 +30,9 @@ export function CareHomePage() {
   useEffect(() => {
     if (!familyId || !selectedId || !isCaregiver) return;
     const id = ++req.current;
-    Promise.all([getCareHome(familyId, selectedId), getDailySnapshot(familyId, selectedId).catch(() => null), getPortrait(familyId, selectedId).catch(() => null)])
+    // Saheli's line about the day: the diary her nightly dream keeps in the care record (trust plan A1).
+    const diary = getCareOverview(familyId, selectedId).then((o) => latestDiaryLine(o.notes, selectedId)).catch(() => null);
+    Promise.all([getCareHome(familyId, selectedId), diary, getPortrait(familyId, selectedId).catch(() => null)])
       .then(([data, snap, portrait]) => id === req.current && setState({ key, data, snap, portrait, error: "" }))
       .catch((err: unknown) => id === req.current && setState((s) => ({ ...s, key, error: err instanceof Error ? err.message : "Couldn't load" })));
   }, [familyId, selectedId, isCaregiver, key, tick]);
@@ -114,7 +115,7 @@ export function CareHomePage() {
       me={(me.name || "").split(" ")[0]}
       home={{ ...state.data, tasks, needsYou }}
       portrait={state.portrait}
-      saheliSays={state.snap?.summary?.trim() || null}
+      saheliSays={state.snap || null}
       kavachNumber={kavachNumber}
       onDecide={decide}
       busy={busy}

@@ -4,8 +4,7 @@
 
 import { CheckCircle, Phone, Plus, Pill, Warning } from "@phosphor-icons/react";
 import { useCallback, useMemo, useState } from "react";
-import { getDailySnapshot, type DailySnapshot } from "@/lib/activity-api";
-import { getCareHome, getPortrait, resolveFact, type CareFact, type CareHomeSummary, type Portrait, type PortraitDose, type VitalSummary } from "@/lib/care-memory-api";
+import { getCareHome, getPortrait, latestDiaryLine, resolveFact, type CareFact, type CareHomeSummary, type Portrait, type PortraitDose, type VitalSummary } from "@/lib/care-memory-api";
 import { getStock, type StockRow } from "@/lib/care-features-api";
 import { cn } from "@/lib/utils";
 import { AccessGate, useRecipientSelection } from "@/components/dashboard/activity/activity-shared";
@@ -166,7 +165,6 @@ export function CarePlanPage() {
   const overview = useCareOverview(familyId, selectedId);
   const portrait = useLoad<Portrait>(key, useCallback(() => getPortrait(familyId!, selectedId!), [familyId, selectedId]));
   const home = useLoad<CareHomeSummary>(key, useCallback(() => getCareHome(familyId!, selectedId!), [familyId, selectedId]));
-  const snap = useLoad<DailySnapshot | null>(key, useCallback(() => getDailySnapshot(familyId!, selectedId!), [familyId, selectedId]));
   const stock = useLoad<{ medicines: StockRow[]; refillWithinDays: number }>(key, useCallback(() => getStock(familyId!, selectedId!), [familyId, selectedId]));
   const { busy, banner, run } = useAction();
   const [addSignal, setAddSignal] = useState(0);
@@ -272,7 +270,7 @@ export function CarePlanPage() {
                 <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[var(--c-accent)] text-[12px] font-semibold text-[var(--c-accent-ink)]">S</span>
                 <p>
                   <b className="font-medium">Saheli: </b>
-                  {snap.data?.summary?.trim() || moodNow?.summary || `Nothing written about ${name === "You" ? "your" : `${name}'s`} day yet. Saheli adds a note after her chats.`}
+                  {latestDiaryLine(overview.data?.notes, selectedId ?? "") || moodNow?.summary || `Nothing written about ${name === "You" ? "your" : `${name}'s`} day yet. Saheli adds a note after her chats.`}
                 </p>
               </div>
               <div className="mt-3 grid grid-cols-1 gap-2.5 sm:grid-cols-3">

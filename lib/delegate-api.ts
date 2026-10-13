@@ -104,9 +104,6 @@ const rp = (f: string, r: string) => `/api/families/${f}/recipients/${r}/saheli`
 
 export const getDelegateSummary = (familyId: string, recipientUserId: string) => call<DelegateSummary>(`${rp(familyId, recipientUserId)}/delegate`);
 
-export const updateSaheliPermissions = (familyId: string, recipientUserId: string, patch: PermissionPatch) =>
-  call<DelegateSummary>(`/api/families/${familyId}/saheli/permissions?recipientUserId=${encodeURIComponent(recipientUserId)}`, json("PATCH", patch));
-
 export const decideSaheliApproval = (familyId: string, taskId: string, decision: "approve" | "deny") =>
   call<{ taskId: string; status: string }>(`/api/families/${familyId}/saheli/approvals/${encodeURIComponent(taskId)}`, json("POST", { decision }));
 

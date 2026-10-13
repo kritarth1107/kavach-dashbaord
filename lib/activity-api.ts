@@ -75,33 +75,6 @@ export type ActivityQuery = {
   limit?: number;
 };
 
-export type SnapshotStatus = "ready" | "generating" | "failed" | "empty";
-
-export type DailySnapshotCounts = {
-  messages?: number;
-  voiceNotes?: number;
-  orders?: number;
-  rides?: number;
-  reminders?: number;
-  healthFlags?: number;
-  /** v1.1 — may be missing on older snapshots (treat as 0). */
-  nudges?: number;
-  [key: string]: number | undefined;
-};
-
-export type DailySnapshot = {
-  dayKey: string;
-  status: SnapshotStatus;
-  summary?: string | null;
-  highlights?: string[];
-  concerns?: string[];
-  mood?: string | null;
-  counts?: DailySnapshotCounts;
-  model?: string | null;
-  generatedAt?: string | null;
-  source?: "scheduled" | "on_demand" | (string & {});
-};
-
 type Envelope<T> = { success: boolean; message?: string; data?: T };
 
 export class ActivityApiError extends Error {
@@ -188,44 +161,4 @@ export async function getActivity(
     nextBefore: data?.nextBefore ?? null,
     hasMore: Boolean(data?.hasMore && data?.nextBefore),
   };
-}
-
-export async function getDailySnapshot(
-  familyId: string,
-  subjectUserId: string,
-  day?: string,
-): Promise<DailySnapshot | null> {
-  const suffix = day ? `?day=${encodeURIComponent(day)}` : "";
-  const data = await request<{ snapshot: DailySnapshot | null }>(
-    `${base(familyId, subjectUserId)}/daily-snapshot${suffix}`,
-  );
-  return data?.snapshot ?? null;
-}
-
-export async function generateDailySnapshot(
-  familyId: string,
-  subjectUserId: string,
-  day?: string,
-): Promise<DailySnapshot | null> {
-  const data = await request<{ snapshot: DailySnapshot | null }>(
-    `${base(familyId, subjectUserId)}/daily-snapshot`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(day ? { day } : {}),
-    },
-    75_000,
-  );
-  return data?.snapshot ?? null;
-}
-
-export async function listDailySnapshots(
-  familyId: string,
-  subjectUserId: string,
-  limit = 14,
-): Promise<DailySnapshot[]> {
-  const data = await request<{ snapshots: DailySnapshot[] }>(
-    `${base(familyId, subjectUserId)}/daily-snapshots?limit=${limit}`,
-  );
-  return Array.isArray(data?.snapshots) ? data.snapshots : [];
 }

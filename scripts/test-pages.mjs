@@ -96,7 +96,6 @@ function api(fam, url) {
     if (route in answers) return answers[route];
     return undefined;
   }
-  if (/\/daily-snapshot$/.test(p)) return { snapshot: null };
   if (new RegExp(`^/api/families/${fid}/subjects/[^/]+/reminders$`).test(p)) return { reminders: [] };
   if (new RegExp(`^/api/families/${fid}/subjects/[^/]+/reminders/day$`).test(p)) return { day: url.searchParams.get("day") || world.today, occurrences: [], reminders: [] };
   if (new RegExp(`^/api/families/${fid}/recipients/[^/]+/labs$`).test(p)) return { documents: [] };
@@ -397,6 +396,114 @@ export async function onboardingDone(browser, width = 1440, shotPath = null) {
   return problems;
 }
 
+// ── One memory (trust plan A1): the person page's "What Saheli learned" card, the usuals card and "What Saheli remembers"
+// read Saheli's care record in the engine (care-memory/*), never the retired Mongo profile or Instinct inbox; "Yes" on a
+// proposal approves it and "Not true" puts a fact on the never-use list.
+const LEARN_MAA = "1ea40000-0000-4000-8000-00000000a001";
+const LEARN_SON = "1ea40000-0000-4000-8000-00000000a002";
+const RETIRED_API = /\/saheli\/(profile|memories|memory\/|usuals|outreach|chat|caregiver\/chat|check-in)|\/daily-snapshot|\/saheli\/permissions/;
+const learnFact = (id, domain, key, text, status, source) => ({
+  id, domain, key, name: key.split(":")[1], value: {}, text, status, source, statedBy: null, confirmedBy: null, confidence: 1,
+  validFrom: `${world.today}T09:00:00+05:30`, validTo: null, recordedAt: `${world.today}T09:00:00+05:30`, note: null, links: [],
+});
+export async function learnedCard(browser, width = 1440, shotPath = null) {
+  const base = world.families[0];
+  const answers = structuredClone(Object.values(base.engine)[0]);
+  const facts = [
+    learnFact("1ea40000-0000-4000-8000-0000000000f1", "allergy", "allergy:peanuts", "Allergic to peanuts", "active", "caregiver_said"),
+    learnFact("1ea40000-0000-4000-8000-0000000000f2", "preference", "preference:ginger_tea", "Likes ginger tea in the evening", "active", "inferred"),
+    learnFact("1ea40000-0000-4000-8000-0000000000f3", "preference", "preference:usual_amul_milk", "Usually orders Amul Taaza milk", "active", "inferred"),
+  ];
+  const pending = [learnFact("1ea40000-0000-4000-8000-0000000000f4", "condition", "condition:high_bp", "Has high blood pressure", "pending", "inferred")];
+  answers.overview = { ...answers.overview, facts: [...facts, ...pending], pending, notes: [
+    { subjectId: LEARN_MAA, slug: "life", title: "Life", body: "- 2026-10-01: Grew up in Varanasi by the ghats", version: 1, updatedAt: `${world.today}T09:00:00+05:30` },
+    { subjectId: LEARN_MAA, slug: "diary", title: "Diary", body: `- ${world.today}: A calm day; she went to the temple.`, version: 1, updatedAt: `${world.today}T09:00:00+05:30` },
+  ] };
+  const fam = { ...base, familyId: "1ea40000-0000-4000-8000-00000000fa01", leakOrders: false, orders: [], engine: { [LEARN_MAA]: answers }, people: [
+    { id: LEARN_MAA, backendRole: "CARE_RECIPIENT", careRecipient: true, first: "Kamla", surname: "Devi", name: "Kamla Devi", key: "maa", relation: "Mother", city: "Pune", phone: "+919000000301" },
+    { id: LEARN_SON, backendRole: "PRIMARY_CAREGIVER", careRecipient: false, first: "Ravi", surname: "Kumar", name: "Ravi Kumar", key: "self", relation: "self", city: "Pune", phone: "+919000000302" },
+  ] };
+  const ctx = await browser.newContext({ viewport: { width, height: width < 600 ? 860 : 1000 }, timezoneId: "Asia/Kolkata", locale: "en-IN", ...(shotPath ? { deviceScaleFactor: 2 } : {}) });
+  await ctx.addCookies([{ name: "kavach_session", value: "world", url: BASE }]);
+  const page = await ctx.newPage();
+  const errors = [];
+  const writes = [];
+  const retired = [];
+  page.on("pageerror", (e) => errors.push(`page error: ${e.message.slice(0, 160)}`));
+  page.on("console", (m) => m.type() === "error" && !NOISE.test(m.text()) && errors.push(`console error: ${m.text().slice(0, 160)}`));
+  page.on("dialog", (d) => d.accept());
+  const fid = fam.familyId;
+  await page.route(/^https?:\/\/[^/]+\/api\//, (r) => {
+    const u = new URL(r.request().url());
+    if (RETIRED_API.test(u.pathname)) retired.push(u.pathname.replaceAll(fid, ":f"));
+    if (u.pathname === "/api/client-error") return r.fulfill({ status: 204 });
+    if (u.pathname === "/api/auth/session") return r.fulfill({ json: { user: { name: "Ravi Kumar", email: "self@world.kavach.test" }, expires: "2099-01-01T00:00:00.000Z" } });
+    if (u.pathname.startsWith("/api/auth/") && u.pathname !== "/api/auth/me") return r.fulfill({ json: {} });
+    if (r.request().method() !== "GET") {
+      writes.push({ path: u.pathname.replaceAll(fid, ":f").replaceAll(LEARN_MAA, ":p"), body: r.request().postDataJSON?.() ?? null });
+      return r.fulfill({ json: { success: true, data: { result: "ok" } } });
+    }
+    const p = u.pathname;
+    if (p.endsWith("/saheli/companion")) return r.fulfill({ json: { success: true, data: { enabled: true, childName: "Saheli", relationshipLabel: "daughter", personaNotes: "",
+      outreachSlots: ["morning"], outreachTopics: [], shareWithFamily: false, preferredChannel: "whatsapp", timezone: "Asia/Kolkata", quietHoursStart: "", quietHoursEnd: "",
+      nudgeIntensity: "standard", preferredLanguage: "hindi", lastOutreachAt: null, lastWhatsAppInboundAt: null } } });
+    if (p.endsWith("/saheli/companion/activity")) return r.fulfill({ json: { success: true, data: { nudges: [], escalations: [] } } });
+    if (p.endsWith("/saheli/delegate")) return r.fulfill({ json: { success: true, data: { openTasks: [], followups: [], approvals: [], recent: [], whys: [],
+      permissions: { groceries: true, food: true, medicines: true, rides: true, stores: [], spendSoftLimitInr: 1500, deliveryFollowUps: true,
+        medicineStartCheck: true, resumeNudges: true, locked: [], summary: { can: [], asks: [] }, history: [], updatedAt: null } } } });
+    const known = api(fam, u);
+    if (known === undefined && process.env.PAGES_DEBUG) console.log(`learned-card fallback: ${p.replaceAll(fid, ":f")}`);
+    return r.fulfill({ json: { success: true, data: known ?? fallbackFamilyPage(p) } });
+  });
+  const problems = [];
+  const check = (cond, what) => !cond && problems.push(`learned-card @${width}: ${what}`);
+  try {
+    await page.goto(`${BASE}/dashboard/family/${LEARN_MAA}?recipient=${LEARN_MAA}`, { waitUntil: "networkidle", timeout: 90000 });
+    const card = page.getByTestId("what-saheli-learned");
+    await card.waitFor({ timeout: 20000 });
+    await page.waitForTimeout(600);
+    const text = await card.innerText();
+    check(text.includes("What Saheli learned about"), "no learned card heading");
+    check(text.includes("Allergic to peanuts") && text.includes("Likes ginger tea in the evening"), "the engine's facts are not on the card");
+    check(!text.includes("Usually orders Amul Taaza milk"), "a usual order shows on the learned card too (it has its own card)");
+    check(text.includes("Has high blood pressure") && /waiting for your yes/i.test(text), "the pending proposal is not shown for a yes");
+    const usuals = await page.getByTestId("saheli-usuals").innerText().catch(() => "");
+    check(usuals.includes("Usually orders Amul Taaza milk"), "the usual from the care record is not on the usuals card");
+    if (width >= 1200) {
+      const remembers = await page.getByTestId("saheli-remembers").innerText().catch(() => "");
+      check(remembers.includes("Grew up in Varanasi by the ghats"), "What Saheli remembers does not show the care record's notes");
+    }
+    if (shotPath) {
+      await card.scrollIntoViewIfNeeded();
+      await card.screenshot({ path: shotPath });
+      const rem = page.getByTestId("saheli-remembers");
+      if (await rem.isVisible().catch(() => false)) await rem.screenshot({ path: shotPath.replace(/\.png$/, "-remembers.png") });
+      await page.getByTestId("saheli-usuals").screenshot({ path: shotPath.replace(/\.png$/, "-usuals.png") }).catch(() => undefined);
+    }
+    else if (process.env.PAGES_SHOTS) await page.screenshot({ path: path.join(OUT, `learned-card-${width}.png`), fullPage: true });
+    await card.getByRole("button", { name: /^Yes$/ }).click();
+    await page.waitForTimeout(400);
+    check(writes.some((w) => w.path.endsWith("/care-memory/facts/resolve") && w.body?.key === "condition:high_bp" && w.body?.approve === true), "Yes did not approve the proposal in the care record");
+    await card.getByRole("button", { name: "Not true: Likes ginger tea in the evening" }).click();
+    await page.waitForTimeout(400);
+    check(writes.some((w) => w.path.endsWith("/care-memory/facts/stop") && w.body?.name === "ginger_tea" && w.body?.wrong === true), "Not true did not put the fact on the never-use list");
+  } catch (e) {
+    problems.push(`learned-card @${width}: did not load: ${String(e.message || e).slice(0, 160)}`);
+  }
+  check(!retired.length, `the retired memory endpoints were called: ${[...new Set(retired)].join(", ")}`);
+  for (const e of errors) problems.push(`learned-card @${width}: ${e}`);
+  await ctx.close();
+  return problems;
+}
+
+/** The family person page's other cards (briefing, schedule, labs): empty answers are enough here. */
+function fallbackFamilyPage(p) {
+  if (/\/briefing$/.test(p)) return { recipientName: "Kamla", lastHeardAt: null, lastHeardLine: null, lastCheckInAt: null, todayItems: [], unconfirmedItems: [],
+    scheduleStatuses: [], completedCount: 0, missedCount: 0, upcomingCount: 0, elapsedCount: 0, adherencePercent: null, dateKey: world.today };
+  if (/\/care-schedule$/.test(p)) return { schedules: [], canManage: true };
+  return {};
+}
+
 (async () => {
   if (process.env.PAGES_NO_RUN) return;
   fs.mkdirSync(OUT, { recursive: true });
@@ -428,6 +535,11 @@ export async function onboardingDone(browser, width = 1440, shotPath = null) {
     const scope = await personScope(browser);
     console.log(scope.length ? `person scope: ${scope.length} problems` : "person scope: every page showed only the selected person's");
     for (const pr of scope) failures.push(`person-scope: ${pr}`);
+  }
+  if (!process.env.PAGES_ONLY || process.env.PAGES_ONLY.split(",").includes("learned-card")) {
+    const learned = (await Promise.all(WIDTHS.map((w) => learnedCard(browser, w)))).flat();
+    console.log(learned.length ? `learned card: ${learned.length} problems` : "learned card: the person page reads Saheli's care record (facts, proposals, usuals, notes)");
+    failures.push(...learned);
   }
   if (!process.env.PAGES_ONLY || process.env.PAGES_ONLY.split(",").includes("onboarding-done")) {
     const end = (await Promise.all(WIDTHS.map((w) => onboardingDone(browser, w)))).flat();

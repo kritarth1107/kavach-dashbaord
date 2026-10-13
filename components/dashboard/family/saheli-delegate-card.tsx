@@ -8,10 +8,8 @@ import {
   dismissSaheliTask,
   forgetSaheliWhy,
   getDelegateSummary,
-  updateSaheliPermissions,
   type DelegateSummary,
   type DelegateTask,
-  type PermissionPatch,
 } from "@/lib/delegate-api";
 import { SaheliPermissionsView } from "./saheli-permissions-card";
 
@@ -315,12 +313,6 @@ export function SaheliDelegateCards({ recipientUserId, recipientName }: { recipi
   }
   if (!data) return error ? <p className="mb-6 text-[12px] text-rose-700">Saheli follow-ups: {error}</p> : null;
 
-  const onPatch = (patch: PermissionPatch, key: string) =>
-    run(key, async () => {
-      const next = await updateSaheliPermissions(fid, recipientUserId, patch);
-      if (next?.permissions) setData(next);
-    });
-
   return (
     <>
       <SaheliDelegateView
@@ -331,7 +323,8 @@ export function SaheliDelegateCards({ recipientUserId, recipientName }: { recipi
         onDismiss={(t) => run(t.taskId, () => dismissSaheliTask(fid, t.taskId))}
         onForget={(whyId) => run(whyId, () => forgetSaheliWhy(fid, recipientUserId, whyId))}
       />
-      <SaheliPermissionsView key={data.permissions.updatedAt || "p"} recipientName={recipientName} perms={data.permissions} onPatch={onPatch} busyKey={busy} error={error} />
+      {/* The family's limits live in Saheli's care record (boundaries, trust plan A1): shown here, changed on the Limits page. */}
+      <SaheliPermissionsView key={data.permissions.updatedAt || "p"} recipientName={recipientName} perms={data.permissions} busyKey={busy} error={error} />
     </>
   );
 }

@@ -235,7 +235,7 @@ export function useCareRecipients() {
 
 const TABS = [
   { href: "/dashboard/activity", label: "Timeline", icon: ListTree },
-  { href: "/dashboard/activity/snapshot", label: "Daily snapshot", icon: CalendarDays },
+  { href: "/dashboard/activity/snapshot", label: "Saheli's diary", icon: CalendarDays },
 ];
 
 export function ActivityHeader({

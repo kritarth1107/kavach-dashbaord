@@ -130,6 +130,15 @@ export function forPerson<T extends { subjectId?: string }>(tasks: T[], personId
 
 export type MemoryNote = { subjectId: string; slug: string; title: string; body: string; version: number; updatedAt: string };
 
+/** Saheli's line about this person's latest day, from the diary her nightly dream writes in the care record (it replaced the
+ *  old Gemini daily snapshot, trust plan A1). Lines read "- YYYY-MM-DD: text"; null when there is none yet. */
+export function latestDiaryLine(notes: MemoryNote[] | undefined, subjectId: string): string | null {
+  const diary = (notes ?? []).find((n) => n.subjectId === subjectId && n.slug === "diary");
+  const lines = (diary?.body ?? "").split("\n").map((l) => l.trim()).filter((l) => /^-\s*\d{4}-\d{2}-\d{2}:/.test(l)).sort();
+  const last = lines[lines.length - 1];
+  return last ? last.replace(/^-\s*\d{4}-\d{2}-\d{2}:\s*/, "").trim() || null : null;
+}
+
 export type CareOverview = {
   day: string;
   /** The day's due doses with their status (same list as the Home card: weekly medicines only on their day). */
@@ -171,7 +180,8 @@ export function saveFact(familyId: string, subjectUserId: string, fact: { domain
   return post<{ result: string; key: string; note?: string }>(`${base(familyId, subjectUserId)}/facts`, fact);
 }
 
-export function stopFact(familyId: string, subjectUserId: string, fact: { domain: string; name: string; reason: string }) {
+/** End a fact; wrong: it was never true, so it goes on Saheli's never-use list (she never uses or learns it again). */
+export function stopFact(familyId: string, subjectUserId: string, fact: { domain: string; name: string; reason: string; wrong?: boolean }) {
   return post<{ result: string }>(`${base(familyId, subjectUserId)}/facts/stop`, fact);
 }
 

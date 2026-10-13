@@ -1,38 +1,40 @@
 "use client";
 
-import { AlertTriangle, Bell, Heart, Loader2, Moon, Sparkles, Sun } from "lucide-react";
+import { AlertTriangle, Bell, Heart, Loader2, Moon, Sparkles } from "lucide-react";
+import Link from "next/link";
 import { useCallback, useState } from "react";
 import {
-  correctFamilyMemory,
-  forgetFamilyMemory,
-  getFamilyMemories,
   getSaheliCompanion,
   getSaheliCompanionActivity,
-  refreshSaheliMemory,
-  triggerSaheliOutreach,
   updateSaheliCompanion,
-  type FamilyMemoryItem,
   type SaheliCompanionActivity,
   type SaheliCompanionProfile,
 } from "@/lib/api";
+import { getCareOverview, type MemoryNote } from "@/lib/care-memory-api";
+import { forgetMemory } from "@/lib/care-features-api";
 import { useFamily } from "@/components/dashboard/family-context";
-import { SaheliMemoryPanel } from "@/components/dashboard/family/saheli-memory-panel";
 import { useRun } from "@/lib/use-run";
 
 type SaheliCompanionPanelProps = {
   recipientUserId: string;
   recipientName: string;
-  onOutreachSent?: () => void;
 };
 
-const TOPIC_LABELS: Record<string, string> = {
-  day_life: "Daily life",
-  family: "Family",
-  hobbies: "Hobbies & TV",
-  food: "Food & cooking",
-  mood: "Mood & feelings",
-  memories: "Old memories",
-};
+/** The person's memory notes (stories, people, what they enjoy) as lines, newest first; diary and summaries left out. */
+const NOT_STORIES = new Set(["diary", "weekly", "monthly", "profile-card", "life-so-far"]);
+function noteLines(notes: MemoryNote[], subjectId: string): Array<{ key: string; title: string; line: string }> {
+  return notes
+    .filter((n) => n.subjectId === subjectId && !NOT_STORIES.has(n.slug))
+    .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
+    .flatMap((n) =>
+      n.body
+        .split("\n")
+        .map((l) => l.replace(/^\s*[-*•]\s*/, "").trim())
+        .filter((l) => l.length > 3)
+        .reverse()
+        .map((line, i) => ({ key: `${n.slug}-${i}`, title: n.title, line })),
+    );
+}
 
 const NUDGE_LABELS: Record<string, string> = {
   pre_task: "Upcoming reminder",
@@ -62,19 +64,15 @@ function formatRelativeTime(iso: string | null | undefined): string {
 export function SaheliCompanionPanel({
   recipientUserId,
   recipientName,
-  onOutreachSent,
 }: SaheliCompanionPanelProps) {
+  const first = recipientName.split(" ")[0] || recipientName;
   const { activeFamilyId } = useFamily();
   const [profile, setProfile] = useState<SaheliCompanionProfile | null>(null);
   const [activity, setActivity] = useState<SaheliCompanionActivity | null>(null);
-  const [memories, setMemories] = useState<FamilyMemoryItem[]>([]);
+  const [memories, setMemories] = useState<Array<{ key: string; title: string; line: string }>>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [outreaching, setOutreaching] = useState(false);
-  const [refreshingMemory, setRefreshingMemory] = useState(false);
   const [memoryActionId, setMemoryActionId] = useState<string | null>(null);
-  const [correctingId, setCorrectingId] = useState<string | null>(null);
-  const [correctionText, setCorrectionText] = useState("");
   const [error, setError] = useState("");
 
   const load = useCallback(async () => {
@@ -82,19 +80,16 @@ export function SaheliCompanionPanel({
     setLoading(true);
     setError("");
     try {
-      const [companionRes, memoryRes, activityRes] = await Promise.all([
+      // Saheli's memory is her care record in the engine (trust plan A1): the notes about this person.
+      const [companionRes, overview, activityRes] = await Promise.all([
         getSaheliCompanion(activeFamilyId, recipientUserId),
-        getFamilyMemories(activeFamilyId, recipientUserId).catch(() => ({
-          data: { memories: [] as FamilyMemoryItem[] },
-        })),
+        getCareOverview(activeFamilyId, recipientUserId).catch(() => null),
         getSaheliCompanionActivity(activeFamilyId, recipientUserId).catch(() => ({
           data: { nudges: [], escalations: [] } as SaheliCompanionActivity,
         })),
       ]);
       setProfile(companionRes.data ?? null);
-      // Questions / requests she typed ("Kaun aa raha tha kal?", "doodh mangwa do") aren't memories.
-      const NOT_MEMORY = /\?\s*$|^(kaun|kya|kab|kahan|kaise|what|who|when|where|how)\b|\b(mangwa|order|remind|cab|uber|cancel|confirm)\b/i;
-      setMemories((memoryRes.data?.memories ?? []).filter((m) => !(m.category === "casual" && NOT_MEMORY.test(String(m.content || "").trim()))));
+      setMemories(noteLines(overview?.notes ?? [], recipientUserId));
       setActivity(activityRes.data ?? { nudges: [], escalations: [] });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load Saheli settings");
@@ -116,21 +111,6 @@ export function SaheliCompanionPanel({
       setError(err instanceof Error ? err.message : "Failed to save");
     } finally {
       setSaving(false);
-    }
-  }
-
-  async function handleReachOut() {
-    if (!activeFamilyId) return;
-    setOutreaching(true);
-    setError("");
-    try {
-      await triggerSaheliOutreach(activeFamilyId, recipientUserId, "casual");
-      onOutreachSent?.();
-      await load();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Outreach failed");
-    } finally {
-      setOutreaching(false);
     }
   }
 
@@ -324,19 +304,6 @@ export function SaheliCompanionPanel({
           </div>
         </div>
 
-        <button
-          type="button"
-          disabled={outreaching}
-          onClick={() => void handleReachOut()}
-          className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-3 py-2.5 text-[12px] font-bold text-white disabled:opacity-50"
-        >
-          {outreaching ? (
-            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-          ) : (
-            <Sun className="h-3.5 w-3.5" />
-          )}
-          Reach out to {recipientName.split(" ")[0]} now
-        </button>
       </div>
 
       {(activity?.escalations.length ?? 0) > 0 || (activity?.nudges.length ?? 0) > 0 ? (
@@ -407,7 +374,7 @@ export function SaheliCompanionPanel({
         </div>
       ) : null}
 
-      <div className="border-t border-[var(--border-strong)] px-4 py-3">
+      <div className="border-t border-[var(--border-strong)] px-4 py-3" data-testid="saheli-remembers">
         <div className="mb-2 flex items-center justify-between gap-2">
           <div className="flex items-center gap-1.5">
             <Heart className="h-3.5 w-3.5 text-primary" />
@@ -415,119 +382,45 @@ export function SaheliCompanionPanel({
               What Saheli remembers
             </p>
           </div>
-          <button
-            type="button"
-            disabled={refreshingMemory}
-            onClick={() => {
-              if (!activeFamilyId) return;
-              setRefreshingMemory(true);
-              void refreshSaheliMemory(activeFamilyId, recipientUserId)
-                .then(() => load())
-                .finally(() => setRefreshingMemory(false));
-            }}
-            className="text-[10px] font-semibold text-primary hover:underline disabled:opacity-50"
-          >
-            {refreshingMemory ? "Syncing…" : "Sync chat history"}
-          </button>
+          <Link href="/dashboard/saheli/memory" className="text-[10px] font-semibold text-primary hover:underline">
+            All memory
+          </Link>
         </div>
         {memories.length > 0 ? (
           <ul className="max-h-40 space-y-2 overflow-y-auto">
             {memories.slice(0, 8).map((m) => (
               <li
-                key={m.id}
+                key={m.key}
                 className="rounded-lg border border-[var(--border-strong)] bg-[var(--input-bg)] px-2.5 py-2"
               >
                 <div className="flex items-start justify-between gap-2">
-                  <p className="text-[10px] font-bold uppercase tracking-wide text-[var(--text-tertiary)]">
-                    {TOPIC_LABELS[m.topic] ?? m.category}
-                    {m.superseded_by ? " · superseded" : ""}
-                  </p>
-                  <div className="flex shrink-0 gap-2">
-                    <button
-                      type="button"
-                      disabled={memoryActionId === m.id}
-                      className="text-[10px] font-semibold text-primary hover:underline disabled:opacity-50"
-                      onClick={() => {
-                        setCorrectingId(m.id);
-                        setCorrectionText(m.content);
-                      }}
-                    >
-                      Fix
-                    </button>
-                    <button
-                      type="button"
-                      disabled={memoryActionId === m.id}
-                      className="text-[10px] font-semibold text-red-600 hover:underline disabled:opacity-50"
-                      onClick={() => {
-                        if (!activeFamilyId) return;
-                        if (!window.confirm("Forget this memory? Saheli will stop using it.")) return;
-                        setMemoryActionId(m.id);
-                        void forgetFamilyMemory(activeFamilyId, recipientUserId, m.id)
-                          .then(() => load())
-                          .finally(() => setMemoryActionId(null));
-                      }}
-                    >
-                      Forget
-                    </button>
-                  </div>
+                  <p className="text-[10px] font-bold uppercase tracking-wide text-[var(--text-tertiary)]">{m.title}</p>
+                  <button
+                    type="button"
+                    disabled={memoryActionId === m.key}
+                    className="shrink-0 text-[10px] font-semibold text-red-600 hover:underline disabled:opacity-50"
+                    onClick={() => {
+                      if (!activeFamilyId) return;
+                      if (!window.confirm("Forget this? Saheli will stop using it (you can bring it back from All memory).")) return;
+                      setMemoryActionId(m.key);
+                      void forgetMemory(activeFamilyId, recipientUserId, m.line)
+                        .then(() => load())
+                        .finally(() => setMemoryActionId(null));
+                    }}
+                  >
+                    Forget
+                  </button>
                 </div>
-                <p className="mt-0.5 text-[11px] leading-relaxed text-[var(--text-secondary)]">
-                  {m.content}
-                </p>
-                <p className="mt-1 text-[10px] text-[var(--text-tertiary)]">
-                  {m.source_role ?? "elder"} · {formatRelativeTime(m.created_at)}
-                </p>
-                {correctingId === m.id ? (
-                  <div className="mt-2 space-y-1.5">
-                    <textarea
-                      value={correctionText}
-                      onChange={(e) => setCorrectionText(e.target.value)}
-                      rows={2}
-                      className="w-full rounded-md border border-[var(--border-strong)] bg-[var(--surface)] px-2 py-1 text-[11px]"
-                    />
-                    <div className="flex gap-2">
-                      <button
-                        type="button"
-                        className="rounded-md bg-primary px-2 py-1 text-[10px] font-bold text-white"
-                        onClick={() => {
-                          if (!activeFamilyId || correctionText.trim().length < 4) return;
-                          setMemoryActionId(m.id);
-                          void correctFamilyMemory(
-                            activeFamilyId,
-                            recipientUserId,
-                            m.id,
-                            correctionText.trim(),
-                          )
-                            .then(() => {
-                              setCorrectingId(null);
-                              return load();
-                            })
-                            .finally(() => setMemoryActionId(null));
-                        }}
-                      >
-                        Save fix
-                      </button>
-                      <button
-                        type="button"
-                        className="text-[10px] text-[var(--text-tertiary)]"
-                        onClick={() => setCorrectingId(null)}
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  </div>
-                ) : null}
+                <p className="mt-0.5 text-[11px] leading-relaxed text-[var(--text-secondary)]">{m.line}</p>
               </li>
             ))}
           </ul>
         ) : (
           <p className="text-[11px] text-[var(--text-tertiary)]">
-            No memories yet — Saheli learns from chats and uploaded reports.
+            Nothing yet: Saheli writes down stories and people {first} tells her about.
           </p>
         )}
       </div>
-
-      <SaheliMemoryPanel recipientUserId={recipientUserId} />
     </section>
   );
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { Bike, Check, Loader2, Lock, Pill, ShieldCheck, ShoppingBasket, UtensilsCrossed } from "lucide-react";
+import Link from "next/link";
 import { useState } from "react";
 import type { DelegatePermissions, PermissionPatch } from "@/lib/delegate-api";
 
@@ -64,6 +65,11 @@ export function SaheliPermissionsView({
           </p>
         </div>
         {perms.updatedAt && <span className="text-[11px] text-[var(--text-secondary)]">Changed {day(perms.updatedAt)}</span>}
+        {!canEdit && (
+          <Link href="/dashboard/limits" className="text-[12px] font-bold text-primary hover:underline" data-testid="permissions-change-limits">
+            Change limits
+          </Link>
+        )}
       </div>
 
       {error && <p className="border-b border-[var(--border-strong)] bg-rose-50 px-5 py-2 text-[12px] text-rose-700">{error}</p>}
