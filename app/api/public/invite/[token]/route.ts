@@ -8,7 +8,7 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
   const { token } = await params;
   const headers = { "Cache-Control": "no-store", "X-Robots-Tag": "noindex" };
   if (!/^[0-9A-Za-z]{20,40}$/.test(token)) {
-    return NextResponse.json({ success: true, data: { state: "invalid", kind: null, inviterName: null, expiresAt: null, saheliNumber: "", whatsappLink: null } }, { headers });
+    return NextResponse.json({ success: true, data: { state: "invalid", kind: null, inviterName: null, expiresAt: null, saheliNumber: "" } }, { headers });
   }
   const { status, json } = await fetchBackend(`/api/invites/lookup/${encodeURIComponent(token)}`, {
     cache: "no-store",

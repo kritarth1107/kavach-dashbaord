@@ -6,8 +6,12 @@
  * by the backend. Everything she has understood fills her notebook on the right, and the whole chat is saved after
  * every message, so a refresh or another device picks up where it stopped. "Set everything up" runs the same setup
  * as before (care record, reminders, language, check-ins, a hello on WhatsApp).
+ * Web first, then WhatsApp (founder 2026-10-13: "people can only access saheli via whatsapp when they have completed the
+ * onboarding via web. so send saheli hi should appear at end of onboarding"): the finished setup ends on a big "Send hi
+ * to Saheli on WhatsApp" button (Saheli's number with "hi" typed in; no code, their number was proven here).
  */
-import { ArrowRight, ArrowUp, CaretDown, Camera, CircleNotch, Microphone, Sparkle, Stop } from "@phosphor-icons/react";
+import { ArrowRight, ArrowUp, CaretDown, Camera, CircleNotch, Microphone, Sparkle, Stop, WhatsappLogo } from "@phosphor-icons/react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
@@ -357,14 +361,14 @@ export function OnboardingChat() {
         } else if (p.welcome === "waiting") {
           const hello = ap?.language && ap.language !== "en" ? `, with a ${greetingFor(ap.language, ap.dialect)}` : "";
           out.push(saheli(self
-            ? `Send me a "Namaste" on WhatsApp whenever you're ready — WhatsApp lets me write first only after you've messaged me once. I'll reply right away${hello}.`
+            ? `Tap **Send hi to Saheli on WhatsApp** below whenever you're ready — WhatsApp lets me write first only after you've messaged me once. I'll reply right away${hello}.`
             : `Ask ${pr} to send me a "Namaste" on WhatsApp — WhatsApp lets me write first only after they've messaged me once. I'll greet them right away${hello}.`));
         } else if (p.welcome === "not_verified" && !self) {
           out.push(saheli(`Connect ${pr}'s WhatsApp from the Family page and I'll say hello.`));
         }
         if (p.problems.length) out.push(saheli(`A few things didn't save yet: ${p.problems.join(", ")}. You can add them from the dashboard, or just tell me on WhatsApp.`));
       }
-      out.push(saheli(`All set, ${(answers.you.callMe || answers.you.name).split(" ")[0]} 🌸 I'll take it from here. You'll hear from me only when it matters — and your dashboard is ready.`));
+      out.push(saheli(`All set, ${(answers.you.callMe || answers.you.name).split(" ")[0]} 🌸 Now say hi to me on WhatsApp and I'll take it from there. You'll hear from me only when it matters — and your dashboard is ready too.`));
       setChat((c) => [...c, ...out]);
       setPhase("done");
     } catch (e) {
@@ -518,7 +522,10 @@ export function OnboardingChat() {
             )}
             {widget && <div className="sm:ml-11">{widget}</div>}
             {phase === "done" && (
-              <div className="sm:ml-11"><button type="button" onClick={() => router.replace("/dashboard")} className="inline-flex h-12 items-center gap-2 rounded-full bg-[var(--c-solid)] px-6 text-[14.5px] font-medium text-white">Open my dashboard <ArrowRight size={16} /></button></div>
+              <div className="sm:ml-11">
+                <SayHiCard saheliNumber={saheliNumber} from={self ? answers.persons[0]?.phone || answers.you.phone : answers.you.phone || myPhone}
+                  connected={!!result?.caregiver.phoneVerified} onDashboard={() => router.replace("/dashboard")} />
+              </div>
             )}
             <div ref={endRef} />
           </div>
@@ -552,6 +559,51 @@ export function OnboardingChat() {
         </div>
       </aside>
     </div>
+  );
+}
+
+/** "+919829041123" → "+91 98290 41123" (other numbers as they are). */
+function prettyPhone(p: string): string {
+  const d = p.replace(/\D/g, "");
+  return d.length === 12 && d.startsWith("91") ? `+91 ${d.slice(2, 7)} ${d.slice(7)}` : p;
+}
+
+/**
+ * The end of the web setup: the way to Saheli on WhatsApp. Her number with "hi" typed in, no code: the number they send
+ * it from was proven in this setup (or at mobile sign-in), so she knows who it is and greets them there.
+ */
+function SayHiCard({ saheliNumber, from, connected, onDashboard }: { saheliNumber: string; from?: string | null; connected: boolean; onDashboard: () => void }) {
+  const digits = saheliNumber.replace(/\D/g, "");
+  const href = digits ? `https://wa.me/${digits}?text=${encodeURIComponent("hi")}` : null;
+  return (
+    <section aria-labelledby="say-hi-title" className="rounded-[26px] bg-[var(--c-card)] p-4 sm:p-6">
+      <p className="flex items-center gap-2 text-[12px] font-semibold uppercase tracking-[0.08em] text-[var(--c-accent-text)]">
+        <span className="h-2.5 w-2.5 rounded-[3px] bg-[var(--c-accent)]" /> Last step
+      </p>
+      <h2 id="say-hi-title" className="mt-2.5 text-[26px] leading-[1.08] tracking-[-0.03em] sm:text-[30px]">
+        <span className="block font-light text-[var(--c-ink-3)]">Now meet Saheli</span>
+        <span className="block font-medium">on WhatsApp.</span>
+      </h2>
+      <p className="mt-2.5 max-w-[620px] text-[14px] leading-relaxed text-[var(--c-ink-2)]">
+        Saheli will greet you there. That&apos;s where she reminds, checks in and keeps you posted.
+      </p>
+      {href && (
+        <a href={href} target="_blank" rel="noreferrer"
+          className="mt-5 flex h-14 w-full max-w-[460px] items-center justify-between gap-2 rounded-full bg-[var(--c-solid)] pl-4 pr-2 text-[14.5px] font-medium leading-tight text-[var(--c-on-solid)] transition-opacity hover:opacity-90 sm:gap-3 sm:pl-5 sm:text-[15px]">
+          <span className="flex min-w-0 items-center gap-2 sm:gap-2.5"><WhatsappLogo size={22} weight="fill" className="shrink-0" /><span>Send hi to Saheli on WhatsApp</span></span>
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--c-frame)] text-[var(--c-ink)]"><ArrowRight size={16} weight="bold" /></span>
+        </a>
+      )}
+      <p className="mt-2 max-w-[560px] px-2 text-[12px] leading-relaxed text-[var(--c-ink-3)]">
+        {connected && from
+          ? <>Opens WhatsApp with &ldquo;hi&rdquo; typed in. Send it from <span className="whitespace-nowrap">{prettyPhone(from)}</span>, the number you connected.</>
+          : <>Opens WhatsApp with &ldquo;hi&rdquo; typed in. Send it from your own WhatsApp number: if it isn&apos;t connected yet, add it in <Link href="/dashboard/settings" className="font-medium text-[var(--c-ink-2)] underline underline-offset-4">Settings</Link> first, so Saheli knows it&apos;s you.</>}
+      </p>
+      <button type="button" onClick={onDashboard}
+        className="mt-4 inline-flex h-11 items-center gap-2 rounded-full border border-[var(--c-line)] bg-[var(--c-frame)] px-5 text-[14px] font-medium transition-colors hover:bg-[var(--c-page)]">
+        Open my dashboard <ArrowRight size={15} />
+      </button>
+    </section>
   );
 }
 

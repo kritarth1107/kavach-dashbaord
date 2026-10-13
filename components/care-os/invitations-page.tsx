@@ -265,7 +265,7 @@ export function InvitationsPage() {
                 <ShareButtons invite={fresh} firstName={firstName} copied={copied} onCopy={copy} big />
               </div>
               <p className="mt-3 text-[12px] text-[var(--c-ink-3)]">
-                They can tap it to start with Saheli on WhatsApp right away, or sign up here on the dashboard.
+                They tap it, sign up and set up on the web in a few minutes, then meet Saheli on WhatsApp.
               </p>
             </Panel>
           )}
@@ -323,7 +323,7 @@ export function InvitationsPage() {
               ))}
             </ul>
             <p className="mt-3 text-[12px] leading-relaxed text-[var(--c-ink-3)]">
-              Your link lets them skip the waitlist. Saheli greets them on WhatsApp and helps them set up in a few minutes.
+              Your link lets them skip the waitlist. They set up on the web in a few minutes, then meet Saheli on WhatsApp.
             </p>
           </Panel>
         </aside>

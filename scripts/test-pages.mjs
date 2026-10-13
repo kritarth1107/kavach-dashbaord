@@ -46,9 +46,13 @@ const PAGES = [
   { name: "billing", path: "/dashboard/billing" },
   { name: "emergency-link", path: "/e/world-link", public: true },
   { name: "sign-in", path: "/auth/login", public: true },
-  { name: "invitations", path: "/dashboard/invitations" },
-  { name: "join", path: `/join/${JOIN_ACTIVE}`, public: true },
-  { name: "join-used", path: `/join/${JOIN_USED}`, public: true },
+  { name: "invitations", path: "/dashboard/invitations", has: ["set up on the web", "then meet Saheli on WhatsApp"], hasNot: ["start with Saheli on WhatsApp"] },
+  // web first, then WhatsApp (founder 2026-10-13): the join page's one action is signing up on the web; the steps end on
+  // saying hi to Saheli on WhatsApp, and nothing on it opens WhatsApp or types an invite code
+  { name: "join", path: `/join/${JOIN_ACTIVE}`, public: true, noWhatsAppLink: true,
+    has: ["Accept invite and sign up", "Create your account", "Set up with Saheli here", "Say hi to Saheli on WhatsApp"],
+    hasNot: ["Send hi to Saheli on WhatsApp", "invite code typed in", "Or sign up on the dashboard"] },
+  { name: "join-used", path: `/join/${JOIN_USED}`, public: true, noWhatsAppLink: true, has: ["has been used", "Join the waitlist"], hasNot: ["Accept invite and sign up"] },
 ].filter((p) => !process.env.PAGES_ONLY || process.env.PAGES_ONLY.split(",").includes(p.name));
 
 const ERROR_SCREEN = /Application error|Something went wrong|This page couldn.t load|Unhandled Runtime Error/i;
@@ -98,12 +102,11 @@ function api(fam, url) {
   if (new RegExp(`^/api/families/${fid}/recipients/[^/]+/labs$`).test(p)) return { documents: [] };
   if (new RegExp(`^/api/families/${fid}/recipients/[^/]+/labs/highlights$`).test(p)) return { cards: [], all: [], reports: 0, latestDate: null, noticed: null, readings: [] };
   const at = (days) => new Date(Date.parse(`${world.today}T09:00:00+05:30`) + days * 86_400_000).toISOString();
-  const wa = (t) => `https://wa.me/919999900000?text=${encodeURIComponent(`hi KAVACH-${t}`)}`;
   if (p === "/api/invites") {
     const row = (id, state, extra) => ({ inviteId: `0000000${id}-0000-4000-8000-00000000000${id}`, state, createdAt: at(-3 * id), expiresAt: at(14 - 3 * id),
-      usedAt: null, usedByName: null, revokedAt: null, link: null, whatsappLink: null, code: null, ...extra });
+      usedAt: null, usedByName: null, revokedAt: null, link: null, ...extra });
     return { quota: { limit: 5, used: 3, left: 2, nextSlotAt: null }, perWeek: 5, validDays: 14, invites: [
-      row(1, "active", { link: `${BASE}/join/${JOIN_ACTIVE}`, whatsappLink: wa(JOIN_ACTIVE), code: `KAVACH-${JOIN_ACTIVE}` }),
+      row(1, "active", { link: `${BASE}/join/${JOIN_ACTIVE}` }),
       row(2, "used", { usedAt: at(-4), usedByName: "Asha Verma" }),
       row(3, "revoked", { revokedAt: at(-8) }),
       row(6, "expired", { expiresAt: at(-4) }),
@@ -112,7 +115,7 @@ function api(fam, url) {
   if (p.startsWith("/api/public/invite/")) {
     const t = p.split("/").pop();
     const active = t === JOIN_ACTIVE;
-    return { state: active ? "active" : "used", kind: "user", inviterName: primary.name, expiresAt: at(11), saheliNumber: "+919999900000", whatsappLink: active ? wa(t) : null };
+    return { state: active ? "active" : "used", kind: "user", inviterName: primary.name, expiresAt: at(11), saheliNumber: "+919999900000" };
   }
   if (p.startsWith("/api/public/emergency/")) {
     const card = (fam.engine[cared[0]?.id] || {}).emergency;
@@ -161,6 +164,9 @@ async function visit(ctx, fam, pg, width) {
     const text = await page.evaluate(() => document.body.innerText || "");
     if (ERROR_SCREEN.test(text)) problems.push(`error screen: ${text.match(ERROR_SCREEN)[0]}`);
     if (text.trim().length < 40) problems.push("empty page");
+    for (const words of pg.has || []) if (!text.includes(words)) problems.push(`missing "${words}"`);
+    for (const words of pg.hasNot || []) if (text.includes(words)) problems.push(`should not say "${words}"`);
+    if (pg.noWhatsAppLink && (await page.locator('a[href*="wa.me"]').count())) problems.push("a WhatsApp link on a page that must not open WhatsApp");
     const shot = path.join(OUT, `${fam.id}-${pg.name}-${width}.png`);
     if (problems.length || process.env.PAGES_SHOTS) await page.screenshot({ path: shot, fullPage: true });
   } catch (e) {
@@ -312,7 +318,87 @@ async function personScope(browser) {
   return problems;
 }
 
+// ── The end of the web onboarding (founder 2026-10-13: "send saheli hi should appear at end of onboarding"): a finished
+// setup shows "Send hi to Saheli on WhatsApp", a wa.me link to Saheli's number with "hi" typed in (no invite code: the
+// number was proven during the setup), the line that she will greet them there, and the way to the dashboard.
+const SAHELI_NUMBER = "+919999900000";
+const ONBOARDING_PERSON = {
+  relation: "Mother", name: "Kusum Mehta", callThem: "Maa", addressAs: "Maa", gender: "female", age: 74, city: "Pune", livesWith: "spouse", language: "hi",
+  dialect: null, reads: "both", phone: "+919000000201", codesFrom: "me", conditions: ["bp"], bpMachine: true, problems: [], allergies: { none: true, items: [] },
+  medicines: [{ name: "Telma 40", dose: "1 tablet", times: ["08:00"], food: "after_food" }],
+  day: { wake: "06:00", breakfast: "08:00", lunch: "13:00", tea: "17:00", dinner: "20:00", sleep: "22:00", activities: [] }, likes: ["bhajans"],
+};
+const onboardingState = () => {
+  const done = ["you_name", "care_for", "help_with", "emergency", "you_whatsapp", "anything_else",
+    ...["p_name", "p_call", "p_home", "p_age", "p_language", "p_reads", "p_day", "p_day_times", "p_likes", "p_conditions", "p_checks", "p_allergies",
+      "p_medicines", "p_meds_confirm", "p_problems", "p_whatsapp", "p_codes"].map((k) => `${k}:0`)];
+  const answers = { you: { name: "Priya Mehta", callMe: "Priya", phone: "+919000000202" }, careFor: "mother", persons: [ONBOARDING_PERSON],
+    helpWith: ["medicines", "checkins"], followups: [] };
+  const chat = [
+    { id: "m1", from: "saheli", text: "Namaste! I'm **Saheli** 🙏 I look after parents on WhatsApp — medicines, check-ins, a little company every day." },
+    { id: "m2", from: "saheli", text: "Here's everything I've noted. Shall I set it all up?" },
+  ];
+  const at = new Date().toISOString();
+  return { required: true, status: "pending", name: "Priya Mehta", draft: { answers, step: "summary", chat, flow: { done, extra: [], nurse: "none", asked: "summary" } },
+    verified: { self: { phone: "+919000000202", at }, "person:0": { phone: "+919000000201", at } }, myPhone: "+919000000202", saheliNumber: SAHELI_NUMBER };
+};
+const ONBOARDING_RESULT = {
+  persons: [{ userId: "0b0a0000-0000-4000-8000-000000000201", name: "Kusum Mehta", addressAs: "Maa", language: "Hindi", reminders: [{ name: "Telma 40", times: ["08:00"] }],
+    checkins: ["morning", "evening"], verified: true, welcomeSent: false, welcome: "waiting", problems: [] }],
+  caregiver: { name: "Priya Mehta", phoneVerified: true },
+};
+
+/** Opens /onboarding at the summary, taps "Set everything up" and checks the completion screen. */
+export async function onboardingDone(browser, width = 1440, shotPath = null) {
+  const ctx = await browser.newContext({ viewport: { width, height: width < 600 ? 860 : 1000 }, timezoneId: "Asia/Kolkata", locale: "en-IN", ...(shotPath ? { deviceScaleFactor: 2 } : {}) });
+  await ctx.addCookies([{ name: "kavach_session", value: "world", url: BASE }]);
+  const page = await ctx.newPage();
+  const errors = [];
+  page.on("pageerror", (e) => errors.push(`page error: ${e.message.slice(0, 160)}`));
+  page.on("console", (m) => m.type() === "error" && !NOISE.test(m.text()) && errors.push(`console error: ${m.text().slice(0, 160)}`));
+  await page.route(/^https?:\/\/[^/]+\/api\//, (r) => {
+    const u = new URL(r.request().url());
+    if (u.pathname === "/api/client-error") return r.fulfill({ status: 204 });
+    if (u.pathname === "/api/auth/session") return r.fulfill({ json: { user: { name: "Priya Mehta", email: "priya@world.kavach.test" }, expires: "2099-01-01T00:00:00.000Z" } });
+    if (u.pathname.startsWith("/api/auth/")) return r.fulfill({ json: {} });
+    if (u.pathname === "/api/onboarding") return r.fulfill({ json: { success: true, data: onboardingState() } });
+    if (u.pathname === "/api/onboarding/complete") return r.fulfill({ json: { success: true, data: ONBOARDING_RESULT } });
+    return r.fulfill({ json: { success: true, data: {} } });
+  });
+  const problems = [];
+  const check = (cond, what) => !cond && problems.push(`onboarding-done @${width}: ${what}`);
+  try {
+    await page.goto(`${BASE}/onboarding`, { waitUntil: "networkidle", timeout: 90000 });
+    const go = page.getByRole("button", { name: /Set everything up/ });
+    await go.waitFor({ timeout: 20000 });
+    await go.click();
+    const hi = page.getByRole("link", { name: /Send hi to Saheli on WhatsApp/ });
+    const shown = await hi.waitFor({ timeout: 20000 }).then(() => true, () => false);
+    check(shown, "no Send hi to Saheli on WhatsApp button at the end of setup");
+    if (shown) {
+      check((await hi.getAttribute("href")) === `https://wa.me/${SAHELI_NUMBER.slice(1)}?text=hi`, `the button goes to ${await hi.getAttribute("href")}`);
+      check((await hi.getAttribute("target")) === "_blank", "the WhatsApp link should open in a new tab");
+      const text = await page.evaluate(() => document.body.innerText || "");
+      check(text.includes("Saheli will greet you there"), "no line saying Saheli will greet them there");
+      check(!/KAVACH-/i.test(text), "an invite code on the completion screen");
+      check(await page.getByRole("button", { name: /Open my dashboard/ }).isVisible(), "no way to the dashboard");
+      await page.mouse.move(0, 0); // no hover on the button in the screenshot
+      await page.waitForTimeout(600);
+      if (shotPath) {
+        await hi.scrollIntoViewIfNeeded();
+        await page.screenshot({ path: shotPath });
+      } else if (process.env.PAGES_SHOTS) await page.screenshot({ path: path.join(OUT, `onboarding-done-${width}.png`) });
+    }
+  } catch (e) {
+    problems.push(`onboarding-done @${width}: did not load: ${String(e.message || e).slice(0, 160)}`);
+  }
+  for (const e of errors) problems.push(`onboarding-done @${width}: ${e}`);
+  await ctx.close();
+  return problems;
+}
+
 (async () => {
+  if (process.env.PAGES_NO_RUN) return;
   fs.mkdirSync(OUT, { recursive: true });
   const fams = world.families.slice(0, FAMILIES);
   const jobs = [];
@@ -342,6 +428,11 @@ async function personScope(browser) {
     const scope = await personScope(browser);
     console.log(scope.length ? `person scope: ${scope.length} problems` : "person scope: every page showed only the selected person's");
     for (const pr of scope) failures.push(`person-scope: ${pr}`);
+  }
+  if (!process.env.PAGES_ONLY || process.env.PAGES_ONLY.split(",").includes("onboarding-done")) {
+    const end = (await Promise.all(WIDTHS.map((w) => onboardingDone(browser, w)))).flat();
+    console.log(end.length ? `onboarding done: ${end.length} problems` : "onboarding done: the Send hi to Saheli button ends the web setup");
+    failures.push(...end);
   }
   await browser.close();
   console.log(`${done} pages in ${Math.round((Date.now() - t0) / 1000)}s`);

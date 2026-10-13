@@ -14,10 +14,8 @@ export type InviteView = {
   usedAt: string | null;
   usedByName: string | null;
   revokedAt: string | null;
-  /** Only while the link can still be used. */
+  /** Only while the link can still be used. The friend signs up on the web with it, then meets Saheli on WhatsApp. */
   link: string | null;
-  whatsappLink: string | null;
-  code: string | null;
 };
 
 export type InviteQuota = { limit: number; used: number; left: number; nextSlotAt: string | null };
@@ -30,7 +28,6 @@ export type PublicInvite = {
   inviterName: string | null;
   expiresAt: string | null;
   saheliNumber: string;
-  whatsappLink: string | null;
 };
 
 export type WaitlistInput = { name: string; email: string; phone?: string; phoneCountryCode?: string; note?: string };
@@ -105,10 +102,10 @@ export const INVITE_DENY_COPY: Record<InviteDenyCode, string> = {
   invite_invalid: "This invite link isn't valid. Check the link, or join the waitlist.",
 };
 
-/** What a friend receives when the link is shared on WhatsApp. */
+/** What a friend receives when the link is shared on WhatsApp: they sign up and set up on the web, then meet Saheli. */
 export function inviteShareText(link: string, inviterFirstName?: string) {
   const from = inviterFirstName ? `${inviterFirstName} here. ` : "";
-  return `${from}I use Kavach to look after my family. Saheli, its companion on WhatsApp, reminds parents of their medicines and checks in every day, in their language. Here's a personal invite for you (it works once): ${link}`;
+  return `${from}I use Kavach to look after my family. Saheli, its companion on WhatsApp, reminds parents of their medicines and checks in every day, in their language. Here's a personal invite for you (it works once). You set up on the web in a few minutes, then meet Saheli on WhatsApp: ${link}`;
 }
 
 export const whatsappShareUrl = (text: string) => `https://wa.me/?text=${encodeURIComponent(text)}`;

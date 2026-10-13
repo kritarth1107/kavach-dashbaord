@@ -6,11 +6,14 @@ import { ArrowRight, WhatsappLogo } from "@phosphor-icons/react";
 import { useEffect, useState } from "react";
 import { WaitlistForm } from "@/components/auth/waitlist-form";
 import { lookupInvite, rememberInvite, type PublicInvite } from "@/lib/invites-api";
+import { cn } from "@/lib/utils";
 
 /**
- * The page an invite link opens (Kavach is invite-only for now). A usable link: who invited them, then start on
- * WhatsApp (Saheli's number with "hi KAVACH-<code>" typed in) or sign up on the dashboard with the invite applied.
- * A used, expired or cancelled link: why, and the waitlist form.
+ * The page an invite link opens (Kavach is invite-only for now). Web first, then WhatsApp (founder 2026-10-13: "invite
+ * onboarding should not start with whatsapp. people can only access saheli via whatsapp when they have completed the
+ * onboarding via web"): a usable link shows who invited them and one action, "Accept invite and sign up", which carries
+ * the invite into sign-up; the steps are create your account, set up with Saheli here, then say hi to her on WhatsApp
+ * (that button comes at the end of the setup). A used, expired or cancelled link: why, and the waitlist form.
  */
 type State = { status: "loading" } | { status: "ok"; invite: PublicInvite } | { status: "error" };
 
@@ -20,6 +23,12 @@ const DEAD: Record<string, { title: string; body: (who: string) => string }> = {
   revoked: { title: "was cancelled", body: (who) => `${who === "the person who invited you" ? "The person who invited you" : who} cancelled this link. Ask them for a new one, or join the waitlist below.` },
   invalid: { title: "isn't valid", body: () => "Check that the whole link was copied, or join the waitlist below and we'll let you in soon." },
 };
+
+const STEPS = [
+  { title: "Create your account", body: "With your email or your mobile number." },
+  { title: "Set up with Saheli here", body: "A short chat, one question at a time.", tags: ["Who you care for", "Their medicines", "Their language"] },
+  { title: "Say hi to Saheli on WhatsApp", body: "When setup is done, one tap opens WhatsApp. She greets you there and takes it from there." },
+];
 
 const POINTS = [
   { title: "Medicine reminders that get answered", body: "On WhatsApp, on time, in the language your family speaks." },
@@ -38,25 +47,65 @@ function Logo() {
   );
 }
 
-function Showcase() {
+/** The three steps: account, setup with Saheli on the web, then hi on WhatsApp (the last one in marigold). */
+function Steps({ compact = false }: { compact?: boolean }) {
   return (
-    <aside className="hidden flex-col justify-between rounded-[32px] bg-[var(--c-card)] p-8 lg:flex" aria-hidden>
+    <ol className={cn(compact ? "mt-4" : "mt-8")}>
+      {STEPS.map((s, i) => {
+        const last = i === STEPS.length - 1;
+        return (
+          <li key={s.title} className={cn("relative flex gap-4", !last && (compact ? "pb-5" : "pb-7"))}>
+            {!last && <span aria-hidden className="absolute bottom-0 left-[17px] top-10 w-px bg-[var(--c-line)]" />}
+            <span
+              className={cn(
+                "flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[14px] font-semibold",
+                last ? "bg-[var(--c-accent)] text-[var(--c-accent-ink)]" : "bg-[var(--c-solid)] text-[var(--c-on-solid)]",
+              )}
+            >
+              {i + 1}
+            </span>
+            <span className="min-w-0 pt-1.5">
+              <span className="block text-[15px] font-medium leading-snug">{s.title}</span>
+              <span className="mt-1 block text-[13px] leading-relaxed text-[var(--c-ink-2)]">{s.body}</span>
+              {s.tags && (
+                <span className="mt-2.5 flex flex-wrap gap-1.5">
+                  {s.tags.map((t) => (
+                    <span key={t} className={cn("rounded-full px-2.5 py-1 text-[12px] text-[var(--c-ink)]", compact ? "bg-[var(--c-card)]" : "bg-[var(--c-frame)]")}>
+                      {t}
+                    </span>
+                  ))}
+                </span>
+              )}
+              {last && (
+                <span className="mt-2.5 flex flex-wrap items-center gap-x-2 gap-y-1">
+                  <span className={cn("inline-flex items-center gap-2 whitespace-nowrap rounded-full border border-[var(--c-line)] px-3 py-1.5 text-[12px] font-medium", compact ? "bg-[var(--c-card)]" : "bg-[var(--c-frame)]")}>
+                    <WhatsappLogo size={15} weight="fill" className="text-[var(--c-solid)]" /> Send hi to Saheli
+                  </span>
+                  <span className="text-[12px] text-[var(--c-ink-3)]">at the end of setup</span>
+                </span>
+              )}
+            </span>
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
+
+function HowItWorks() {
+  return (
+    <aside className="hidden flex-col justify-between rounded-[32px] bg-[var(--c-card)] p-8 lg:flex" aria-label="How it works">
       <div>
         <p className="flex items-center gap-2 text-[13px] font-medium">
-          <span className="h-3.5 w-3.5 rounded-[4px] bg-[var(--c-accent)]" /> Saheli on WhatsApp
+          <span className="h-3.5 w-3.5 rounded-[4px] bg-[var(--c-accent)]" /> How it works
         </p>
-        <div className="mt-6 space-y-3 text-[13.5px] leading-relaxed">
-          <p className="ml-auto w-fit max-w-[75%] rounded-[18px] rounded-br-[6px] bg-[var(--c-solid)] px-4 py-2.5 text-[var(--c-on-solid)]">hi</p>
-          <p className="w-fit max-w-[85%] rounded-[18px] rounded-bl-[6px] bg-[var(--c-frame)] px-4 py-2.5">
-            Namaste, I&apos;m Saheli. Tell me who you&apos;d like me to look after, and their medicines, and I&apos;ll take it from there.
-          </p>
-          <p className="ml-auto w-fit max-w-[75%] rounded-[18px] rounded-br-[6px] bg-[var(--c-solid)] px-4 py-2.5 text-[var(--c-on-solid)]">My mother, in Pune. BP tablet at 8 every morning.</p>
-          <p className="w-fit max-w-[85%] rounded-[18px] rounded-bl-[6px] bg-[var(--c-frame)] px-4 py-2.5">
-            Done. I&apos;ll remind her at 8 and tell you once she has taken it.
-          </p>
-        </div>
+        <h2 className="mt-5 text-[26px] leading-[1.12] tracking-[-0.025em]">
+          <span className="block font-light text-[var(--c-ink-3)]">Set up here in a few minutes,</span>
+          <span className="block font-medium">then meet Saheli on WhatsApp.</span>
+        </h2>
+        <Steps />
       </div>
-      <ul className="mt-10 space-y-4">
+      <ul className="mt-10 space-y-4 border-t border-[var(--c-line)] pt-6">
         {POINTS.map((p) => (
           <li key={p.title} className="flex gap-3">
             <span className="mt-1.5 h-2 w-2 shrink-0 rounded-[2px] bg-[var(--c-accent)]" />
@@ -86,7 +135,7 @@ export default function JoinPage() {
     };
   }, [token]);
 
-  function signUpHere() {
+  function acceptAndSignUp() {
     rememberInvite(token);
     router.push(`/auth/login?invite=${encodeURIComponent(token)}`);
   }
@@ -125,32 +174,29 @@ export default function JoinPage() {
                   <span className="block font-medium">{fromTeam ? "waitlist" : "to Kavach"}</span>
                 </h1>
                 <p className="mt-4 text-[15px] leading-relaxed text-[var(--c-ink-2)]">
-                  Kavach helps you look after the people you love, and yourself. Saheli, a caring companion on WhatsApp, reminds them of
-                  their medicines, checks in every day in their language, and keeps you in the loop here.
+                  Kavach helps you look after the people you love, and yourself. Sign up and set things up here with Saheli in a few
+                  minutes. Then she&apos;s with you on WhatsApp: medicine reminders, a check-in every day in your family&apos;s language,
+                  and you in the loop.
                 </p>
-
-                <a
-                  href={invite.whatsappLink ?? "#"}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="mt-8 flex h-14 items-center justify-between gap-3 rounded-full bg-[var(--c-solid)] pl-6 pr-2 text-[15px] font-medium text-[var(--c-on-solid)] transition-opacity hover:opacity-90"
-                >
-                  <span className="flex items-center gap-2.5">
-                    <WhatsappLogo size={22} weight="fill" /> Send hi to Saheli on WhatsApp
-                  </span>
-                  <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--c-frame)] text-[var(--c-ink)]">
-                    <ArrowRight size={16} weight="bold" />
-                  </span>
-                </a>
-                <p className="mt-2 px-2 text-[12px] text-[var(--c-ink-3)]">Opens WhatsApp with your invite code typed in. Just press send.</p>
 
                 <button
                   type="button"
-                  onClick={signUpHere}
-                  className="mt-4 flex h-12 items-center justify-center rounded-full border border-[var(--c-line)] bg-[var(--c-frame)] text-[14px] font-medium transition-colors hover:bg-[var(--c-card)]"
+                  onClick={acceptAndSignUp}
+                  className="mt-8 flex h-14 w-full items-center justify-between gap-3 rounded-full bg-[var(--c-solid)] pl-6 pr-2 text-[15px] font-medium text-[var(--c-on-solid)] transition-opacity hover:opacity-90"
                 >
-                  Or sign up on the dashboard
+                  Accept invite and sign up
+                  <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--c-frame)] text-[var(--c-ink)]">
+                    <ArrowRight size={16} weight="bold" />
+                  </span>
                 </button>
+                <p className="mt-2 px-2 text-[12px] text-[var(--c-ink-3)]">Your invite is applied when you sign up. Setup takes a few minutes.</p>
+
+                <div className="mt-8 rounded-[24px] bg-[var(--c-frame)] p-5 ring-1 ring-[var(--c-line)] lg:hidden">
+                  <p className="flex items-center gap-2 text-[13px] font-medium">
+                    <span className="h-3 w-3 rounded-[3px] bg-[var(--c-accent)]" /> How it works
+                  </p>
+                  <Steps compact />
+                </div>
 
                 <p className="mt-6 text-[12.5px] leading-relaxed text-[var(--c-ink-2)]">
                   This invite works once{until ? ` and is open until ${until}` : ""}. Already on Kavach?{" "}
@@ -180,7 +226,7 @@ export default function JoinPage() {
             )}
           </div>
         </div>
-        <Showcase />
+        <HowItWorks />
       </main>
     </div>
   );
