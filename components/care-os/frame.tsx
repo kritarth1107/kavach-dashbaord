@@ -12,6 +12,7 @@ import {
   CheckCircle,
   CreditCard,
   FirstAidKit,
+  ForkKnife,
   Gear,
   Kanban,
   Heart,
@@ -60,6 +61,7 @@ function navFor(pathname: string): NavKey {
     pathname.startsWith("/dashboard/report") ||
     pathname.startsWith("/dashboard/care-team") ||
     pathname.startsWith("/dashboard/wellbeing") ||
+    pathname.startsWith("/dashboard/nutrition") ||
     /health-record/.test(pathname)
   )
     return "health";
@@ -89,6 +91,7 @@ const MENU: Array<{ group: string; phoneOnly?: boolean; items: Array<{ href: str
       { href: "/dashboard/emergency", label: "Emergency card", icon: Siren },
       { href: "/dashboard/care-team", label: "Care team & appointments", icon: Stethoscope },
       { href: "/dashboard/report", label: "Care report for the doctor", icon: ChartBar },
+      { href: "/dashboard/nutrition", label: "Food & nutrition", icon: ForkKnife },
       { href: "/dashboard/wellbeing", label: "Wellbeing", icon: Heart },
       { href: "/dashboard/notifications", label: "Notifications", icon: Bell },
       { href: "/dashboard/approvals", label: "Approvals", icon: CheckCircle },
