@@ -517,6 +517,8 @@ export type CareScheduleItem = {
   instructions: string | null;
   daysOfWeek: number[];
   active: boolean;
+  /** A critical medicine: an unanswered streak with it alerts the family even in their quiet hours. */
+  critical?: boolean;
   createdBy: string;
   updatedBy: string | null;
   createdAt: string;
@@ -531,6 +533,7 @@ export type CareSchedulePayload = {
   instructions?: string | null;
   daysOfWeek?: number[];
   active?: boolean;
+  critical?: boolean;
 };
 
 export async function getCareSchedule(familyId: string, recipientUserId: string) {

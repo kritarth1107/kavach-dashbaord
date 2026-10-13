@@ -91,6 +91,7 @@ export function CareScheduleModal({
       instructions: form.instructions.trim() ? form.instructions.trim() : null,
       daysOfWeek: form.daysOfWeek,
       active: form.active,
+      ...(showDosage ? { critical: form.critical } : {}),
     };
 
     try {
@@ -230,6 +231,23 @@ export function CareScheduleModal({
                 </div>
               )}
             </div>
+
+            {showDosage && (
+              <label className="flex items-start gap-2 rounded-lg border border-[var(--border-strong)] bg-[var(--input-bg)] px-2.5 py-2 text-[12px] text-[var(--text-primary)]">
+                <input
+                  type="checkbox"
+                  checked={form.critical}
+                  onChange={(e) => update("critical", e.target.checked)}
+                  className="mt-0.5"
+                />
+                <span>
+                  <span className="font-semibold">Critical medicine</span>
+                  <span className="block text-[11px] text-[var(--text-tertiary)]">
+                    If this dose and Saheli&apos;s messages go unanswered, the family is alerted even during quiet hours.
+                  </span>
+                </span>
+              </label>
+            )}
 
             <div>
               <FieldLabel>Instructions (optional)</FieldLabel>

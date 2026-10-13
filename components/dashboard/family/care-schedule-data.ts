@@ -17,6 +17,8 @@ export type ScheduleFormData = {
   instructions: string;
   daysOfWeek: number[];
   active: boolean;
+  /** A critical medicine: if it goes unanswered, the family is alerted even at night (trust plan B2.2). */
+  critical: boolean;
 };
 
 export const scheduleTypeOptions: {
@@ -67,6 +69,7 @@ export function emptyScheduleForm(): ScheduleFormData {
     instructions: "",
     daysOfWeek: [],
     active: true,
+    critical: false,
   };
 }
 
@@ -79,6 +82,7 @@ export function scheduleToForm(item: CareScheduleItem): ScheduleFormData {
     instructions: item.instructions ?? "",
     daysOfWeek: item.daysOfWeek ?? [],
     active: item.active,
+    critical: Boolean(item.critical),
   };
 }
 
