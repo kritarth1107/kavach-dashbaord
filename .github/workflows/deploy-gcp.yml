@@ -39,6 +39,25 @@ jobs:
           npm run test:records
           npm run test:memory   # the Memory page mounts with every change kind; a broken panel is contained
 
+      - name: Every page for synthetic world families (production build; plan B1.6)
+        env:
+          AUTH_SECRET: ci-page-test-only
+          AUTH_URL: http://localhost:3123
+          AUTH_TRUST_HOST: "true"
+        run: |
+          npx playwright install --with-deps chromium
+          npx next build
+          (TZ=UTC npx next start -p 3123 > /tmp/next.log 2>&1 &)
+          for i in $(seq 1 45); do curl -sf -o /dev/null http://localhost:3123/auth/login && break; sleep 2; done
+          PAGES_BASE=http://localhost:3123 PAGES_FAMILIES=12 PAGES_PARALLEL=4 node scripts/test-pages.mjs
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: page-test-screenshots
+          path: scripts/out/pages
+          retention-days: 14
+
       - uses: google-github-actions/auth@v2
         with:
           workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
