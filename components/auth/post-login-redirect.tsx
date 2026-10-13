@@ -5,8 +5,15 @@ import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { getMe } from "@/lib/api";
 import { setStoredFamilyId } from "@/lib/family-storage";
+import { forgetInvite } from "@/lib/invites-api";
 
 class CareRecipientLogin extends Error {}
+/** Google sign-up without an invite: back to sign-in, where the waitlist form opens with their email and name. */
+class InviteNeeded extends Error {
+  constructor(readonly code: string, readonly email?: string | null, readonly fullName?: string | null) {
+    super(code);
+  }
+}
 
 async function ensureSessionCookie() {
   const res = await fetch("/api/auth/establish-session", {
@@ -19,6 +26,8 @@ async function ensureSessionCookie() {
   }
 
   if (res.status === 403) {
+    const json = (await res.json().catch(() => null)) as { code?: string; data?: { email?: string | null; name?: string | null } } | null;
+    if (json?.code?.startsWith("invite_")) throw new InviteNeeded(json.code, json.data?.email, json.data?.name);
     throw new CareRecipientLogin();
   }
 
@@ -52,10 +61,18 @@ export function PostLoginRedirect() {
         if (data.activeFamilyId) {
           setStoredFamilyId(data.activeFamilyId, data.user.userId);
         }
+        forgetInvite();
 
         // A new caregiver tells Saheli about their family first; everyone else goes straight in.
         router.replace(data.user.onboardingRequired ? "/onboarding" : "/dashboard");
       } catch (err) {
+        if (err instanceof InviteNeeded) {
+          const q = new URLSearchParams({ error: err.code });
+          if (err.email) q.set("email", err.email);
+          if (err.fullName) q.set("name", err.fullName);
+          router.replace(`/auth/login?${q.toString()}`);
+          return;
+        }
         router.replace(err instanceof CareRecipientLogin ? "/auth/login?error=care_recipient" : "/auth/login");
       }
     })();

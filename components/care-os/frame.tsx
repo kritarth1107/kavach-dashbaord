@@ -25,6 +25,7 @@ import {
   Siren,
   Stethoscope,
   Sun,
+  UserPlus,
   UsersThree,
   Wallet,
   X,
@@ -68,6 +69,7 @@ function navFor(pathname: string): NavKey {
     pathname.startsWith("/dashboard/spending")
   )
     return "family";
+  if (pathname.startsWith("/dashboard/invitations")) return "invitations";
   return "settings";
 }
 
@@ -106,6 +108,7 @@ const MENU: Array<{ group: string; phoneOnly?: boolean; items: Array<{ href: str
     group: "Account",
     items: [
       { href: "/dashboard/family", label: "Family members", icon: UsersThree },
+      { href: "/dashboard/invitations", label: "Invitations", icon: UserPlus },
       { href: "/dashboard/integrations", label: "Connected apps", icon: Plugs },
       { href: "/dashboard/billing", label: "Billing", icon: CreditCard },
       { href: "/dashboard/settings", label: "Settings", icon: Gear },

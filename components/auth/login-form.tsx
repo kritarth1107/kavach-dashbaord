@@ -22,7 +22,10 @@ import {
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/components/providers/theme-provider";
 import { ThemeIcon, useThemeLabel } from "@/components/providers/theme-icon";
+import { useMounted } from "@/components/care-os/care-kit";
+import { forgetInvite, INVITE_DENY_COPY, isInviteDenyCode, readInvite, rememberInvite } from "@/lib/invites-api";
 import { OtpInput } from "./otp-input";
+import { WaitlistForm } from "./waitlist-form";
 
 function routeAfterLogin() {
   return "/auth/post-login";
@@ -141,6 +144,14 @@ export function LoginForm() {
   const emailFromQuery = searchParams.get("email") ?? "";
   const phoneFromQuery = PHONE_LOGIN_ENABLED ? (searchParams.get("phone") ?? "") : "";
   const queryError = LOGIN_ERRORS[searchParams.get("error") ?? ""] ?? "";
+  // Kavach is invite-only for now: the invite from the join page (?invite= or its cookie) goes with every sign-in step
+  const inviteFromQuery = searchParams.get("invite") ?? "";
+  const mounted = useMounted();
+  const inviteToken = inviteFromQuery || (mounted ? readInvite() : null) || null;
+  useEffect(() => {
+    if (inviteFromQuery) rememberInvite(inviteFromQuery); // Google sign-in reads it from the cookie on the server
+  }, [inviteFromQuery]);
+  const queryDeny = searchParams.get("error");
 
   const [step, setStep] = useState<Step>("identifier");
   const [loginMethod, setLoginMethod] = useState<LoginMethod>(
@@ -167,6 +178,27 @@ export function LoginForm() {
     }
     return false;
   };
+  /** No account without an invite: the waitlist form instead (also when Google sign-up came back refused). */
+  const [waitlist, setWaitlist] = useState<{ reason: string; name?: string; email?: string; phone?: string; phoneCountryCode?: string } | null>(
+    isInviteDenyCode(queryDeny)
+      ? { reason: INVITE_DENY_COPY[queryDeny], email: emailFromQuery || undefined, name: searchParams.get("name") ?? undefined }
+      : null,
+  );
+  const waitlistFrom = (err: unknown) => {
+    if (err instanceof ApiError && isInviteDenyCode(err.code)) {
+      const d = err.data ?? {};
+      setWaitlist({
+        reason: err.message || INVITE_DENY_COPY[err.code],
+        email: typeof d.email === "string" ? d.email : loginMethod === "email" ? email.trim().toLowerCase() : undefined,
+        phone: typeof d.phone === "string" ? d.phone : loginMethod === "phone" ? normalizePhoneDigits(phone) : undefined,
+        phoneCountryCode: typeof d.phoneCountryCode === "string" ? d.phoneCountryCode : phoneCountryCode,
+        name: name.trim() || undefined,
+      });
+      setError("");
+      return true;
+    }
+    return false;
+  };
 
   const identifier = useMemo<OtpIdentifier>(() => {
     if (channel === "phone") {
@@ -174,10 +206,11 @@ export function LoginForm() {
         channel: "phone",
         phone: normalizePhoneDigits(phone),
         phoneCountryCode,
+        inviteToken,
       };
     }
-    return { channel: "email", email: email.trim().toLowerCase() };
-  }, [channel, email, phone, phoneCountryCode]);
+    return { channel: "email", email: email.trim().toLowerCase(), inviteToken };
+  }, [channel, email, phone, phoneCountryCode, inviteToken]);
 
   const identifierLabel = useMemo(() => {
     if (channel === "phone") {
@@ -223,8 +256,9 @@ export function LoginForm() {
             channel: "phone",
             phone: normalizePhoneDigits(phone),
             phoneCountryCode,
+            inviteToken,
           }
-        : { channel: "email", email: email.trim().toLowerCase() };
+        : { channel: "email", email: email.trim().toLowerCase(), inviteToken };
 
     if (payload.channel === "phone" && (phoneCountryCode === "+91" ? payload.phone.length !== 10 : payload.phone.length < 7 || payload.phone.length > 12)) {
       setError(phoneCountryCode === "+91" ? "Enter your 10-digit mobile number" : "Enter a valid mobile number");
@@ -241,7 +275,7 @@ export function LoginForm() {
       setStep("otp");
       setResendCooldown(30);
     } catch (err) {
-      if (!caredFrom(err)) setError(err instanceof Error ? err.message : "Failed to send code");
+      if (!caredFrom(err) && !waitlistFrom(err)) setError(err instanceof Error ? err.message : "Failed to send code");
     } finally {
       setLoading(false);
     }
@@ -256,13 +290,14 @@ export function LoginForm() {
       if (!data) throw new Error("Unexpected response");
 
       if (data.registered) {
+        forgetInvite();
         router.push(routeAfterLogin());
         return;
       }
 
       setStep("register");
     } catch (err) {
-      if (!caredFrom(err)) setError(err instanceof Error ? err.message : "Verification failed");
+      if (!caredFrom(err) && !waitlistFrom(err)) setError(err instanceof Error ? err.message : "Verification failed");
     } finally {
       setLoading(false);
     }
@@ -279,7 +314,7 @@ export function LoginForm() {
       setOtp("");
       setResendCooldown(30);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to resend code");
+      if (!waitlistFrom(err)) setError(err instanceof Error ? err.message : "Failed to resend code");
     } finally {
       setLoading(false);
     }
@@ -293,9 +328,10 @@ export function LoginForm() {
       const { data } = await registerWithOtp(identifier, otp, name, otpToken);
       if (!data?.user) throw new Error("Registration failed");
 
+      forgetInvite();
       router.push(routeAfterLogin());
     } catch (err) {
-      if (!caredFrom(err)) setError(err instanceof Error ? err.message : "Registration failed");
+      if (!caredFrom(err) && !waitlistFrom(err)) setError(err instanceof Error ? err.message : "Registration failed");
     } finally {
       setLoading(false);
     }
@@ -317,13 +353,13 @@ export function LoginForm() {
         <div className="mb-8">
           <h1 className="text-[44px] leading-[1.02] tracking-[-0.035em]">
             <span className="block font-light text-[var(--c-ink-3)]">
-              {step === "identifier" ? "Welcome to" : step === "register" ? "Almost" : "Check your"}
+              {waitlist ? "Join the" : step === "identifier" ? "Welcome to" : step === "register" ? "Almost" : "Check your"}
             </span>
             <span className="block font-medium">
-              {step === "identifier" ? "Kavach" : step === "register" ? "there" : channel === "phone" ? "WhatsApp" : "email"}
+              {waitlist ? "waitlist" : step === "identifier" ? "Kavach" : step === "register" ? "there" : channel === "phone" ? "WhatsApp" : "email"}
             </span>
           </h1>
-          {step === "identifier" && (
+          {step === "identifier" && !waitlist && (
             <p className="mt-3 text-[13px] text-[var(--c-ink-2)]">
               {loginMethod === "phone"
                 ? "Sign in with your mobile number. We'll send a one-time code on WhatsApp."
@@ -354,6 +390,24 @@ export function LoginForm() {
             </p>
           )}
         </div>
+
+        {inviteToken && !waitlist && step !== "otp" && (
+          <p className="mb-4 flex items-center gap-2 rounded-full bg-[var(--c-solid-soft)] px-4 py-2 text-[12px] font-medium text-[var(--c-ink)]">
+            <span className="h-2 w-2 shrink-0 rounded-full bg-[var(--c-solid)]" aria-hidden />
+            Invite applied. Sign up with your email, mobile number or Google.
+          </p>
+        )}
+
+        {waitlist && (
+          <WaitlistForm
+            initial={{ name: waitlist.name, email: waitlist.email, phone: waitlist.phone, phoneCountryCode: waitlist.phoneCountryCode }}
+            reason={waitlist.reason}
+            onBack={() => {
+              setWaitlist(null);
+              resetToIdentifier();
+            }}
+          />
+        )}
 
         {declinedInvite && step === "identifier" && (
           <p className="mb-4 rounded-full bg-[var(--c-accent-soft)] px-4 py-2 text-center text-[12px] font-medium text-primary">
@@ -388,7 +442,7 @@ export function LoginForm() {
           </div>
         )}
 
-        {step === "identifier" && !cared && (
+        {step === "identifier" && !cared && !waitlist && (
           <form onSubmit={handleSendOtp} className="space-y-4">
             <MethodToggle value={loginMethod} onChange={switchLoginMethod} />
 
@@ -451,7 +505,7 @@ export function LoginForm() {
           </form>
         )}
 
-        {step === "otp" && (
+        {step === "otp" && !waitlist && (
           <form onSubmit={handleVerifyOtp} className="space-y-4">
             <OtpInput value={otp} onChange={setOtp} disabled={loading} />
 
@@ -478,7 +532,7 @@ export function LoginForm() {
           </form>
         )}
 
-        {step === "register" && (
+        {step === "register" && !waitlist && (
           <form onSubmit={handleRegister} className="space-y-4">
             <input
               type="text"
@@ -498,7 +552,7 @@ export function LoginForm() {
           </form>
         )}
 
-        {step === "identifier" && (
+        {step === "identifier" && !waitlist && (
           <>
             <div className="my-6 flex items-center gap-3">
               <div className="h-px flex-1 bg-[var(--chart-track)]" />
@@ -529,6 +583,18 @@ export function LoginForm() {
                 )}
               </button>
             </div>
+            {!inviteToken && (
+              <p className="mt-5 text-center text-[12px] text-[var(--c-ink-2)]">
+                New to Kavach? It&apos;s invite-only for now.{" "}
+                <button
+                  type="button"
+                  onClick={() => setWaitlist({ reason: INVITE_DENY_COPY.invite_required, email: loginMethod === "email" ? email.trim().toLowerCase() || undefined : undefined })}
+                  className="font-medium text-[var(--c-ink)] underline underline-offset-4"
+                >
+                  Join the waitlist
+                </button>
+              </p>
+            )}
           </>
         )}
 

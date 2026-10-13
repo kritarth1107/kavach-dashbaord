@@ -72,22 +72,26 @@ async function parseResponse<T>(res: Response): Promise<ApiResponse<T>> {
 
 export type OtpChannel = "email" | "phone";
 
+/** inviteToken: the one-time invite a new account needs (Kavach is invite-only); existing accounts ignore it. */
 export type OtpIdentifier =
-  | { channel: "email"; email: string }
-  | { channel: "phone"; phone: string; phoneCountryCode: string };
+  | { channel: "email"; email: string; inviteToken?: string | null }
+  | { channel: "phone"; phone: string; phoneCountryCode: string; inviteToken?: string | null };
 
 function otpRequestBody(identifier: OtpIdentifier) {
+  const invite = identifier.inviteToken ? { inviteToken: identifier.inviteToken } : {};
   if (identifier.channel === "phone") {
     return {
       channel: "phone" as const,
       phone: identifier.phone,
       phoneCountryCode: identifier.phoneCountryCode,
+      ...invite,
     };
   }
 
   return {
     channel: "email" as const,
     email: identifier.email,
+    ...invite,
   };
 }
 

@@ -32,6 +32,19 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  // Google sign-up without an invite (Kavach is invite-only for now): the sign-in page shows the waitlist form
+  if (typeof token?.error === "string" && token.error.startsWith("Invite:")) {
+    return NextResponse.json(
+      {
+        success: false,
+        code: token.error.slice("Invite:".length),
+        message: "Kavach is invite-only for now",
+        data: { email: token.inviteEmail ?? null, name: token.inviteName ?? null },
+      },
+      { status: 403 },
+    );
+  }
+
   const backendToken =
     typeof token?.backendToken === "string" ? token.backendToken : null;
 

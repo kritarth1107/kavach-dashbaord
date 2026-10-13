@@ -21,6 +21,10 @@ const PARALLEL = Number(process.env.PAGES_PARALLEL || 4);
 const OUT = path.join(here, "out", "pages");
 const world = JSON.parse(zlib.gunzipSync(fs.readFileSync(path.join(here, "fixtures", "world-ui.json.gz"))).toString());
 
+// invite links (invite-only sign-up): one usable, one already used
+const JOIN_ACTIVE = "7K2M9QXA4TBC8D1EFGHJ5NPRSV";
+const JOIN_USED = "8Z3N0RYB5VCD9E2FGHJK6PQSTW";
+
 const PAGES = [
   { name: "home", path: "/dashboard" },
   { name: "day", path: "/dashboard/saheli" },
@@ -42,6 +46,9 @@ const PAGES = [
   { name: "billing", path: "/dashboard/billing" },
   { name: "emergency-link", path: "/e/world-link", public: true },
   { name: "sign-in", path: "/auth/login", public: true },
+  { name: "invitations", path: "/dashboard/invitations" },
+  { name: "join", path: `/join/${JOIN_ACTIVE}`, public: true },
+  { name: "join-used", path: `/join/${JOIN_USED}`, public: true },
 ].filter((p) => !process.env.PAGES_ONLY || process.env.PAGES_ONLY.split(",").includes(p.name));
 
 const ERROR_SCREEN = /Application error|Something went wrong|This page couldn.t load|Unhandled Runtime Error/i;
@@ -90,6 +97,23 @@ function api(fam, url) {
   if (new RegExp(`^/api/families/${fid}/subjects/[^/]+/reminders/day$`).test(p)) return { day: url.searchParams.get("day") || world.today, occurrences: [], reminders: [] };
   if (new RegExp(`^/api/families/${fid}/recipients/[^/]+/labs$`).test(p)) return { documents: [] };
   if (new RegExp(`^/api/families/${fid}/recipients/[^/]+/labs/highlights$`).test(p)) return { cards: [], all: [], reports: 0, latestDate: null, noticed: null, readings: [] };
+  const at = (days) => new Date(Date.parse(`${world.today}T09:00:00+05:30`) + days * 86_400_000).toISOString();
+  const wa = (t) => `https://wa.me/919999900000?text=${encodeURIComponent(`hi KAVACH-${t}`)}`;
+  if (p === "/api/invites") {
+    const row = (id, state, extra) => ({ inviteId: `0000000${id}-0000-4000-8000-00000000000${id}`, state, createdAt: at(-3 * id), expiresAt: at(14 - 3 * id),
+      usedAt: null, usedByName: null, revokedAt: null, link: null, whatsappLink: null, code: null, ...extra });
+    return { quota: { limit: 5, used: 3, left: 2, nextSlotAt: null }, perWeek: 5, validDays: 14, invites: [
+      row(1, "active", { link: `${BASE}/join/${JOIN_ACTIVE}`, whatsappLink: wa(JOIN_ACTIVE), code: `KAVACH-${JOIN_ACTIVE}` }),
+      row(2, "used", { usedAt: at(-4), usedByName: "Asha Verma" }),
+      row(3, "revoked", { revokedAt: at(-8) }),
+      row(6, "expired", { expiresAt: at(-4) }),
+    ] };
+  }
+  if (p.startsWith("/api/public/invite/")) {
+    const t = p.split("/").pop();
+    const active = t === JOIN_ACTIVE;
+    return { state: active ? "active" : "used", kind: "user", inviterName: primary.name, expiresAt: at(11), saheliNumber: "+919999900000", whatsappLink: active ? wa(t) : null };
+  }
   if (p.startsWith("/api/public/emergency/")) {
     const card = (fam.engine[cared[0]?.id] || {}).emergency;
     return card ? { person: { name: cared[0].name, photo: null, phone: cared[0].phone }, caregivers: [{ name: primary.name, phone: primary.phone, primary: true }], card, updatedAt: `${world.today}T09:00:00+05:30` } : undefined;

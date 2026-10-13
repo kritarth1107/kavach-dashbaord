@@ -17,6 +17,7 @@ import {
   Sparkle,
   Stethoscope,
   Sun,
+  UserPlus,
   UsersThree,
   type Icon as PhosphorIcon,
 } from "@phosphor-icons/react";
@@ -27,7 +28,7 @@ import { cn } from "@/lib/utils";
 import { PersonPicker } from "./person-picker";
 import { Avatar } from "./ui";
 
-export type NavKey = "home" | "today" | "care" | "health" | "orders" | "saheli" | "memory" | "emergency" | "family" | "settings";
+export type NavKey = "home" | "today" | "care" | "health" | "orders" | "saheli" | "memory" | "emergency" | "family" | "invitations" | "settings";
 
 const RAIL: Array<{ key: NavKey; label: string; href: string; icon?: PhosphorIcon; text?: string }> = [
   { key: "home", label: "Home", href: "/dashboard", icon: House },
@@ -38,6 +39,7 @@ const RAIL: Array<{ key: NavKey; label: string; href: string; icon?: PhosphorIco
   { key: "memory", label: "What Saheli knows", href: "/dashboard/saheli/memory", icon: Brain },
   { key: "emergency", label: "Emergency card", href: "/dashboard/emergency", icon: Siren },
   { key: "family", label: "Family", href: "/dashboard/family", icon: UsersThree },
+  { key: "invitations", label: "Invitations", href: "/dashboard/invitations", icon: UserPlus },
 ];
 
 /** Shortcuts beside the person picker, about whoever is selected. */

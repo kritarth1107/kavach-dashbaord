@@ -17,5 +17,8 @@ declare module "next-auth/jwt" {
     userId?: string;
     backendToken?: string;
     error?: string;
+    /** Google sign-up refused for want of an invite: prefill for the waitlist form. */
+    inviteEmail?: string;
+    inviteName?: string;
   }
 }

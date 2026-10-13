@@ -23,16 +23,33 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     async jwt({ token, account }) {
       if (account?.provider === "google" && account.id_token) {
         try {
+          // Kavach is invite-only for now: a new account needs the invite the join page left in a cookie
+          let inviteToken: string | undefined;
+          try {
+            const { cookies } = await import("next/headers");
+            const raw = (await cookies()).get("kavach_invite")?.value;
+            if (raw && /^[0-9A-Za-z]{26}$/.test(raw)) inviteToken = raw;
+          } catch {
+            /* no request cookies here: sign in without one */
+          }
           const res = await fetch(`${getBackendUrl()}/api/auth/google`, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
               "x-fingerprint": "N/A",
             },
-            body: JSON.stringify({ idToken: account.id_token }),
+            body: JSON.stringify({ idToken: account.id_token, ...(inviteToken ? { inviteToken } : {}) }),
           });
 
           if (!res.ok) {
+            const body = (await res.json().catch(() => null)) as { code?: string; data?: { email?: string; name?: string } } | null;
+            if (res.status === 403 && body?.code?.startsWith("invite_")) {
+              // no invite: the sign-in page opens the waitlist form with what Google told us
+              token.error = `Invite:${body.code}`;
+              token.inviteEmail = body.data?.email;
+              token.inviteName = body.data?.name;
+              return token;
+            }
             token.error = res.status === 403 ? "CareRecipientLogin" : "GoogleSignInFailed";
             return token;
           }
@@ -44,6 +61,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           }
 
           token.backendToken = json.data.token;
+          token.error = undefined;
+          token.inviteEmail = undefined;
+          token.inviteName = undefined;
           token.userId = json.data.user.userId;
           token.name = json.data.user.fullName;
           token.email = json.data.user.email;
