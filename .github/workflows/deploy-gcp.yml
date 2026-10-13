@@ -38,6 +38,7 @@ jobs:
           npx eslint . --max-warnings=0
           npm run test:records
           npm run test:memory   # the Memory page mounts with every change kind; a broken panel is contained
+          npm run test:nutrition   # the Food diary reads the engine's view as the engine writes it
 
       - name: Every page for synthetic world families (production build; plan B1.6)
         env:

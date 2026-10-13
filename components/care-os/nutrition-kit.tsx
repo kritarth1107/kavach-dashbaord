@@ -30,208 +30,77 @@ import { request } from "@/lib/activity-api";
 import { cn } from "@/lib/utils";
 import { IST, parseIst } from "./feature-kit";
 
-/* ── draft contract ─────────────────────────────────────────────────────── */
+import {
+  asSlot,
+  DAY_SLOTS,
+  MAIN_MEALS,
+  MEAL_ORDER,
+  type CalendarDay,
+  type Confidence,
+  type Diary,
+  type DiaryCounter,
+  type DiaryItem,
+  type DiaryMeal,
+  type DiaryTarget,
+  type LogResult,
+  type MealSlot,
+  type MissingMeal,
+  type NutrientKey,
+  type Nutrients,
+  type NutritionReport,
+  type NutritionView,
+  type ShareLink,
+  type TargetSetter,
+  type WeekDay,
+} from "./nutrition-data";
 
-export type NutrientKey =
-  | "energy_kcal"
-  | "protein_g"
-  | "carbs_g"
-  | "sugar_g"
-  | "added_sugar_g"
-  | "fibre_g"
-  | "fat_g"
-  | "sat_fat_g"
-  | "cholesterol_mg"
-  | "sodium_mg"
-  | "potassium_mg"
-  | "calcium_mg"
-  | "iron_mg"
-  | "vit_d_mcg"
-  | "b12_mcg"
-  | "caffeine_mg"
-  | "water_g";
-export type Nutrients = Partial<Record<NutrientKey, number>>;
-export type MealSlot = "breakfast" | "lunch" | "snack" | "dinner" | "other";
-/** How sure the numbers are (§N2 nutrition_entries.confidence). */
-export type Confidence = "label" | "said" | "photo" | "estimate" | "unquantified";
-export type EntrySource = "chat" | "photo" | "label" | "order" | "dashboard" | "caregiver" | "nudge" | "backfill";
-/** §N18 Q6: anyone in the care circle can set a target; it records who and how strict. */
-export type TargetSetter = "caregiver" | "self" | "doctor" | "dietitian" | "trainer" | "other";
-export type Strictness = "strict" | "guide";
+export { DAY_SLOTS, MAIN_MEALS, MEAL_ORDER, asSlot };
+export type { MealSlot, NutrientKey, Nutrients };
 
-/** One item eaten (a nutrition_entries row). */
-export type NutritionEntry = {
-  id: string;
-  mealId: string;
-  meal: MealSlot;
-  eatenAt: string;
-  /** Display name, already in the right number: "boiled eggs", "moong dal". */
-  name: string;
-  /** Their own words, when different: "do ande". */
-  nameSaid: string | null;
-  quantity: number | null;
-  /** Household unit: "katori", "plate", "cup"; null for counted things (2 eggs). */
-  unit: string | null;
-  /** The measure behind it, when known: "150 ml", "180 g". */
-  portion: string | null;
-  grams: number | null;
-  nutrients: Nutrients;
-  confidence: Confidence;
-  source: EntrySource;
-  consumed: "yes" | "part";
-  portionEaten: number | null;
-  note: string | null;
-};
-
-/** Items grouped as one meal (meal_id). */
-export type NutritionMeal = {
-  id: string;
-  meal: MealSlot;
-  at: string;
-  /** Signed URL (15 minutes) of the meal photo, when one was used. */
-  photoUrl: string | null;
-  loggedBy: { id: string | null; name: string; role: "self" | "caregiver" | "elder" | "saheli" };
-  /** One line on where it came from, written by the engine: "From Maa's photo, she confirmed at 08:14". */
-  note: string | null;
-  items: NutritionEntry[];
-  totals: Nutrients;
-  canUndo: boolean;
-};
-
-export type MissingMeal = { meal: Exclude<MealSlot, "other">; usual: string | null; pendingId: string | null };
-
-export type NutritionDay = {
-  day: string;
-  meals: NutritionMeal[];
-  missing: MissingMeal[];
-  totals: Nutrients;
-  water: { glasses: number; glassMl: number };
-};
-
-/** A target (care fact in domain nutrition_target). A goal to reach has only min; a limit only max; a range both. */
-export type NutritionTarget = {
-  key: string;
-  nutrient: NutrientKey | "water_glasses";
-  min: number | null;
-  max: number | null;
-  setBy: TargetSetter;
-  setByName: string | null;
-  how: Strictness;
-  status: "active" | "pending";
-};
-
-/** A food rule ("max 2 eggs a day"), also a nutrition_target fact. */
-export type FoodRule = {
-  key: string;
-  text: string;
-  setBy: TargetSetter;
-  setByName: string | null;
-  how: Strictness;
-  counter: string | null;
-  max: number | null;
-  period: "day" | "week";
-};
-
-export type NutritionCounter = {
-  key: "eggs" | "water" | "tea" | "sugar_tsp" | string;
-  label: string;
-  unit: string;
-  today: number;
-  usual: number;
-  week: number;
-  usualWeek: number;
-  goal: number | null;
-  limit: number | null;
-};
-
-export type CalendarDay = { day: string; tracked: boolean; logged: MealSlot[]; kcal: number | null };
-export type WeekDay = { day: string; kcal: number | null; protein: number | null; logged: number };
-
-export type PantryItem = {
-  id: string;
-  name: string;
-  count: number;
-  of: number | null;
-  unit: string;
-  service: string | null;
-  serviceLabel: string | null;
-  addedAt: string;
-  bestBefore: string | null;
-};
-
-/** A delivered restaurant meal that counts only after a yes (§N6.1). */
-export type PendingMeal = {
-  id: string;
-  taskId: string;
-  service: string;
-  serviceLabel: string;
-  title: string;
-  deliveredAt: string;
-  meal: MealSlot;
-  kcal: number | null;
-  protein: number | null;
-  askedAt: string | null;
-};
-
-export type Noticed = { id: string; kind: "pattern" | "learned" | "deviation"; text: string; at: string; undoTarget: string | null };
-
-export type ShareLink = { id: string; url: string; days: number; forName: string | null; createdAt: string; expiresAt: string; revokedAt: string | null; opens: number };
-
-export type NutritionView = {
-  subjectId: string;
-  today: string;
-  day: string;
-  range: 1 | 7 | 30;
-  from: string;
-  to: string;
-  tracking: { level: "full" | "off"; since: string | null };
-  /** Condition-aware rows (display only, §N7.2): diabetes → sugar and carbs, high BP → sodium. */
-  conditions: Array<{ key: string; label: string; nutrients: NutrientKey[] }>;
-  targets: NutritionTarget[];
-  rules: FoodRule[];
-  days: NutritionDay[];
-  calendar: CalendarDay[];
-  week: WeekDay[];
-  averages: { d7: Nutrients; d30: Nutrients; d7Days: number; d30Days: number };
-  counters: NutritionCounter[];
-  pantry: PantryItem[];
-  pending: PendingMeal[];
-  noticed: Noticed[];
-  shares: ShareLink[];
-  /** Their own foods, for Add food's suggestions. */
-  foods: Array<{ name: string; unit: string }>;
-  /** When Saheli will next ask about a meal she hasn't heard about (Kavach NUdge). */
-  nextAsk: { meal: MealSlot; at: string } | null;
-};
-
-/* ── API (backend care-memory/nutrition/*) ──────────────────────────────── */
+/* ── API (backend care-memory/nutrition/*, caregivers and self-care only) ── */
 
 function base(familyId: string, subjectId: string) {
-  return `/api/families/${encodeURIComponent(familyId)}/subjects/${encodeURIComponent(subjectId)}/care-memory/nutrition`;
+  return `/api/families/${encodeURIComponent(familyId)}/subjects/${encodeURIComponent(subjectId)}/care-memory`;
 }
-const send = <T,>(url: string, body: unknown, method = "POST") =>
-  request<T>(url, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }, 45_000);
+const send = <T,>(url: string, body: unknown, method = "POST", timeoutMs = 45_000) =>
+  request<T>(url, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }, timeoutMs);
 
 export async function getNutrition(familyId: string, subjectId: string, range: 1 | 7 | 30, day: string | null): Promise<NutritionView> {
   const q = new URLSearchParams({ days: String(range) });
   if (day) q.set("day", day);
-  const data = await request<NutritionView>(`${base(familyId, subjectId)}?${q}`, {}, 45_000);
+  const data = await request<NutritionView>(`${base(familyId, subjectId)}/nutrition?${q}`, {}, 45_000);
   if (!data) throw new Error("Couldn't load food and nutrition");
   return data;
 }
-export const addFood = (f: string, s: string, body: { name: string; quantity: number; unit: string; meal: MealSlot; eatenAt: string }) => send(`${base(f, s)}/entries`, body);
-export const changeEntry = (f: string, s: string, id: string, set: { quantity?: number; deleted?: boolean }) => send(`${base(f, s)}/entries/${encodeURIComponent(id)}`, set, "PATCH");
-export const confirmEaten = (f: string, s: string, pendingId: string, answer: "yes" | "part" | "no") => send(`${base(f, s)}/confirm`, { pendingId, answer });
-export const undoChange = (f: string, s: string, target: string) => send(`${base(f, s)}/undo`, { target });
-export const shareWithDoctor = (f: string, s: string, body: { kind: "pdf" | "link"; days: number }) => send<{ url: string; share: ShareLink | null }>(`${base(f, s)}/share`, body);
-export const revokeShare = (f: string, s: string, id: string) => send(`${base(f, s)}/share/${encodeURIComponent(id)}`, {}, "DELETE");
+export const getNutritionReport = async (f: string, s: string, days: 7 | 14 | 30) => {
+  const data = await request<NutritionReport>(`${base(f, s)}/nutrition/report?days=${days}`, {}, 45_000);
+  if (!data) throw new Error("Couldn't make the report");
+  return data;
+};
+export type FoodHit = { id: string; name: string; brand: string | null; defaultUnit: string | null; family: boolean };
+export const searchFoods = async (f: string, s: string, q: string) =>
+  (await request<{ foods: FoodHit[] }>(`${base(f, s)}/nutrition/foods?q=${encodeURIComponent(q)}&limit=8`, {}, 10_000))?.foods ?? [];
+/** The same log_food Saheli uses; a new food is looked up on the web, so this can take a while. */
+export const addFood = (f: string, s: string, body: { items: Array<{ name: string; quantity?: number; unit?: string; foodId?: string }>; meal?: MealSlot; eatenAt?: string; answerTo?: string; cancel?: boolean; unsure?: boolean }) =>
+  send<LogResult>(`${base(f, s)}/nutrition/entries`, body, "POST", 70_000);
+export const changeEntry = (f: string, s: string, id: string, set: { quantity?: number; unit?: string; eatenAt?: string; meal?: MealSlot }) =>
+  send<{ version_id?: number }>(`${base(f, s)}/nutrition/entries/${encodeURIComponent(id)}`, { set }, "POST", 70_000);
+export const deleteEntry = (f: string, s: string, id: string) => send<{ version_id?: number }>(`${base(f, s)}/nutrition/entries/${encodeURIComponent(id)}/delete`, {});
+export const confirmEaten = (f: string, s: string, taskId: string, consumed: "yes" | "part" | "no") => send(`${base(f, s)}/nutrition/consumed`, { taskId, consumed }, "POST", 70_000);
+/** The newest change to one entry in the food log's history, to undo it. */
+export async function lastFoodChange(f: string, s: string, entryId: string) {
+  const data = await request<{ changes?: Array<{ id: number; undone?: boolean }> }>(`${base(f, s)}/memory-history?kind=food&target=${encodeURIComponent(`entry:${entryId}`)}&limit=1`);
+  return data?.changes?.[0] ?? null;
+}
+export const undoFoodChange = (f: string, s: string, versionId: number) => send(`${base(f, s)}/memory-history/${versionId}`, { mode: "undo", reason: "undone on the Food & nutrition page" });
+export const listShares = async (f: string, s: string) => (await request<{ shares: ShareLink[] }>(`${base(f, s)}/nutrition/shares`))?.shares ?? [];
+export const makeShare = (f: string, s: string, days: 7 | 14 | 30) => send<ShareLink>(`${base(f, s)}/nutrition/shares`, { days });
+export const revokeShare = (f: string, s: string, id: string) => send(`${base(f, s)}/nutrition/shares/${encodeURIComponent(id)}`, {}, "DELETE");
 
 /* ── words and numbers ──────────────────────────────────────────────────── */
 
-export const MEAL_ORDER: MealSlot[] = ["breakfast", "lunch", "snack", "dinner", "other"];
 export const MEAL_LABEL: Record<MealSlot, string> = { breakfast: "Breakfast", lunch: "Lunch", snack: "Snack", dinner: "Dinner", other: "Through the day" };
 export const MEAL_SHORT: Record<MealSlot, string> = { breakfast: "B", lunch: "L", snack: "S", dinner: "D", other: "·" };
-export const MAIN_MEALS = MEAL_ORDER.slice(0, 4) as Array<Exclude<MealSlot, "other">>;
 
 export const NUTRIENT: Record<NutrientKey | "water_glasses", { label: string; unit: string; dp: number }> = {
   energy_kcal: { label: "Energy", unit: "kcal", dp: 0 },
@@ -250,11 +119,26 @@ export const NUTRIENT: Record<NutrientKey | "water_glasses", { label: string; un
   vit_d_mcg: { label: "Vitamin D", unit: "mcg", dp: 1 },
   b12_mcg: { label: "Vitamin B12", unit: "mcg", dp: 1 },
   caffeine_mg: { label: "Caffeine", unit: "mg", dp: 0 },
-  water_g: { label: "Water", unit: "g", dp: 0 },
+  water_g: { label: "Water in food", unit: "g", dp: 0 },
+  water_ml: { label: "Water", unit: "ml", dp: 0 },
   water_glasses: { label: "Water", unit: "glasses", dp: 0 },
 };
 
 export const SETTER: Record<TargetSetter, string> = { caregiver: "Caregiver", self: "Self", doctor: "Doctor", dietitian: "Dietitian", trainer: "Trainer", other: "Other" };
+
+const UNIT_WORDS: Record<string, [string, string]> = {
+  katori: ["katori", "katoris"], katori_small: ["small katori", "small katoris"], katori_large: ["large katori", "large katoris"], bowl: ["bowl", "bowls"],
+  plate: ["plate", "plates"], cup: ["cup", "cups"], glass: ["glass", "glasses"], slice: ["slice", "slices"], handful: ["handful", "handfuls"],
+  scoop: ["scoop", "scoops"], pack: ["pack", "packs"], serving: ["serving", "servings"], tsp: ["tsp", "tsp"], tbsp: ["tbsp", "tbsp"], g: ["g", "g"], ml: ["ml", "ml"],
+};
+/** "2", "1 katori", "3 glasses", "250 g": pieces are just counted ("2 phulka"). An unknown unit is shown as it came. */
+export function amountText(quantity: number | null | undefined, unit: string | null | undefined) {
+  if (quantity == null) return "";
+  const n = num(quantity, quantity % 1 ? 1 : 0);
+  if (!unit || unit === "piece") return n;
+  const w = UNIT_WORDS[unit];
+  return `${n} ${w ? w[quantity === 1 ? 0 : 1] : unit}`;
+}
 
 export function num(v: number | null | undefined, dp = 0) {
   if (v == null || Number.isNaN(v)) return "—";
@@ -262,14 +146,14 @@ export function num(v: number | null | undefined, dp = 0) {
 }
 
 /** "1,400–1,600", "max 25", "60". */
-export function targetText(t: NutritionTarget, dp = 0) {
+export function targetText(t: DiaryTarget, dp = 0) {
   if (t.min != null && t.max != null) return t.min === t.max ? num(t.min, dp) : `${num(t.min, dp)}–${num(t.max, dp)}`;
   if (t.max != null) return `max ${num(t.max, dp)}`;
   return num(t.min, dp);
 }
 
 export type TargetState = "none" | "under" | "met" | "within" | "over";
-export function targetState(v: number | null | undefined, t: NutritionTarget | undefined): TargetState {
+export function targetState(v: number | null | undefined, t: DiaryTarget | undefined): TargetState {
   if (v == null || !t) return "none";
   // a single number ("2,200 kcal") counts as kept within 10%
   if (t.min != null && t.min === t.max) return v > t.max * 1.1 ? "over" : v < t.min * 0.9 ? "under" : "met";
@@ -318,11 +202,10 @@ export function ConfidenceBadge({ c, className }: { c: Confidence; className?: s
 }
 
 /** "Strict" (filled) or "guide" (plain words), after who set it. */
-export function SetBy({ t, short, className }: { t: NutritionTarget; short?: boolean; className?: string }) {
-  const who = t.setBy === "caregiver" && t.setByName ? t.setByName : SETTER[t.setBy];
+export function SetBy({ t, className }: { t: Pick<DiaryTarget, "setBy" | "how" | "status">; short?: boolean; className?: string }) {
   return (
-    <span className={cn("inline-flex min-w-0 items-center gap-1 text-[11px] text-[var(--c-ink-2)]", className)} title={t.setByName ? `Set by ${t.setByName} (${SETTER[t.setBy].toLowerCase()})` : undefined}>
-      <span className="truncate">{short ? who : `${who}${t.setByName && t.setBy !== "caregiver" ? ` · ${t.setByName}` : ""}`}</span>
+    <span className={cn("inline-flex min-w-0 items-center gap-1 text-[11px] text-[var(--c-ink-2)]", className)} title={`Set by the ${SETTER[t.setBy].toLowerCase()}`}>
+      <span className="truncate">{SETTER[t.setBy] ?? SETTER.other}</span>
       <span aria-hidden className="shrink-0">·</span>
       {t.how === "strict" ? <StrictChip /> : <span className="shrink-0">guide</span>}
       {t.status === "pending" && <span className="shrink-0 text-[var(--c-accent-text)]">· waiting for OK</span>}
@@ -340,7 +223,7 @@ export function StrictChip() {
 }
 
 /** A 4px meter: jade fill on a pale jade track; red only past a strict limit. A range marks where it starts. */
-export function Meter({ value, t, className }: { value: number | null | undefined; t: NutritionTarget | undefined; className?: string }) {
+export function Meter({ value, t, className }: { value: number | null | undefined; t: DiaryTarget | undefined; className?: string }) {
   if (!t) return <div className={cn("h-1", className)} aria-hidden />;
   const top = t.max ?? t.min ?? 1;
   const v = value ?? 0;
@@ -386,7 +269,7 @@ export function SummaryBar({
   className,
 }: {
   values: Partial<Record<NutrientKey | "water_glasses", number | null>>;
-  targets: NutritionTarget[];
+  targets: DiaryTarget[];
   /** Week and month: on how many days each target was kept. */
   hitDays?: Partial<Record<NutrientKey | "water_glasses", { hit: number; of: number }>>;
   className?: string;
@@ -461,16 +344,17 @@ export function clockOf(iso: string) {
 export type MealAction = "edit" | "add" | "move" | "delete" | "undo";
 
 /** One meal written as a diary entry: time and photo in the margin, items on ruled lines, kcal and protein beside. */
-export function MealEntry({ meal, onAction, menuOpen, onMenu }: { meal: NutritionMeal; onAction: (a: MealAction, meal: NutritionMeal) => void; menuOpen?: boolean; onMenu?: (open: boolean) => void }) {
+export function MealEntry({ meal, onAction, menuOpen, onMenu }: { meal: DiaryMeal; onAction: (a: MealAction, meal: DiaryMeal) => void; menuOpen?: boolean; onMenu?: (open: boolean) => void }) {
   const rows = meal.items.length + 1;
   const other = meal.meal === "other";
   return (
     <div className={DIARY_COLS} id={`meal-${meal.id}`}>
       <div className={cn(MARGIN_RULE, "flex flex-col items-end gap-2 border-b border-[var(--c-line)] pr-2 pt-3 sm:pr-4")} style={{ gridRow: `span ${rows} / span ${rows}` }}>
         <span className="c-num text-[12.5px] font-medium leading-none sm:text-[14px]">{other ? "all day" : clockOf(meal.at)}</span>
-        {meal.photoUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={meal.photoUrl} alt={`Photo of ${MEAL_LABEL[meal.meal].toLowerCase()}`} className="h-9 w-9 rounded-[10px] object-cover sm:h-[60px] sm:w-[60px] sm:rounded-[14px]" />
+        {meal.photoRef ? (
+          <span title="Saved from a photo" className="flex h-7 w-7 items-center justify-center rounded-full bg-[var(--c-card)] text-[var(--c-ink-2)]">
+            <Camera size={14} aria-label="from a photo" />
+          </span>
         ) : other ? (
           <Drop size={16} className="text-[var(--c-ink-2)]" aria-hidden />
         ) : null}
@@ -478,7 +362,7 @@ export function MealEntry({ meal, onAction, menuOpen, onMenu }: { meal: Nutritio
       <div className={cn(BODY_CELL, "flex min-h-[46px] flex-wrap items-center gap-x-2.5 gap-y-0.5 py-2")}>
         <h3 className="text-[15px] font-medium leading-tight">{MEAL_LABEL[meal.meal]}</h3>
         {meal.note && <p className="min-w-0 text-[12px] leading-snug text-[var(--c-ink-2)] max-sm:basis-full max-sm:order-3">{meal.note}</p>}
-        <div className="relative ml-auto">
+        {meal.editable && <div className="relative ml-auto">
           <button
             type="button"
             aria-label={`Change ${MEAL_LABEL[meal.meal].toLowerCase()}`}
@@ -490,10 +374,10 @@ export function MealEntry({ meal, onAction, menuOpen, onMenu }: { meal: Nutritio
             <DotsThree size={18} weight="bold" />
           </button>
           {menuOpen && <MealMenu meal={meal} onClose={() => onMenu?.(false)} onAction={onAction} />}
-        </div>
+        </div>}
       </div>
-      <div className={cn(NUM_CELL, "text-[14px] font-medium")}>{num(meal.totals.energy_kcal)}</div>
-      <div className={cn(NUM_CELL, "text-[14px] font-medium")}>{num(meal.totals.protein_g, 1)}</div>
+      <div className={cn(NUM_CELL, "text-[14px] font-medium")}>{meal.items.length ? num(meal.totals.kcal) : "—"}</div>
+      <div className={cn(NUM_CELL, "text-[14px] font-medium")}>{meal.items.length ? num(meal.totals.protein, 1) : "—"}</div>
       {meal.items.map((it) => (
         <ItemLine key={it.id} it={it} />
       ))}
@@ -501,8 +385,8 @@ export function MealEntry({ meal, onAction, menuOpen, onMenu }: { meal: Nutritio
   );
 }
 
-function ItemLine({ it }: { it: NutritionEntry }) {
-  const qty = it.quantity != null ? `${num(it.quantity, it.quantity % 1 ? 1 : 0)}${it.unit ? ` ${it.unit}` : ""}` : "";
+function ItemLine({ it }: { it: DiaryItem }) {
+  const qty = amountText(it.quantity, it.unit);
   return (
     <>
       <div className={cn(BODY_CELL, "flex min-h-[44px] flex-wrap items-center gap-x-3 gap-y-1 py-2")}>
@@ -511,17 +395,18 @@ function ItemLine({ it }: { it: NutritionEntry }) {
           {it.name}
           {it.portion && <span className="text-[var(--c-ink-2)]"> · {it.portion}</span>}
           {it.consumed === "part" && <span className="text-[var(--c-ink-2)]"> · ate part</span>}
+          {it.allergy && <span className="text-[var(--c-danger-ink)]"> · on the allergy list</span>}
           {it.nameSaid && <span className="hidden text-[12px] text-[var(--c-ink-2)] sm:inline"> &ldquo;{it.nameSaid}&rdquo;</span>}
         </p>
         <ConfidenceBadge c={it.confidence} className="sm:ml-auto" />
       </div>
-      <div className={cn(NUM_CELL, "text-[var(--c-ink-2)]")}>{num(it.nutrients.energy_kcal)}</div>
-      <div className={cn(NUM_CELL, "text-[var(--c-ink-2)]")}>{it.nutrients.protein_g ? num(it.nutrients.protein_g, 1) : num(it.nutrients.protein_g)}</div>
+      <div className={cn(NUM_CELL, "text-[var(--c-ink-2)]", it.overStrict && "text-[var(--c-danger-ink)]")}>{it.confidence === "unquantified" ? "—" : num(it.kcal)}</div>
+      <div className={cn(NUM_CELL, "text-[var(--c-ink-2)]")}>{it.confidence === "unquantified" ? "—" : num(it.protein, it.protein ? 1 : 0)}</div>
     </>
   );
 }
 
-function MealMenu({ meal, onClose, onAction }: { meal: NutritionMeal; onClose: () => void; onAction: (a: MealAction, meal: NutritionMeal) => void }) {
+function MealMenu({ meal, onClose, onAction }: { meal: DiaryMeal; onClose: () => void; onAction: (a: MealAction, meal: DiaryMeal) => void }) {
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const off = (e: MouseEvent) => !ref.current?.parentElement?.contains(e.target as Node) && onClose();
@@ -555,7 +440,7 @@ function MealMenu({ meal, onClose, onAction }: { meal: NutritionMeal; onClose: (
           {i.label}
         </button>
       ))}
-      {meal.canUndo && (
+      {meal.editable && (
         <button
           type="button"
           role="menuitem"
@@ -566,7 +451,7 @@ function MealMenu({ meal, onClose, onAction }: { meal: NutritionMeal; onClose: (
           className="mt-1 flex w-full flex-col items-start rounded-[12px] border-t border-[var(--c-line)] px-3 pb-2 pt-2.5 text-left text-[13px] hover:bg-[var(--c-card)]"
         >
           Undo the last change
-          <span className="text-[11px] text-[var(--c-ink-2)]">{meal.loggedBy.name}, {clockOf(meal.at)}</span>
+          <span className="text-[11px] text-[var(--c-ink-2)]">{meal.loggedBy.name ? `Logged by ${meal.loggedBy.name}` : "From the food log's history"}</span>
         </button>
       )}
     </div>
@@ -574,7 +459,7 @@ function MealMenu({ meal, onClose, onAction }: { meal: NutritionMeal; onClose: (
 }
 
 /** A meal nobody has told Saheli about: a soft slot with "+ Add". */
-export function NotLogged({ m, note, onAdd, onNote }: { m: MissingMeal; note?: string | null; onAdd: () => void; onNote?: () => void }) {
+export function NotLogged({ m, note, onAdd, onNote }: { m: MissingMeal & { usual?: string | null }; note?: string | null; onAdd: () => void; onNote?: () => void }) {
   return (
     <div className={DIARY_COLS}>
       <div className={cn(MARGIN_RULE, "flex flex-col items-end border-b border-[var(--c-line)] pr-2 pt-3.5 sm:pr-4")}>
@@ -623,7 +508,8 @@ export function DiaryTotal({ label, kcal, protein, aside }: { label: string; kca
 
 const WEEKDAYS = ["M", "T", "W", "T", "F", "S", "S"];
 
-/** Each day carries four dots (breakfast, lunch, snack, dinner), filled when logged. The selected day is marigold. */
+/** Each day carries four dots (breakfast, lunch, snack, dinner), filled when logged; a day is complete with the three
+ * main meals. The selected day is marigold. */
 export function MonthCalendar({
   days,
   selected,
@@ -643,9 +529,12 @@ export function MonthCalendar({
   if (!days.length) return null;
   const first = days[0].day;
   const lead = (dayDate(first).getUTCDay() + 6) % 7;
-  const month = fmtDayLong(first, { month: "long", year: "numeric" });
-  const full = days.filter((d) => d.tracked && MAIN_MEALS.every((m) => d.logged.includes(m))).length;
-  const tracked = days.filter((d) => d.tracked && d.day <= today).length;
+  // the last 30 days, which may cross a month: "15 Sep – 14 Oct"
+  const lastDay = days[days.length - 1].day;
+  const month = first.slice(0, 7) === lastDay.slice(0, 7) ? fmtDayLong(first, { month: "long", year: "numeric" }) : `${fmtDayLong(first, { day: "numeric", month: "short" })} – ${fmtDayLong(lastDay, { day: "numeric", month: "short" })}`;
+  // a complete day has the three main meals (the engine's own count)
+  const full = days.filter((d) => d.complete >= 1 || MAIN_MEALS.every((m) => d.logged.includes(m))).length;
+  const tracked = days.filter((d) => d.day <= today).length;
   return (
     <div>
       <div className="flex items-center justify-between gap-2">
@@ -674,7 +563,7 @@ export function MonthCalendar({
           const inRange = Boolean(range && d.day >= range.from && d.day <= range.to);
           const n = Number(d.day.slice(8, 10));
           const label = `${fmtDayLong(d.day, { weekday: "long", day: "numeric", month: "long" })}: ${
-            future ? "not yet" : !d.tracked ? "not tracked" : `${MAIN_MEALS.filter((m) => d.logged.includes(m)).length} of 4 meals logged`
+            future ? "not yet" : `${MAIN_MEALS.filter((m) => d.logged.includes(m)).length} of 3 meals logged`
           }`;
           return (
             <div key={d.day} className={cn("flex justify-center py-px", inRange && "bg-[var(--c-solid-soft)]", inRange && d.day === range?.from && "rounded-l-[14px]", inRange && d.day === range?.to && "rounded-r-[14px]")}>
@@ -694,14 +583,14 @@ export function MonthCalendar({
               >
                 <span className={cn("c-num text-[13px] leading-none", on && "font-medium")}>{n}</span>
                 <span className="flex gap-[3px]" aria-hidden>
-                  {MAIN_MEALS.map((m) => {
+                  {DAY_SLOTS.map((m) => {
                     const got = d.logged.includes(m);
                     return (
                       <span
                         key={m}
                         className={cn(
                           "h-[4px] w-[4px] rounded-full",
-                          future || !d.tracked ? "bg-transparent" : on ? (got ? "bg-[var(--c-accent-ink)]" : "bg-[var(--c-accent-ink)] opacity-25") : got ? "bg-[var(--n-mark)]" : "bg-[var(--c-ink-3)] opacity-40",
+                          future ? "bg-transparent" : on ? (got ? "bg-[var(--c-accent-ink)]" : "bg-[var(--c-accent-ink)] opacity-25") : got ? "bg-[var(--n-mark)]" : "bg-[var(--c-ink-3)] opacity-40",
                         )}
                       />
                     );
@@ -734,15 +623,14 @@ export function MonthCalendar({
 
 const COUNTER_ICON: Record<string, PhosphorIcon> = { eggs: Egg, water: Drop, tea: Coffee, sugar_tsp: Cube };
 
-/** Eggs, water, tea, sugar: today as filled beads against what's usual (or the goal). */
-export function Counter({ c, rule, mode }: { c: NutritionCounter; rule?: FoodRule; mode: "day" | "week" }) {
+/** Eggs, water, tea, sugar: today as filled beads against what's usual for them (the week: the total). */
+export function Counter({ c, mode }: { c: DiaryCounter; mode: "day" | "week" }) {
   const Icon = COUNTER_ICON[c.key] ?? Egg;
   const now = mode === "day" ? c.today : c.week;
   const usual = mode === "day" ? c.usual : c.usualWeek;
-  const limit = mode === "day" ? c.limit : c.limit != null ? c.limit * 7 : null;
-  const goal = mode === "day" ? c.goal : c.goal != null ? c.goal * 7 : null;
-  const over = limit != null && now > limit;
-  const slots = mode === "day" ? Math.min(12, Math.max(now, Math.round(usual), goal ?? 0, limit ?? 0)) : 0;
+  const shown = Math.round(now * 10) / 10;
+  // beads for things counted one by one (eggs, glasses, cups, spoons); grams are only a number
+  const slots = mode === "day" && c.unit !== "g" ? Math.min(12, Math.ceil(Math.max(now, usual ?? 0))) : 0;
   return (
     <div className="grid grid-cols-[34px_minmax(0,1fr)_auto] items-center gap-x-3 border-b border-[var(--c-line)] py-3 first:pt-1 last:border-0 last:pb-1">
       <span className="flex h-[34px] w-[34px] items-center justify-center rounded-full bg-[var(--c-frame)]">
@@ -753,14 +641,7 @@ export function Counter({ c, rule, mode }: { c: NutritionCounter; rule?: FoodRul
         {mode === "day" ? (
           <span className="mt-1.5 flex flex-wrap gap-[3px]" aria-hidden>
             {Array.from({ length: slots }).map((_, i) => (
-              <span
-                key={i}
-                className={cn(
-                  "h-[10px] w-[10px] rounded-full",
-                  i < now ? (limit != null && i >= limit ? "bg-[var(--c-danger)]" : "bg-[var(--n-mark)]") : "border border-[var(--c-ink-3)]",
-                  limit != null && i === limit - 1 && "mr-2",
-                )}
-              />
+              <span key={i} className={cn("h-[10px] w-[10px] rounded-full", i < Math.round(now) ? "bg-[var(--n-mark)]" : "border border-[var(--c-ink-3)]")} />
             ))}
           </span>
         ) : (
@@ -769,23 +650,11 @@ export function Counter({ c, rule, mode }: { c: NutritionCounter; rule?: FoodRul
       </div>
       <div className="text-right">
         <p className="leading-none">
-          <span className={cn("c-num text-[20px]", over && "text-[var(--c-danger-ink)]")}>{now}</span>
-          {goal != null && <span className="text-[12px] text-[var(--c-ink-2)]"> / {goal}</span>}
+          <span className="c-num text-[20px]">{num(shown, shown % 1 ? 1 : 0)}</span>
+          <span className="text-[12px] text-[var(--c-ink-2)]"> {c.unit}</span>
         </p>
-        <p className="mt-1 whitespace-nowrap text-[11px] text-[var(--c-ink-2)]">
-          usual {num(Math.round(usual))}
-          {limit != null ? ` · max ${limit}` : ""}
-        </p>
+        <p className="mt-1 whitespace-nowrap text-[11px] text-[var(--c-ink-2)]">{usual != null ? `usual ${num(Math.round(usual))}` : "no usual yet"}</p>
       </div>
-      {rule && mode === "day" && (
-        <p className="col-start-2 col-end-4 mt-1.5 flex flex-wrap items-center gap-1 text-[11px] text-[var(--c-ink-2)]">
-          <span>&ldquo;{rule.text}&rdquo;</span>
-          <span aria-hidden>·</span>
-          <span>{rule.setBy === "caregiver" && rule.setByName ? rule.setByName : SETTER[rule.setBy]}</span>
-          <span aria-hidden>·</span>
-          {rule.how === "strict" ? <StrictChip /> : <span>guide</span>}
-        </p>
-      )}
     </div>
   );
 }
@@ -794,7 +663,7 @@ export function Counter({ c, rule, mode }: { c: NutritionCounter; rule?: FoodRul
 
 /** kcal a day as jade columns against the target band; the selected day in marigold. Protein dots underneath
  * (filled when the protein target was reached), on their own row so the chart keeps a single scale. */
-export function WeekChart({ week, kcal, protein, selected, onPick, height = 104 }: { week: WeekDay[]; kcal?: NutritionTarget; protein?: NutritionTarget; selected: string; onPick: (day: string) => void; height?: number }) {
+export function WeekChart({ week, kcal, protein, selected, onPick, height = 104 }: { week: WeekDay[]; kcal?: DiaryTarget; protein?: DiaryTarget; selected: string; onPick: (day: string) => void; height?: number }) {
   const vals = week.map((w) => w.kcal ?? 0);
   const top = Math.max(...vals, kcal?.max ?? kcal?.min ?? 0, 1) * 1.22;
   const y = (v: number) => (v / top) * height;
@@ -899,7 +768,7 @@ export function WeekChart({ week, kcal, protein, selected, onPick, height = 104 
 
 /* ── nutrients vs targets ───────────────────────────────────────────────── */
 
-const TABLE_ORDER: NutrientKey[] = ["energy_kcal", "protein_g", "carbs_g", "fat_g", "fibre_g", "sugar_g", "added_sugar_g", "sodium_mg", "potassium_mg", "calcium_mg", "iron_mg"];
+const TABLE_ORDER: NutrientKey[] = ["energy_kcal", "protein_g", "carbs_g", "fat_g", "sat_fat_g", "fibre_g", "sugar_g", "added_sugar_g", "sodium_mg", "potassium_mg", "calcium_mg", "iron_mg"];
 
 /** Macros and key micros: the day (or the week's daily average) with 7- and 30-day averages; condition rows first. */
 export function NutrientTable({
@@ -909,10 +778,10 @@ export function NutrientTable({
 }: {
   now: Nutrients;
   nowLabel: string;
-  view: Pick<NutritionView, "targets" | "conditions" | "averages">;
+  view: Pick<Diary, "targets" | "highlighted" | "averages">;
 }) {
-  const flagged = new Map<NutrientKey, string>();
-  for (const c of view.conditions) for (const n of c.nutrients) if (!flagged.has(n)) flagged.set(n, c.label);
+  // a nutrient someone set a target for comes first (display only)
+  const flagged = new Map<NutrientKey, string>(view.highlighted.map((k) => [k, ""]));
   const keys = TABLE_ORDER.filter((k) => now[k] != null || view.averages.d7[k] != null || view.targets.some((t) => t.nutrient === k));
   const rows = [...keys.filter((k) => flagged.has(k)), ...keys.filter((k) => !flagged.has(k))];
   const firstPlain = rows.findIndex((k) => !flagged.has(k));
@@ -943,7 +812,7 @@ export function NutrientTable({
               <td className="py-2.5 pl-1 pr-2 sm:pr-3">
                 <span className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
                   <span className="text-[13.5px] font-medium">{meta.label}</span>
-                  {flagged.has(k) && <span className="rounded-full bg-[var(--c-accent-soft)] px-2 py-[1px] text-[10.5px] font-medium text-[var(--c-accent-soft-ink)]">{flagged.get(k)}</span>}
+                  {flagged.get(k) && <span className="rounded-full bg-[var(--c-accent-soft)] px-2 py-[1px] text-[10.5px] font-medium text-[var(--c-accent-soft-ink)]">{flagged.get(k)}</span>}
                 </span>
                 {/* phones: the target sits under the name */}
                 <span className="mt-0.5 block text-[11px] text-[var(--c-ink-2)] sm:hidden">

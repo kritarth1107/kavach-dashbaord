@@ -9,7 +9,8 @@
     "lint": "eslint",
     "test:pages": "node scripts/test-pages.mjs",
     "test:records": "tsx scripts/test-medical-record-form.tsx",
-    "test:memory": "tsx scripts/test-memory-page.tsx"
+    "test:memory": "tsx scripts/test-memory-page.tsx",
+    "test:nutrition": "tsx scripts/test-nutrition-data.ts"
   },
   "dependencies": {
     "@phosphor-icons/react": "^2.1.10",

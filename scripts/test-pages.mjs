@@ -45,6 +45,11 @@ const PAGES = [
   { name: "approvals", path: "/dashboard/approvals" },
   { name: "billing", path: "/dashboard/billing" },
   { name: "emergency-link", path: "/e/world-link", public: true },
+  // Food & nutrition (behind nutrition.page; the switch is on here) and the doctor's link: for families whose world
+  // fixture has a food log
+  { name: "nutrition", path: "/dashboard/nutrition", engine: "nutrition" },
+  { name: "nutrition-week", path: "/dashboard/nutrition?view=week", engine: "nutrition" },
+  { name: "nutrition-link", path: "/n/world-link", public: true, engine: "nutrition/report" },
   { name: "sign-in", path: "/auth/login", public: true },
   { name: "invitations", path: "/dashboard/invitations", has: ["set up on the web", "then meet Saheli on WhatsApp"], hasNot: ["start with Saheli on WhatsApp"] },
   // web first, then WhatsApp (founder 2026-10-13): the join page's one action is signing up on the web; the steps end on
@@ -87,12 +92,15 @@ function api(fam, url) {
     return { orders: (fam.orders || []).filter((o) => fam.leakOrders || !who || o.subject_user_id === who) };
   }
   if (p === `/api/families/${fid}`) return { family: famRow };
+  if (p === `/api/families/${fid}/features`) return { nutritionPage: true };
   const cm = p.match(new RegExp(`^/api/families/${fid}/subjects/([^/]+)/care-memory(?:/(.+))?$`));
   if (cm) {
     const answers = fam.engine[cm[1]] || fam.engine[cared[0]?.id] || {};
     const route = cm[2] || "overview";
     if (route === "emergency-link") return null;
     if (route === "voice") return { mode: "auto", means: "" };
+    if (route === "nutrition/shares") return { shares: [] };
+    if (route === "nutrition/foods") return { foods: [] };
     if (route in answers) return answers[route];
     return undefined;
   }
@@ -115,6 +123,10 @@ function api(fam, url) {
     const t = p.split("/").pop();
     const active = t === JOIN_ACTIVE;
     return { state: active ? "active" : "used", kind: "user", inviterName: primary.name, expiresAt: at(11), saheliNumber: "+919999900000" };
+  }
+  if (p.startsWith("/api/public/nutrition/")) {
+    const report = (fam.engine[cared[0]?.id] || {})["nutrition/report"];
+    return report ? { person: { name: cared[0].name }, days: report.days, sharedAt: at(-1), expiresAt: at(6), report } : undefined;
   }
   if (p.startsWith("/api/public/emergency/")) {
     const card = (fam.engine[cared[0]?.id] || {}).emergency;
@@ -509,7 +521,9 @@ function fallbackFamilyPage(p) {
   fs.mkdirSync(OUT, { recursive: true });
   const fams = world.families.slice(0, FAMILIES);
   const jobs = [];
-  for (const fam of fams) for (const pg of PAGES) for (const w of WIDTHS) jobs.push({ fam, pg, w });
+  // a page that reads an engine view the family's fixture doesn't have yet is left out for that family
+  const hasView = (fam, route) => Object.values(fam.engine || {}).some((a) => a && route in a);
+  for (const fam of fams) for (const pg of PAGES) for (const w of WIDTHS) if (!pg.engine || hasView(fam, pg.engine)) jobs.push({ fam, pg, w });
   console.log(`${jobs.length} page loads: ${fams.length} families x ${PAGES.length} pages x ${WIDTHS.length} widths, ${PARALLEL} at a time`);
   const browser = await chromium.launch();
   const failures = [];

@@ -37,6 +37,7 @@ import { logout } from "@/lib/api";
 import { useTheme } from "@/components/providers/theme-provider";
 import { ThemeIcon, useThemeLabel } from "@/components/providers/theme-icon";
 import { useFamily } from "@/components/dashboard/family-context";
+import { useFeatures, type Features } from "@/lib/features";
 import { FamilyAccessBanner } from "@/components/dashboard/family-access-banner";
 import { CareRecipientViewRightPanel } from "@/components/dashboard/family/care-recipient-view-right-panel";
 import { CareRecipientProfileProvider } from "@/components/dashboard/family/care-recipient-profile-context";
@@ -75,7 +76,8 @@ function navFor(pathname: string): NavKey {
   return "settings";
 }
 
-const MENU: Array<{ group: string; phoneOnly?: boolean; items: Array<{ href: string; label: string; icon: PhosphorIcon }> }> = [
+// feature: shown only while that admin switch is on (lib/features.ts)
+const MENU: Array<{ group: string; phoneOnly?: boolean; items: Array<{ href: string; label: string; icon: PhosphorIcon; feature?: keyof Features }> }> = [
   {
     // On phones the icon rail becomes a five-tab bar; these rail pages move here.
     group: "Care records",
@@ -91,7 +93,7 @@ const MENU: Array<{ group: string; phoneOnly?: boolean; items: Array<{ href: str
       { href: "/dashboard/emergency", label: "Emergency card", icon: Siren },
       { href: "/dashboard/care-team", label: "Care team & appointments", icon: Stethoscope },
       { href: "/dashboard/report", label: "Care report for the doctor", icon: ChartBar },
-      { href: "/dashboard/nutrition", label: "Food & nutrition", icon: ForkKnife },
+      { href: "/dashboard/nutrition", label: "Food & nutrition", icon: ForkKnife, feature: "nutritionPage" },
       { href: "/dashboard/wellbeing", label: "Wellbeing", icon: Heart },
       { href: "/dashboard/notifications", label: "Notifications", icon: Bell },
       { href: "/dashboard/approvals", label: "Approvals", icon: CheckCircle },
@@ -123,6 +125,7 @@ const MENU: Array<{ group: string; phoneOnly?: boolean; items: Array<{ href: str
 function Drawer({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { families, activeFamilyId, selectFamily } = useFamily();
   const { me } = usePerson();
+  const features = useFeatures(activeFamilyId);
   const router = useRouter();
   const pathname = usePathname();
   useEffect(() => {
@@ -199,7 +202,7 @@ function Drawer({ open, onClose }: { open: boolean; onClose: () => void }) {
           {MENU.map((g) => (
             <section key={g.group} className={cn("mt-5", g.phoneOnly && "md:hidden")}>
               <p className="px-3 pb-2 text-[11px] font-medium uppercase tracking-[0.06em] text-[var(--c-ink-3)]">{g.group}</p>
-              {g.items.map((m) => {
+              {g.items.filter((m) => !m.feature || features?.[m.feature]).map((m) => {
                 const on = pathname === m.href;
                 return (
                   <Link

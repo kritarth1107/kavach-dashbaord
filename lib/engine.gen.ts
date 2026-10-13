@@ -72,8 +72,11 @@ speciality: string
 text: string
 }[]
 helpers: {
+domain: string
+key: string
 name: string
-phone: string
+phone: (string | null)
+role?: (string | null)
 text: string
 }[]
 hospital: {
@@ -239,7 +242,12 @@ when: string
 })
 now: string
 tasks: unknown[]
-timeline: unknown[]
+timeline: {
+at: string
+id: number
+kind: string
+text: string
+}[]
 vitals: {
 bp: (null | {
 at: string
@@ -344,34 +352,392 @@ undoes: {
 [k: string]: unknown
 }
 value?: {
+amount?: number
+avoid?: unknown[]
 days?: number[]
+dialect?: string
 doctor?: string
 dose?: string
+field?: string
 food?: string
+how?: string
 instructions?: string
 item?: string
 kind?: string
 label?: string
 language?: string
+max_per_day?: number
+min?: number
 minutes?: number
 name?: string
 none?: boolean
+nutrient?: string
 phone?: string
 place?: string
 prn?: boolean
 purpose?: string
 questions?: string[]
 rule?: string
+script?: string
+sense?: string
+set_by?: string
 specialty?: string
 start?: string
 status?: string
 times?: string[]
 type?: string
+unit?: string
 value?: string
 when?: string
 }
 version: number
 where: string
+}[]
+}
+
+export interface DashNutritionReport {
+averages: {
+calcium_mg: {
+[k: string]: unknown
+}
+carbs_g: (null | number)
+energy_kcal: (null | number)
+fat_g: (null | number)
+fibre_g: (null | number)
+iron_mg: {
+[k: string]: unknown
+}
+potassium_mg: {
+[k: string]: unknown
+}
+protein_g: (null | number)
+sat_fat_g: {
+[k: string]: unknown
+}
+sodium_mg: (null | number)
+sugar_g: (null | number)
+water_ml: (null | number)
+}
+confidence: {
+estimate: number
+label: number
+photo: number
+said: number
+unquantified: number
+}
+daily: {
+carbs_g: number
+day: string
+energy_kcal: number
+fat_g: number
+fibre_g: number
+mealsLogged: number
+protein_g: number
+sodium_mg: number
+sugar_g: number
+water_ml: number
+}[]
+days: number
+daysLogged: number
+deviations: unknown[]
+from: string
+mealPattern: {
+breakfast: number
+dinner: number
+lunch: number
+}
+note: string
+rules: {
+how: string
+setBy: string
+text: string
+}[]
+skipped: {
+breakfast: number
+dinner: number
+lunch: number
+}
+subjectId: string
+targets: {
+average: number
+daysLogged: number
+daysMet: number
+field: string
+how: string
+setBy: string
+text: string
+}[]
+to: string
+topFoods: {
+kcalShare: number
+name: string
+times: number
+}[]
+weight: {
+day: string
+value: number
+}[]
+}
+
+export interface DashNutrition {
+counters: {
+key: string
+label: string
+today: number
+unit: string
+usual: (null | number)
+week: number[]
+}[]
+day: string
+days: number
+history: {
+carbs_g: number
+complete: number
+day: string
+fat_g: number
+fibre_g: number
+items: number
+kcal: number
+logged: string[]
+meals: {
+at: string
+kcal: number
+meal: string
+names: string[]
+protein_g: number
+}[]
+mealsLogged: number
+met: {
+protein_g?: boolean
+}
+protein_g: number
+skipped: string[]
+sodium_mg: number
+sugar_g: number
+water_ml: number
+}[]
+mealSlots: string[]
+month: {
+calendar: {
+complete: number
+day: string
+items: number
+kcal: number
+logged: string[]
+}[]
+trends: {
+kcal: number[]
+protein_g: number[]
+sodium_mg: number[]
+sugar_g: number[]
+}
+}
+noticed: unknown[]
+nutrients: {
+avg30: (null | number)
+avg7: (null | number)
+highlight: boolean
+key: string
+label: string
+max: {
+[k: string]: unknown
+}
+min: (null | number)
+target: (null | number)
+unit: string
+}[]
+pantry: {
+addedAt: string
+bestBefore: {
+[k: string]: unknown
+}
+brand: {
+[k: string]: unknown
+}
+count: number
+fromTask: (null | string)
+id: string
+name: string
+perUnit: {
+[k: string]: unknown
+}
+source: string
+status: string
+subjectId: (null | string)
+unit: string
+unitG: {
+[k: string]: unknown
+}
+}[]
+pendingQuestions: unknown[]
+rules: {
+food: string
+how: string
+key: string
+maxPerDay: number
+none: boolean
+rule: string
+setBy: string
+status: string
+text: string
+when: {
+[k: string]: unknown
+}
+}[]
+streaks: {
+allMeals: number
+proteinMet: number
+}
+subjectId: string
+targets: {
+field: string
+how: string
+key: string
+max: {
+[k: string]: unknown
+}
+min: number
+nutrient: string
+sense: string
+setBy: string
+status: string
+text: string
+unit: string
+value: number
+}[]
+today: {
+day: string
+meals: {
+entries: {
+confidence: string
+consumed: string
+day: string
+eatenAt: string
+flags: {
+tags?: string[]
+}
+foodId: (null | string)
+grams: (null | number)
+id: string
+kcal: number
+kind: string
+loggedBy: string
+meal: string
+mealId: string
+name: string
+nameSaid: string
+note: {
+[k: string]: unknown
+}
+nutrients: {
+added_sugar_g?: number
+carbs_g?: number
+energy_kcal?: number
+fat_g?: number
+fibre_g?: number
+protein_g?: number
+sugar_g?: number
+water_g?: number
+water_ml?: number
+}
+photoRef: {
+[k: string]: unknown
+}
+portionEaten: {
+[k: string]: unknown
+}
+protein_g: number
+qty: string
+quantity: (null | number)
+source: string
+sourceRef: (null | string)
+status: string
+unit: (null | string)
+version: number
+}[]
+kcal: number
+label: string
+meal: string
+notLogged: boolean
+protein_g: number
+skipped: boolean
+}[]
+progress: {
+field: string
+how: string
+key: string
+label: string
+left: number
+max: {
+[k: string]: unknown
+}
+met: boolean
+min: number
+nutrient: string
+over: {
+[k: string]: unknown
+}
+pct: number
+sense: string
+set_by: string
+so_far: number
+target: number
+unit: string
+}[]
+totals: {
+added_sugar_g?: number
+carbs_g?: number
+energy_kcal?: number
+fat_g?: number
+fibre_g?: number
+protein_g?: number
+sugar_g?: number
+water_g?: number
+water_ml?: number
+}
+water: {
+glassMl: number
+glasses: number
+ml: number
+targetMl: {
+[k: string]: unknown
+}
+}
+}
+tracking: {
+ask: string
+counters: string[]
+daily_summary_to: unknown[]
+sizes: Record<string, unknown>
+tracking: string
+}
+units: string[]
+waiting: unknown[]
+week: {
+carbs_g: number
+complete: number
+day: string
+fat_g: number
+fibre_g: number
+items: number
+kcal: number
+logged: string[]
+meals: {
+at: string
+kcal: number
+meal: string
+names: string[]
+protein_g: number
+}[]
+mealsLogged: number
+met: {
+protein_g?: boolean
+}
+protein_g: number
+skipped: string[]
+sodium_mg: number
+sugar_g: number
+water_ml: number
 }[]
 }
 
@@ -413,13 +779,16 @@ family: string
 home: string
 hospital: string
 language: string
+learned: string
 medicine: string
 naming: string
 no_order: string
+nutrition_target: string
 occasion: string
 preference: string
 profile: string
 routine: string
+setting: string
 vital_target: string
 }
 doses: {
@@ -437,11 +806,19 @@ id: number
 kind: string
 payload: {
 day?: string
+entries?: string[]
+kcal?: number
 key?: string
 kind?: string
 label?: string
+meal?: string
+meal_id?: string
 medicine?: string
+nutrition?: boolean
+protein_g?: number
+removed?: boolean
 score?: number
+skipped?: boolean
 source?: string
 time?: string
 unit?: string
@@ -471,29 +848,41 @@ validTo: {
 [k: string]: unknown
 }
 value: {
+amount?: number
+avoid?: unknown[]
 days?: number[]
+dialect?: string
 doctor?: string
 dose?: string
+field?: string
 food?: string
+how?: string
 instructions?: string
 item?: string
 kind?: string
 label?: string
 language?: string
+max_per_day?: number
+min?: number
 minutes?: number
 name?: string
 none?: boolean
+nutrient?: string
 phone?: string
 place?: string
 prn?: boolean
 purpose?: string
 questions?: string[]
 rule?: string
+script?: string
+sense?: string
+set_by?: string
 specialty?: string
 start?: string
 status?: string
 times?: string[]
 type?: string
+unit?: string
 value?: string
 when?: string
 }
@@ -714,6 +1103,7 @@ day: string
 expected: number
 missed: number
 taken: number
+unmarked?: number
 }[]
 byMedicine: {
 dose: (null | string)
@@ -722,6 +1112,7 @@ missed: number
 name: string
 taken: number
 times: string[]
+unmarked?: number
 }[]
 expected: number
 percent: (number | null)
@@ -749,6 +1140,7 @@ text: string
 }[]
 narrative: string
 orders: unknown[]
+patterns: unknown[]
 symptoms: unknown[]
 to: string
 vitals: {
@@ -760,6 +1152,7 @@ note: {
 redFlag: {
 [k: string]: unknown
 }
+unit?: (null | string)
 value: string
 }[]
 }
