@@ -19,7 +19,8 @@ import {
 } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
-function partnerInfo(data: FamilyIntegrations, key: McpIntegrationPartner) {
+// a store the backend didn't send (an older or partial answer) reads as not linked, never a crash
+function partnerInfo(data: FamilyIntegrations, key: McpIntegrationPartner): FamilyIntegrations["zepto"] | undefined {
   if (key === "swiggy") return data.swiggy;
   if (key === "instamart") return data.instamart;
   return data.zepto;
@@ -161,7 +162,7 @@ export function IntegrationsPage() {
     }
   }
 
-  const connected = data ? INTEGRATION_PARTNERS.filter((p) => partnerInfo(data, p.key).connected).length : 0;
+  const connected = data ? INTEGRATION_PARTNERS.filter((p) => partnerInfo(data, p.key)?.connected).length : 0;
   const number = data?.whatsapp.kavachNumber ?? "+91 83109 05372";
 
   return (

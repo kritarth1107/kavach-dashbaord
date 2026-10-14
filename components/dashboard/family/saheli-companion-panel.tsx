@@ -122,7 +122,25 @@ export function SaheliCompanionPanel({
     );
   }
 
-  if (!profile) return null;
+  if (!profile) {
+    // A failed load must not make the panel vanish silently.
+    if (!error) return null;
+    return (
+      <section className="panel-card mb-5 px-4 py-3.5">
+        <h2 className="text-[14px] font-extrabold text-[var(--text-primary)]">Saheli companion</h2>
+        <p className="mt-1 text-[12px] text-[var(--text-secondary)]">
+          Couldn&apos;t load Saheli&apos;s settings for {recipientName} right now.
+        </p>
+        <button
+          type="button"
+          onClick={() => void load()}
+          className="mt-2 text-[12px] font-semibold text-primary hover:underline"
+        >
+          Try again
+        </button>
+      </section>
+    );
+  }
 
   return (
     <section className="panel-card mb-5 overflow-hidden">

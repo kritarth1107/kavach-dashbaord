@@ -9,9 +9,11 @@ export function ServiceLogo({ service, label, size = 36, className }: { service:
   const key = (service || "").toLowerCase();
   const radius = Math.round(size * 0.28);
   if (LOGOS.has(key)) {
+    // the logo's own backdrop stays light in both themes (the store marks are drawn for a light tile, some with
+    // see-through edges); on-solid is the theme's near-white
     return (
       // eslint-disable-next-line @next/next/no-img-element
-      <img src={`/logos/${key}.png`} alt={label ? `${label} logo` : ""} width={size} height={size} className={cn("shrink-0 bg-white object-cover", className)} style={{ borderRadius: radius }} />
+      <img src={`/logos/${key}.png`} alt={label ? `${label} logo` : ""} width={size} height={size} className={cn("shrink-0 bg-[var(--c-on-solid)] object-cover", className)} style={{ borderRadius: radius }} />
     );
   }
   return (

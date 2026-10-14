@@ -130,7 +130,8 @@ export function SkillsPanel({ familyId, subjectId, name, canEdit = true }: { fam
           {live.map((s) => (
             <li key={s.id} className="rounded-[14px] bg-[var(--c-frame)] px-3 py-2.5">
               {editing?.id === s.id ? (
-                <div className="flex gap-2">
+                // the buttons wrap under a full-width input on a phone (in one row the input shrank to a few letters)
+                <div className="flex flex-wrap justify-end gap-2 sm:flex-nowrap">
                   <input className={INPUT} aria-label="Edit how they like things" value={editing.text} maxLength={240}
                     onKeyDown={(e) => e.key === "Escape" && setEditing(null)} onChange={(e) => setEditing({ id: s.id, text: e.target.value })} />
                   <SmallButton className="h-11 shrink-0 px-4" disabled={busy} onClick={() => setEditing(null)}>

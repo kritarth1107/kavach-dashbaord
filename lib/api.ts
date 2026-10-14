@@ -22,6 +22,11 @@ export class ApiError extends Error {
 const GET_TIMEOUT_MS = 12_000;
 const WRITE_TIMEOUT_MS = 25_000;
 
+/** Shown when the browser can't reach the dashboard server, or the server can't reach the backend. */
+export const UNREACHABLE_MESSAGE = "Couldn't reach Kavach. Check your connection and try again.";
+/** Shown for any server failure (5xx): the server's own text is for developers ("Start … on port 8000"). */
+export const SERVER_FAILED_MESSAGE = "Kavach couldn't reach Saheli just now. Please try again in a minute.";
+
 async function timedFetch(
   input: string,
   init: RequestInit = {},
@@ -39,7 +44,8 @@ async function timedFetch(
     if (err instanceof Error && err.name === "AbortError") {
       throw new Error("Saheli is taking too long. Memory may be offline.");
     }
-    throw err;
+    // Network failure ("Failed to fetch"): status 0 and a message people can act on.
+    throw new ApiError(UNREACHABLE_MESSAGE, 0);
   } finally {
     clearTimeout(timer);
   }
@@ -49,11 +55,7 @@ async function parseResponse<T>(res: Response): Promise<ApiResponse<T>> {
   const text = await res.text();
 
   if (!text.trim()) {
-    throw new Error(
-      res.status === 503
-        ? "Cannot reach the API server. Make sure the backend is running on port 5000."
-        : `Request failed (${res.status})`,
-    );
+    throw new Error(res.status === 503 ? UNREACHABLE_MESSAGE : `Request failed (${res.status})`);
   }
 
   let json: ApiResponse<T>;
@@ -64,7 +66,15 @@ async function parseResponse<T>(res: Response): Promise<ApiResponse<T>> {
   }
 
   if (!res.ok) {
-    throw new ApiError(json.message ?? "Request failed", res.status, json.code, json.data as Record<string, unknown> | undefined);
+    // The auth proxy answers 503 with a developer note when the backend is down; show people the plain version.
+    const unreachable = res.status === 503 && /cannot reach the api server/i.test(json.message ?? "");
+    // any other server failure carries developer text ("Cannot reach the AI engine. Start … on port 8000"): never shown
+    throw new ApiError(
+      unreachable ? UNREACHABLE_MESSAGE : res.status >= 500 ? SERVER_FAILED_MESSAGE : (json.message ?? "Request failed"),
+      res.status,
+      json.code,
+      json.data as Record<string, unknown> | undefined,
+    );
   }
 
   return json;
@@ -216,7 +226,7 @@ export async function createFamily(name?: string) {
   };
 
   if (!res.ok) {
-    throw new Error(json.message ?? "Request failed");
+    throw new Error(res.status >= 500 ? SERVER_FAILED_MESSAGE : (json.message ?? "Request failed"));
   }
 
   return {

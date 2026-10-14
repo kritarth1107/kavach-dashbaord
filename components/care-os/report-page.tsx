@@ -19,12 +19,36 @@ const TABS: Array<{ id: Days; label: string }> = [
 const KIND_LABEL: Record<string, { label: string; unit?: string }> = {
   bp: { label: "Blood pressure", unit: "mmHg" },
   sugar: { label: "Blood sugar", unit: "mg/dL" },
+  sugar_fasting: { label: "Blood sugar (fasting)", unit: "mg/dL" },
   weight: { label: "Weight", unit: "kg" },
+  height: { label: "Height", unit: "cm" },
+  body_fat: { label: "Body fat", unit: "%" },
+  muscle_mass: { label: "Muscle mass", unit: "kg" },
+  bmi: { label: "BMI" },
+  steps: { label: "Steps" },
   temperature: { label: "Temperature", unit: "°F" },
   spo2: { label: "Oxygen (SpO₂)", unit: "%" },
   pulse: { label: "Pulse", unit: "bpm" },
+  other: { label: "Other readings" },
 };
-const kindLabel = (k: string | null) => (k ? (KIND_LABEL[k]?.label ?? k.replace(/_/g, " ")) : "Other");
+/** Engine enums the page has no words for yet: "sugar_random" → "Sugar random". */
+const human = (k: string) => {
+  const s = k.replace(/_/g, " ").trim();
+  return s ? s[0].toUpperCase() + s.slice(1) : "Other";
+};
+const kindLabel = (k: string | null) => (k ? (KIND_LABEL[k]?.label ?? human(k)) : "Other readings");
+
+const ORDER_STATUS: Record<string, string> = {
+  queued: "Starting",
+  running: "In progress",
+  scheduled: "Scheduled",
+  awaiting_confirm: "Waiting for OK",
+  needs_input: "Needs an answer",
+  failed: "Failed",
+  cancelled: "Cancelled",
+  stopped: "Stopped",
+  timeout: "Timed out",
+};
 
 const ymd = (d: string) => fmtDay(istDate(`${d}T12:00`), { day: "numeric", month: "short" });
 
@@ -53,20 +77,45 @@ function TimeList({ items }: { items: Array<{ at: string; text: React.ReactNode;
   );
 }
 
-function DayBars({ days }: { days: CareReport["adherence"]["byDay"] }) {
+type Day = CareReport["adherence"]["byDay"][number];
+
+/** All taken only when every due dose was marked; a day with nothing marked either way is "not logged", not "all taken". */
+const dayState = (d: Day) => (d.expected > 0 && d.taken >= d.expected ? "taken" : d.taken === 0 && d.missed === 0 ? "none" : "some");
+const DAY_BAR = { taken: "bg-[var(--c-solid)]", some: "bg-[var(--c-accent)]", none: "bg-[var(--c-ink-3)]" };
+
+/**
+ * The engine counts all of today's doses as expected, even ones not due yet. Count only the doses whose time
+ * has passed when the report was made (times are IST "HH:MM"), so the bars and the headline agree.
+ */
+function adherenceSoFar(r: CareReport) {
+  const a = r.adherence;
+  const times = a.byMedicine.flatMap((m) => m.times);
+  const now = new Date(r.generatedAt).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hourCycle: "h23", timeZone: "Asia/Kolkata" });
+  const known = times.length > 0 && times.every((t) => /^\d{2}:\d{2}$/.test(t));
+  const days = a.byDay.map((d) =>
+    d.day === r.to && known && times.length === d.expected ? { ...d, expected: Math.max(times.filter((t) => t <= now).length, d.taken) } : d,
+  );
+  const expected = days.reduce((n, d) => n + d.expected, 0);
+  const taken = days.reduce((n, d) => n + d.taken, 0);
+  return { days, expected, taken, percent: expected ? Math.round((100 * taken) / expected) : null, notLogged: days.filter((d) => d.expected > 0 && dayState(d) === "none").length };
+}
+
+function DayBars({ days }: { days: Day[] }) {
   const many = days.length > 14;
   return (
     <div>
       <div className={cn("flex h-[120px] items-end", many ? "gap-[3px]" : "gap-[6px]")}>
         {days.map((d) => {
           const pct = d.expected ? d.taken / d.expected : 0;
+          const state = dayState(d);
           return (
-            <div key={d.day} className="relative flex h-full flex-1 justify-center" title={`${ymd(d.day)}: ${d.taken} of ${d.expected} taken`}>
+            <div
+              key={d.day}
+              className="relative flex h-full flex-1 justify-center"
+              title={`${ymd(d.day)}: ${!d.expected ? "nothing due" : state === "none" ? "not logged" : `${d.taken} of ${d.expected} taken`}`}
+            >
               <div className="absolute inset-x-0 bottom-0 mx-auto h-full w-full max-w-[26px] rounded-full bg-[var(--c-frame)]" />
-              <div
-                className={cn("absolute bottom-0 mx-auto w-full max-w-[26px] rounded-full", d.missed > 0 ? "bg-[var(--c-accent)]" : "bg-[var(--c-solid)]")}
-                style={{ height: `${Math.max(d.expected ? 8 : 0, pct * 100)}%` }}
-              />
+              <div className={cn("absolute bottom-0 mx-auto w-full max-w-[26px] rounded-full", DAY_BAR[state])} style={{ height: `${Math.max(d.expected ? 8 : 0, pct * 100)}%` }} />
             </div>
           );
         })}
@@ -85,6 +134,9 @@ function DayBars({ days }: { days: CareReport["adherence"]["byDay"] }) {
         <span className="flex items-center gap-1.5">
           <span className="h-2.5 w-2.5 rounded-full bg-[var(--c-accent)]" /> Some missed
         </span>
+        <span className="flex items-center gap-1.5">
+          <span className="h-2.5 w-2.5 rounded-full bg-[var(--c-ink-3)]" /> Not logged
+        </span>
       </div>
     </div>
   );
@@ -95,6 +147,8 @@ const TD = "border-t border-[var(--c-line)] py-2 pr-3 align-top text-[13px]";
 
 function ReportBody({ r, fullName, print }: { r: CareReport; fullName: string; print?: boolean }) {
   const a = r.adherence;
+  const so = adherenceSoFar(r);
+  const changes = r.changes.filter((c) => c.kind !== "fact_unchanged");
   const kinds = Array.from(new Set(r.vitals.map((v) => v.kind ?? ""))).map((k) => ({ kind: k || null, rows: r.vitals.filter((v) => (v.kind ?? "") === k) }));
   const panel = "kv-avoid";
 
@@ -126,18 +180,19 @@ function ReportBody({ r, fullName, print }: { r: CareReport; fullName: string; p
 
       <div className="grid gap-4 sm:grid-cols-[220px_1fr]">
         <Panel accent className={cn(panel, "flex flex-col")}>
-          <p className="text-[11px] font-medium uppercase tracking-[0.06em] text-white/80">Medicines taken</p>
-          <p className="c-num mt-4 text-[64px] leading-none text-white">
-            {a.percent ?? "—"}
-            {a.percent !== null && <span className="text-[28px]">%</span>}
+          <p className="text-[11px] font-medium uppercase tracking-[0.06em] opacity-80">Medicines taken</p>
+          <p className="c-num mt-4 text-[64px] leading-none">
+            {so.percent ?? "—"}
+            {so.percent !== null && <span className="text-[28px]">%</span>}
           </p>
-          <p className="mt-auto pt-4 text-[12px] text-white/80">
-            {a.taken} of {a.expected} scheduled doses
+          <p className="mt-auto pt-4 text-[12px] opacity-80">
+            {so.taken} of {so.expected} scheduled doses
+            {so.notLogged > 0 && ` · ${so.notLogged} ${so.notLogged === 1 ? "day" : "days"} not logged`}
           </p>
         </Panel>
         <Panel className={panel}>
           <PanelTitle title="Doses by day" />
-          <div className="mt-4">{a.byDay.length ? <DayBars days={a.byDay} /> : <Empty>No doses scheduled in this period.</Empty>}</div>
+          <div className="mt-4">{a.byDay.length ? <DayBars days={so.days} /> : <Empty>No doses scheduled in this period.</Empty>}</div>
         </Panel>
       </div>
 
@@ -182,7 +237,7 @@ function ReportBody({ r, fullName, print }: { r: CareReport; fullName: string; p
           ) : (
             <div className="mt-3 grid gap-3 sm:grid-cols-2">
               {kinds.map((g) => (
-                <div key={g.kind ?? "other"} className="kv-avoid rounded-[18px] bg-[var(--c-frame)] p-4">
+                <div key={g.kind ?? ""} className="kv-avoid rounded-[18px] bg-[var(--c-frame)] p-4">
                   <p className="text-[13px] font-medium">
                     {kindLabel(g.kind)}
                     {g.kind && KIND_LABEL[g.kind]?.unit && <span className="font-normal text-[var(--c-ink-3)]"> · {KIND_LABEL[g.kind].unit}</span>}
@@ -232,7 +287,7 @@ function ReportBody({ r, fullName, print }: { r: CareReport; fullName: string; p
 
         <Panel className={panel}>
           <PanelTitle title="Care record changes" />
-          {r.changes.length === 0 ? <Empty>No changes to medicines or the care record.</Empty> : <TimeList items={r.changes} />}
+          {changes.length === 0 ? <Empty>No changes to medicines or the care record.</Empty> : <TimeList items={changes} />}
         </Panel>
 
         <Panel className={panel}>
@@ -253,7 +308,7 @@ function ReportBody({ r, fullName, print }: { r: CareReport; fullName: string; p
                     </span>
                   </>
                 ),
-                tag: o.status !== "done" ? <Tag tone="light">{o.status}</Tag> : undefined,
+                tag: o.status !== "done" ? <Tag tone="light">{ORDER_STATUS[o.status] ?? human(o.status)}</Tag> : undefined,
               }))}
             />
           )}

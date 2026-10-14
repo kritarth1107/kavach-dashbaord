@@ -33,13 +33,13 @@ const OUTCOME: Record<string, { label: string; tone: string }> = {
   cancelled: { label: "Cancelled", tone: "bg-slate-100 text-slate-600" },
   unanswered: { label: "No reply", tone: "bg-slate-100 text-slate-600" },
   resumed: { label: "Resumed", tone: "bg-sky-100 text-sky-800" },
-  declined: { label: "She said leave it", tone: "bg-slate-100 text-slate-600" },
+  declined: { label: "Said leave it", tone: "bg-slate-100 text-slate-600" },
   placed: { label: "Ordered", tone: "bg-emerald-100 text-emerald-800" },
   approved: { label: "You approved", tone: "bg-emerald-100 text-emerald-800" },
   denied: { label: "You said no", tone: "bg-slate-100 text-slate-600" },
   expired: { label: "Expired", tone: "bg-slate-100 text-slate-500" },
 };
-const STAGE: Record<string, string> = { delivery: "Did it arrive?", started: "Has she started it?", ride: "Did she reach?" };
+const STAGE: Record<string, string> = { delivery: "Did it arrive?", started: "Started it yet?", ride: "Reached safely?" };
 const WHY_STATUS: Record<string, { label: string; tone: string }> = {
   active: { label: "current", tone: "bg-emerald-50 text-emerald-700" },
   stopped: { label: "stopped", tone: "bg-slate-200 text-slate-700" },
@@ -60,7 +60,7 @@ function WhyLine({ why }: { why: string | null }) {
   return <p className="mt-0.5 text-[12px] italic text-[var(--text-secondary)]">Why: {why}</p>;
 }
 
-/** Open loops Saheli is carrying for her: approvals, unfinished tasks, delivery / medicine checks, and why things matter. */
+/** Open loops Saheli is carrying for the care recipient: approvals, unfinished tasks, delivery / medicine checks, and why things matter. */
 const REASON_LABEL: Record<string, string> = {
   category_off: "Switched off in permissions",
   store_off: "Store not allowed",
@@ -99,8 +99,8 @@ export function SaheliDelegateView({
       ) : (
         <div className="divide-y divide-[var(--border-strong)]">
           {data.approvals.length > 0 && (
-            <div className="bg-amber-50/60 px-5 py-4" data-testid="delegate-approvals">
-              <h3 className="mb-2 flex items-center gap-1.5 text-[12px] font-bold uppercase tracking-wide text-amber-800">
+            <div className="bg-[var(--warning-bg)] px-5 py-4" data-testid="delegate-approvals">
+              <h3 className="mb-2 flex items-center gap-1.5 text-[12px] font-bold uppercase tracking-wide text-[var(--warning-text)]">
                 <AlertCircle className="h-3.5 w-3.5" /> Needs your OK
               </h3>
               <ul className="space-y-3">
@@ -115,10 +115,10 @@ export function SaheliDelegateView({
                     </div>
                     {onDecide && (
                       <div className="flex gap-2">
-                        <button type="button" disabled={busy === t.taskId} onClick={() => onDecide(t, "approve")} className="rounded-md bg-emerald-600 px-3 py-1 text-[12px] font-bold text-white disabled:opacity-50">
+                        <button type="button" disabled={busy === t.taskId} onClick={() => onDecide(t, "approve")} className="rounded-md bg-[var(--c-solid)] px-3 py-1 text-[12px] font-bold text-[var(--c-on-solid)] disabled:opacity-50">
                           {busy === t.taskId ? "…" : "Approve"}
                         </button>
-                        <button type="button" disabled={busy === t.taskId} onClick={() => onDecide(t, "deny")} className="rounded-md border border-[var(--border-strong)] bg-white px-3 py-1 text-[12px] font-bold text-[var(--text-primary)] disabled:opacity-50">
+                        <button type="button" disabled={busy === t.taskId} onClick={() => onDecide(t, "deny")} className="rounded-md border border-[var(--border-strong)] bg-[var(--card)] px-3 py-1 text-[12px] font-bold text-[var(--text-primary)] disabled:opacity-50">
                           Not now
                         </button>
                       </div>
@@ -126,7 +126,7 @@ export function SaheliDelegateView({
                   </li>
                 ))}
               </ul>
-              <p className="mt-2 text-[11px] text-amber-900/70">Approving lets Saheli offer it to {recipientName} again. She still sees the price and types confirm; cash on delivery only.</p>
+              <p className="mt-2 text-[11px] text-[var(--warning-text)]">Approving lets Saheli offer it to {recipientName} again. {recipientName} still sees the price and types confirm; cash on delivery only.</p>
             </div>
           )}
 
@@ -152,7 +152,7 @@ export function SaheliDelegateView({
                       <WhyLine why={t.why} />
                     </div>
                     {onDismiss && (
-                      <button type="button" title="Drop this task" disabled={busy === t.taskId} onClick={() => onDismiss(t)} className="rounded p-1 text-[var(--text-secondary)] hover:bg-slate-100">
+                      <button type="button" title="Drop this task" disabled={busy === t.taskId} onClick={() => onDismiss(t)} className="rounded p-1 text-[var(--text-secondary)] hover:bg-[var(--surface)]">
                         <X className="h-3.5 w-3.5" />
                       </button>
                     )}
@@ -177,14 +177,14 @@ export function SaheliDelegateView({
                         <span className="text-[var(--text-secondary)]"> · {STAGE[t.stage || "delivery"] || "Follow-up"}</span>
                       </p>
                       <p className="text-[11.5px] text-[var(--text-secondary)]">
-                        {t.status === "asked" ? `Asked ${when(t.askedAt)}${t.askCount > 1 ? " (twice)" : ""}, waiting for her reply` : `Will ask ${when(t.dueAt)}`}
-                        {t.outcome === "not_arrived" ? " · wasn't there when she last checked" : ""}
+                        {t.status === "asked" ? `Asked ${when(t.askedAt)}${t.askCount > 1 ? " (twice)" : ""}, waiting for ${recipientName}'s reply` : `Will ask ${when(t.dueAt)}`}
+                        {t.outcome === "not_arrived" ? ` · wasn't there when ${recipientName} last checked` : ""}
                       </p>
                       {t.lastSaheliLine && t.status === "asked" && <p className="mt-0.5 text-[12px] text-[var(--text-primary)]">“{t.lastSaheliLine}”</p>}
                       <WhyLine why={t.why} />
                     </div>
                     {onDismiss && (
-                      <button type="button" title="Stop checking" disabled={busy === t.taskId} onClick={() => onDismiss(t)} className="rounded p-1 text-[var(--text-secondary)] hover:bg-slate-100">
+                      <button type="button" title="Stop checking" disabled={busy === t.taskId} onClick={() => onDismiss(t)} className="rounded p-1 text-[var(--text-secondary)] hover:bg-[var(--surface)]">
                         <X className="h-3.5 w-3.5" />
                       </button>
                     )}
@@ -220,7 +220,7 @@ export function SaheliDelegateView({
                       )}
                     </div>
                     {onForget && (
-                      <button type="button" title="Forget this" disabled={busy === y.whyId} onClick={() => onForget(y.whyId)} className="rounded p-1 text-[var(--text-secondary)] hover:bg-slate-100">
+                      <button type="button" title="Forget this" disabled={busy === y.whyId} onClick={() => onForget(y.whyId)} className="rounded p-1 text-[var(--text-secondary)] hover:bg-[var(--surface)]">
                         <Trash2 className="h-3.5 w-3.5" />
                       </button>
                     )}
@@ -237,8 +237,9 @@ export function SaheliDelegateView({
               </h3>
               <ul className="space-y-1.5">
                 {data.recent.slice(0, 8).map((t) => {
-                  const key = t.kind === "approval" ? t.status : t.outcome || t.status;
-                  const o = OUTCOME[key] || { label: key.replace(/_/g, " "), tone: "bg-slate-100 text-slate-600" };
+                  // A task may carry neither outcome nor status (older rows): fall back instead of crashing.
+                  const key = (t.kind === "approval" ? t.status : t.outcome || t.status) || "";
+                  const o = OUTCOME[key] || { label: key ? key.replace(/_/g, " ") : "Closed", tone: "bg-slate-100 text-slate-600" };
                   return (
                     <li key={t.taskId} className="flex items-start gap-2 text-[12.5px]">
                       <Pill {...o} />
@@ -311,7 +312,13 @@ export function SaheliDelegateCards({ recipientUserId, recipientName }: { recipi
       </section>
     );
   }
-  if (!data) return error ? <p className="mb-6 text-[12px] text-rose-700">Saheli follow-ups: {error}</p> : null;
+  if (!data) {
+    return error ? (
+      <p className="mb-6 text-[12px] text-[var(--text-secondary)]">
+        Couldn&apos;t load what Saheli is following up for {recipientName} right now. Try again in a minute.
+      </p>
+    ) : null;
+  }
 
   return (
     <>

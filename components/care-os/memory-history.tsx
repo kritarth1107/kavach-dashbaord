@@ -387,18 +387,19 @@ export function RecentChangesPanel({
             const Icon = iconOf(c.kind);
             return (
               <li key={c.id} className="py-3">
-                <div className="flex items-start gap-3">
+                {/* below sm the buttons drop under the words (side by side they left the label a few letters) */}
+                <div className="flex flex-wrap items-start gap-3 sm:flex-nowrap">
                   <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--c-frame)]">
                     <Icon size={16} />
                   </span>
-                  <div className="min-w-0 flex-1">
+                  <div className="min-w-0 flex-1 basis-[calc(100%-48px)] sm:basis-0">
                     <p className="truncate text-[13px] font-medium">{c.label}</p>
                     <p className="truncate text-[12.5px] text-[var(--c-ink-2)]">{c.undoes ? `undo · ${c.summary}` : c.summary}</p>
                     <p className="mt-0.5 text-[11px] text-[var(--c-ink-3)]">
                       {c.by} · {c.where} · {at(c.at)}
                     </p>
                   </div>
-                  <div className="flex shrink-0 gap-1.5">
+                  <div className="flex shrink-0 gap-1.5 pl-12 sm:pl-0">
                     <SmallButton
                       aria-label={`History of ${c.label}`}
                       icon={ClockCounterClockwise}

@@ -25,15 +25,15 @@ function Toggle({ on, onChange, disabled, label }: { on: boolean; onChange: (v: 
 }
 
 const CATS: { key: "groceries" | "food" | "medicines" | "rides"; label: string; hint: string; storeCat: string; Icon: typeof Pill }[] = [
-  { key: "groceries", label: "Order groceries", hint: "Cash on delivery, after she types confirm", storeCat: "grocery", Icon: ShoppingBasket },
-  { key: "food", label: "Order food", hint: "Cash on delivery, after she types confirm", storeCat: "food", Icon: UtensilsCrossed },
-  { key: "medicines", label: "Order medicines", hint: "Always shows the medicine and asks her to confirm", storeCat: "pharmacy", Icon: Pill },
+  { key: "groceries", label: "Order groceries", hint: "Cash on delivery, after they type confirm", storeCat: "grocery", Icon: ShoppingBasket },
+  { key: "food", label: "Order food", hint: "Cash on delivery, after they type confirm", storeCat: "food", Icon: UtensilsCrossed },
+  { key: "medicines", label: "Order medicines", hint: "Always shows the medicine and asks them to confirm", storeCat: "pharmacy", Icon: Pill },
   { key: "rides", label: "Book rides", hint: "Shows pickup, drop and fare first", storeCat: "ride", Icon: Bike },
 ];
 const CHECKS: { key: "deliveryFollowUps" | "medicineStartCheck" | "resumeNudges"; label: string; hint: string }[] = [
   { key: "deliveryFollowUps", label: "Check that orders arrived", hint: "A short 'Did it arrive? 🙂' after the delivery time" },
   { key: "medicineStartCheck", label: "Check new medicines were started", hint: "'Have you started it?' once it arrives" },
-  { key: "resumeNudges", label: "Remind about unfinished orders", hint: "One gentle reminder for an important order she left halfway" },
+  { key: "resumeNudges", label: "Remind about unfinished orders", hint: "One gentle reminder for an important order left halfway" },
 ];
 
 /** "What Saheli can do for Amma": per-family authorisations, caregiver-editable where safe; locked rules shown, never editable. */
@@ -72,7 +72,7 @@ export function SaheliPermissionsView({
         )}
       </div>
 
-      {error && <p className="border-b border-[var(--border-strong)] bg-rose-50 px-5 py-2 text-[12px] text-rose-700">{error}</p>}
+      {error && <p className="border-b border-[var(--border-strong)] bg-[var(--danger-bg)] px-5 py-2 text-[12px] text-[var(--danger-text)]">{error}</p>}
 
       <div className="grid gap-0 divide-y divide-[var(--border-strong)] md:grid-cols-2 md:divide-x md:divide-y-0">
         <div className="px-5 py-4">
@@ -100,7 +100,9 @@ export function SaheliPermissionsView({
                           onClick={() => onPatch?.({ stores: { [s.key]: !s.allowed } }, `store:${s.key}`)}
                           title={s.allowed ? `Click to stop ${s.label}` : `Click to allow ${s.label}`}
                           className={`rounded-full border px-2 py-0.5 text-[11px] font-semibold transition ${
-                            s.allowed ? "border-emerald-200 bg-emerald-50 text-emerald-800" : "border-slate-200 bg-white text-slate-400 line-through"
+                            s.allowed
+                              ? "border-transparent bg-[var(--c-ok-soft)] text-[var(--c-ok-ink)]"
+                              : "border-[var(--border-strong)] bg-[var(--card)] text-[var(--text-secondary)] line-through"
                           }`}
                         >
                           {s.allowed && <Check className="mr-0.5 inline h-3 w-3" />}
@@ -114,7 +116,7 @@ export function SaheliPermissionsView({
             })}
           </ul>
 
-          <div className="mt-4 rounded-lg bg-[var(--surface-muted,#f8fafc)] px-3 py-2.5">
+          <div className="mt-4 rounded-lg bg-[var(--surface-muted)] px-3 py-2.5">
             <label className="text-[12.5px] font-semibold text-[var(--text-primary)]" htmlFor="soft-limit">
               Ask me before orders above
             </label>
@@ -127,7 +129,7 @@ export function SaheliPermissionsView({
                 value={limit}
                 placeholder="no limit"
                 onChange={(e) => setLimit(e.target.value.replace(/[^\d]/g, ""))}
-                className="w-24 rounded-md border border-[var(--border-strong)] bg-white px-2 py-1 text-[13px]"
+                className="w-24 rounded-md border border-[var(--border-strong)] bg-[var(--input-bg)] px-2 py-1 text-[13px] text-[var(--text-primary)]"
               />
               {canEdit && (
                 <button

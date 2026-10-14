@@ -99,7 +99,7 @@ export default function PublicEmergencyPage() {
 function Card({ data }: { data: PublicEmergency }) {
   const { person, card } = data;
   const blood = card.profile.blood_group;
-  const details = PROFILE_FIELDS.filter((f) => f.key !== "blood_group" && card.profile[f.key]);
+  const details = PROFILE_FIELDS.filter((f) => !f.private && f.key !== "blood_group" && card.profile[f.key]);
   const caregivers = [...data.caregivers].filter((c) => c.phone).sort((a, b) => Number(b.primary) - Number(a.primary));
   const contacts = card.contacts.filter((c) => c.emergency && c.phone && !caregivers.some((g) => g.phone === c.phone));
 
@@ -117,21 +117,22 @@ function Card({ data }: { data: PublicEmergency }) {
         </div>
       </header>
 
-      <div className="grid grid-cols-[auto_1fr] gap-3">
+      <div className="grid grid-cols-[auto_minmax(0,1fr)] gap-3">
         <div className="flex flex-col justify-center rounded-[22px] bg-[var(--c-solid)] px-5 py-4 text-[var(--c-on-solid)]">
           <span className="text-[11px] font-medium uppercase tracking-[0.07em] opacity-70">Blood group</span>
           <span className="c-num mt-1 text-[44px] leading-none">{blood || "—"}</span>
         </div>
-        <section className="rounded-[22px] bg-[var(--c-accent)] p-4 text-[var(--c-accent-ink)]">
+        <section className="min-w-0 rounded-[22px] bg-[var(--c-accent)] p-4 text-[var(--c-accent-ink)]">
           <h2 className="flex items-center gap-1.5 text-[12px] font-semibold uppercase tracking-[0.08em]">
             <Warning size={16} weight="fill" /> Allergies
           </h2>
           {card.allergies.length === 0 ? (
-            <p className="mt-2 text-[15px]">None known</p>
+            // Only the family's "no allergies" answer is "None known"; an empty list may just mean nobody asked.
+            <p className="mt-2 text-[15px]">{card.none?.allergy ? "None known" : "Not recorded"}</p>
           ) : (
             <ul className="mt-1.5 space-y-1">
               {card.allergies.map((a) => (
-                <li key={a.allergen} className="text-[18px] font-semibold leading-snug">
+                <li key={a.allergen} className="break-words text-[18px] font-semibold leading-snug">
                   {a.allergen}
                   {a.reaction && <span className="text-[14px] font-normal opacity-90"> · {a.reaction}</span>}
                 </li>
@@ -158,7 +159,7 @@ function Card({ data }: { data: PublicEmergency }) {
           <ul className="divide-y divide-[var(--c-line)] rounded-[16px] bg-[var(--c-frame)] px-4">
             {card.medicines.map((m) => (
               <li key={m.name} className="flex items-baseline justify-between gap-3 py-2.5">
-                <span className="min-w-0">
+                <span className="min-w-0 break-words">
                   <span className="text-[15px] font-medium">{m.name}</span>
                   {m.dose && <span className="text-[14px] text-[var(--c-ink-2)]"> {m.dose}</span>}
                 </span>

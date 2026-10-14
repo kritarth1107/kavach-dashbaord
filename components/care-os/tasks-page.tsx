@@ -32,14 +32,14 @@ function ItemRow({ item, tone, who, now, onDecide, busy }: { item: WorkItem; ton
           {item.updated_at ? ` · updated ${ago(parseIst(item.updated_at), now)}` : ""}
         </p>
       </div>
-      <div className="flex shrink-0 flex-wrap items-center gap-2.5">
+      <div className="flex min-w-0 flex-wrap items-center gap-2.5 sm:max-w-[60%] sm:justify-end">
         {item.subject === "family" && <Tag tone="light">Whole family</Tag>}
-        {item.stuck ? <Tag tone="danger">Stuck · {item.stuck}</Tag> : <Tag tone={tone}>{who} · {item.next_action}</Tag>}
+        {item.stuck ? <Tag tone="danger" wrap>Stuck · {item.stuck}</Tag> : <Tag tone={tone} wrap>{who} · {item.next_action}</Tag>}
         {when && <span className="text-[12px] text-[var(--c-ink-2)]">{when}</span>}
         {onDecide && (
           <span className="flex gap-2">
             <SmallButton disabled={busy} onClick={() => onDecide(false)}>Decline</SmallButton>
-            <SmallButton disabled={busy} onClick={() => onDecide(true)} className="border-transparent bg-[var(--c-accent)] text-[var(--c-accent-ink)] hover:bg-[var(--c-accent)] hover:opacity-90">
+            <SmallButton tone="accent" disabled={busy} onClick={() => onDecide(true)}>
               Approve
             </SmallButton>
           </span>
@@ -53,8 +53,9 @@ export function TasksPage() {
   const { userId } = useFamily();
   const { familyId, selectedId, selected, me } = usePerson();
   const myId = userId ?? me.id;
-  // keyed by person: the previous person's jobs never show while the next one's load (founder 2026-10-13)
-  const [state, setState] = useState<{ key: string; all: WorkItem[] }>({ key: "", all: [] });
+  // keyed by person: the previous person's jobs never show while the next one's load (founder 2026-10-13);
+  // all is null when the first load for this person failed (an error, never an empty "Open 0")
+  const [state, setState] = useState<{ key: string; all: WorkItem[] | null }>({ key: "", all: null });
   const [error, setError] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
   const [now] = useState(() => Date.now());
@@ -73,14 +74,21 @@ export function TasksPage() {
       // this person's jobs and the family's shared ones, never another person's
       setState({ key: k, all: all.items.filter((i) => !i.subject || i.subject === selectedId || i.subject === "family") });
       setError("");
-    } catch (e) {
-      if (latest.current === k) setError(e instanceof Error ? e.message : "Couldn't load tasks");
+    } catch {
+      // a failed reload keeps what is on screen; a failed first load shows the error state
+      if (latest.current === k) setState((s) => ({ key: k, all: s.key === k ? s.all : null }));
     }
   }, [familyId, selectedId]);
 
   const loading = state.key !== key;
-  const items = useMemo(() => (loading ? [] : state.all.filter((i) => i.state === "working" || i.state === "waiting")), [loading, state]);
-  const doneWeek = loading ? 0 : state.all.filter((i) => i.state === "done" && i.updated_at && now - parseIst(i.updated_at).getTime() < 7 * 86_400_000).length;
+  const failed = !loading && !state.all;
+  const all = useMemo(() => (loading ? [] : (state.all ?? [])), [loading, state]);
+  const items = useMemo(() => all.filter((i) => i.state === "working" || i.state === "waiting"), [all]);
+  const doneWeek = all.filter((i) => i.state === "done" && i.updated_at && now - parseIst(i.updated_at).getTime() < 7 * 86_400_000).length;
+  const retry = () => {
+    setState({ key: "", all: null });
+    void load();
+  };
 
   useEffect(() => {
     const t = setTimeout(() => void load(), 0);
@@ -121,15 +129,30 @@ export function TasksPage() {
         dark="Everything handed over"
         sub={`Every job for ${selected?.self ? "you" : callName(selected) || "them"}, and the ones shared by the whole family, shows who acts next, what, and by when. Stuck ones come first.`}
         right={
-          <div className="flex flex-wrap gap-2">
-            <Tag tone="light">Open {items.length}</Tag>
-            {stuck > 0 && <Tag tone="danger">Stuck {stuck}</Tag>}
-            <Tag tone="light">Done this week {doneWeek}</Tag>
-          </div>
+          loading || failed ? null : (
+            <div className="flex flex-wrap gap-2">
+              <Tag tone="light">Open {items.length}</Tag>
+              {stuck > 0 && <Tag tone="danger">Stuck {stuck}</Tag>}
+              <Tag tone="light">Done this week {doneWeek}</Tag>
+            </div>
+          )
         }
       />
       {error && <ErrorNote>{error}</ErrorNote>}
-      {!loading && !items.length && (
+      {loading && (
+        <div className="space-y-3" aria-busy="true" aria-label="Loading">
+          {[0, 1].map((i) => (
+            <div key={i} className="h-[120px] animate-pulse rounded-[24px] bg-[var(--c-card)]" />
+          ))}
+        </div>
+      )}
+      {failed && (
+        <Panel className="flex flex-col items-start gap-3">
+          <p className="text-[13px] text-[var(--c-ink-2)]">Couldn&apos;t load the tasks right now. Nothing has changed.</p>
+          <SmallButton onClick={retry}>Try again</SmallButton>
+        </Panel>
+      )}
+      {!loading && !failed && !items.length && (
         <Panel>
           <p className="text-[13px] text-[var(--c-ink-2)]">Nothing open right now. Orders, rides, reminders, family tasks and questions show up here with who acts next.</p>
         </Panel>

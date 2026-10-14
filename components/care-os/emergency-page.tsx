@@ -1,6 +1,6 @@
 "use client";
 
-import { Ambulance, Check, Copy, LinkBreak, MapPin, PencilSimple, Phone, Printer, Trash, WhatsappLogo } from "@phosphor-icons/react";
+import { Ambulance, ArrowClockwise, Check, Copy, LinkBreak, MapPin, PencilSimple, Phone, Printer, Trash, WhatsappLogo } from "@phosphor-icons/react";
 import QRCode from "qrcode";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
@@ -249,15 +249,15 @@ export function callPeople(card: EmergencyCard, members: FamilyMember[], subject
 function HelperPreview({ card, name, photo, callers }: { card: EmergencyCard; name: string; photo?: string | null; callers: CallPerson[] }) {
   return (
     <div className="mx-auto w-[248px] rounded-[40px] bg-[#0d0f0e] p-[9px] shadow-[0_30px_50px_-28px_rgba(0,0,0,0.6)]">
-      <div className="relative h-[470px] overflow-hidden rounded-[32px] bg-[#123f36] px-3.5 pt-8 text-white">
-        <p className="text-center text-[10.5px] font-semibold tracking-[0.14em] text-[#f5b866]">MEDICAL ID</p>
+      <div className="relative h-[470px] overflow-hidden rounded-[32px] bg-[var(--c-solid)] px-3.5 pt-8 text-[var(--c-on-solid)]">
+        <p className="text-center text-[10.5px] font-semibold tracking-[0.14em] text-[var(--c-accent)]">MEDICAL ID</p>
         <div className="mt-3 flex flex-col items-center">
           <PersonPhoto name={name} src={photo} rounded="rounded-[20px]" className="h-16 w-16 border-2 border-white" text={22} />
           <p className="mt-2 text-[18px] font-medium">{name}</p>
           <p className="text-[11px] opacity-70">{[card.profile.blood_group, card.conditions[0]].filter(Boolean).join(" · ")}</p>
         </div>
         {card.allergies.length > 0 && (
-          <p className="mt-3 rounded-[12px] bg-[#c8352f] px-3 py-2 text-[11.5px]">
+          <p className="mt-3 rounded-[12px] bg-[var(--c-danger)] px-3 py-2 text-[11.5px] text-white">
             <b>Allergic:</b> {card.allergies.map((a) => a.allergen).join(", ")}
           </p>
         )}
@@ -277,11 +277,11 @@ function HelperPreview({ card, name, photo, callers }: { card: EmergencyCard; na
           {card.home && (
             <>
               <br />
-              {card.home} · <span className="text-[#f5b866]">Maps</span>
+              {card.home} · <span className="text-[var(--c-accent)]">Maps</span>
             </>
           )}
         </p>
-        <span className="absolute bottom-3.5 left-3.5 right-3.5 flex h-10 items-center justify-center rounded-full bg-[#c8352f] text-[13px] font-semibold">Call 112</span>
+        <span className="absolute bottom-3.5 left-3.5 right-3.5 flex h-10 items-center justify-center rounded-full bg-[var(--c-danger)] text-[13px] font-semibold text-white">Call 112</span>
       </div>
     </div>
   );
@@ -405,11 +405,18 @@ export function EmergencyPage() {
       </div>
 
       {err && <Notice>{err}</Notice>}
-      {card.error && !data && <Notice>{card.error}</Notice>}
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
         <div className="min-w-0">
-          {!data ? (
+          {card.error && !data ? (
+            <Panel className="flex flex-col items-center py-14 text-center">
+              <p className="text-[18px] font-medium">The emergency card couldn&apos;t load</p>
+              <p className="mt-1 max-w-sm text-[13px] text-[var(--c-ink-2)]">{card.error}</p>
+              <SmallButton dark icon={ArrowClockwise} className="mt-5" disabled={card.loading} onClick={card.reload}>
+                {card.loading ? "Trying…" : "Try again"}
+              </SmallButton>
+            </Panel>
+          ) : !data ? (
             <div className="h-[560px] animate-pulse rounded-[32px] bg-[var(--c-card)]" />
           ) : (
             <MedicalIdCard
@@ -499,7 +506,7 @@ export function EmergencyPage() {
 
         <aside className="flex flex-col gap-4">
           <div className="grid grid-cols-2 gap-2.5">
-            <a href="tel:112" className="flex flex-col gap-6 rounded-[22px] bg-[#c8352f] p-4 text-white transition-opacity hover:opacity-95">
+            <a href="tel:112" className="flex flex-col gap-6 rounded-[22px] bg-[var(--c-danger)] p-4 text-white transition-opacity hover:opacity-95">
               <span className="text-[11.5px] opacity-85">Police · fire · medical</span>
               <span>
                 <span className="c-num block text-[34px] leading-none">112</span>

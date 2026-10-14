@@ -32,9 +32,19 @@ export function CareHomePage() {
     const id = ++req.current;
     // Saheli's line about the day: the diary her nightly dream keeps in the care record (trust plan A1).
     const diary = getCareOverview(familyId, selectedId).then((o) => latestDiaryLine(o.notes, selectedId)).catch(() => null);
-    Promise.all([getCareHome(familyId, selectedId), diary, getPortrait(familyId, selectedId).catch(() => null)])
-      .then(([data, snap, portrait]) => id === req.current && setState({ key, data, snap, portrait, error: "" }))
-      .catch((err: unknown) => id === req.current && setState((s) => ({ ...s, key, error: err instanceof Error ? err.message : "Couldn't load" })));
+    const home = getCareHome(familyId, selectedId).then(
+      (data) => ({ data, error: "" }),
+      (err: unknown) => ({ data: null, error: err instanceof Error ? err.message : "Couldn't load" }),
+    );
+    Promise.all([home, diary, getPortrait(familyId, selectedId).catch(() => null)]).then(([h, snap, portrait]) => {
+      if (id !== req.current) return;
+      // A failed refresh keeps what this person already showed, never the person before (audit 2026-10-14: B's Home
+      // showed A's mood and doses when B's load failed).
+      setState((s) => {
+        const same = s.key === key;
+        return { key, data: h.data ?? (same ? s.data : null), snap: snap ?? (same ? s.snap : null), portrait: portrait ?? (same ? s.portrait : null), error: h.error };
+      });
+    });
   }, [familyId, selectedId, isCaregiver, key, tick]);
 
   useEffect(() => {
@@ -59,7 +69,8 @@ export function CareHomePage() {
         else setDismissed((d) => [...d, id]);
         return;
       }
-      if (item.kind === "task" && item.input !== "confirm") {
+      // stuck work, a task that wants more than a yes, or a kind the engine added later: it is handled on Orders & rides
+      if (item.kind !== "fact" && (item.kind !== "task" || item.input !== "confirm")) {
         router.push(`/dashboard/saheli/tasks?recipient=${selectedId}`);
         return;
       }
@@ -92,32 +103,28 @@ export function CareHomePage() {
     );
   }
   const fresh = state.key === key;
-  if (!fresh || !state.data) {
-    if (fresh && state.error) {
-      return (
-        <Panel className="p-8">
-          <p className="text-[16px] font-medium">Couldn&apos;t load {callName(selected)}&apos;s day</p>
-          <p className="mt-1 text-[13px] text-[var(--c-ink-2)]">{state.error}</p>
-        </Panel>
-      );
-    }
-    return <Skeleton />;
-  }
+  // When the day's summary fails, the page still shows what did load, with a note and a retry in its place.
+  if (!fresh || (!state.data && !state.error)) return <Skeleton />;
   const member = members.find((m) => m.userId === selected.id);
   const phone = member?.phone ? `${member.phoneCountryCode ?? ""}${member.phone}` : null;
-  // only this person's orders and rides, and only their decisions (founder 2026-10-13: his own showed on his mother's page)
-  const tasks = forPerson(state.data.tasks, selected.id);
-  const others = new Set(state.data.tasks.filter((t) => !tasks.includes(t)).map((t) => t.id));
-  const needsYou = state.data.needsYou.filter((n) => !dismissed.includes(n.id) && !(n.kind === "task" && n.taskId && others.has(n.taskId)));
+  let home: CareHomeSummary | null = null;
+  if (state.data) {
+    // only this person's orders and rides, and only their decisions (founder 2026-10-13: his own showed on his mother's page)
+    const tasks = forPerson(state.data.tasks, selected.id);
+    const others = new Set(state.data.tasks.filter((t) => !tasks.includes(t)).map((t) => t.id));
+    const needsYou = state.data.needsYou.filter((n) => !dismissed.includes(n.id) && !(n.kind === "task" && n.taskId && others.has(n.taskId)));
+    home = { ...state.data, tasks, needsYou };
+  }
   return (
     <HomeV3
       person={{ id: selected.id, name: selected.name, callAs: callName(selected), self: !!selected.self, photo: selected.photo, phone }}
       me={(me.name || "").split(" ")[0]}
-      home={{ ...state.data, tasks, needsYou }}
+      home={home}
       portrait={state.portrait}
       saheliSays={state.snap || null}
       kavachNumber={kavachNumber}
       onDecide={decide}
+      onRetry={() => setTick((n) => n + 1)}
       busy={busy}
     />
   );

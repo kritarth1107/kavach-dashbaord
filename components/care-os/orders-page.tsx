@@ -74,7 +74,9 @@ function laterLine(t: CareTask): string | null {
 }
 
 /** Where a running order is: looked up, logged in, cart or fares ready, placed. */
-const STEPS: Record<CareTask["kind"], string[]> = { order: ["Found", "Logged in", "Cart ready", "Placed"], ride: ["Fares", "Logged in", "Ride picked", "Booked"] };
+const STEPS: Record<string, string[]> = { order: ["Found", "Logged in", "Cart ready", "Placed"], ride: ["Fares", "Logged in", "Ride picked", "Booked"] };
+/** A kind added later in the engine gets the order steps (an unknown key once took the whole page down). */
+const stepsFor = (t: CareTask) => STEPS[t.kind] ?? STEPS.order;
 const stepOf = (t: CareTask) => (t.status === "done" || t.phase === "check" ? 4 : t.phase === "place" ? 3 : t.phase === "prepare" ? 2 : t.phase === "otp" ? 1 : 0);
 
 /** Stores looked up together (no store named) until one is picked; the dropped ones after a pick are hidden. */
@@ -147,9 +149,10 @@ export function OrdersPage() {
             ))}
           </div>
         ) : error && !data ? (
-          <Panel className="py-12 text-center">
+          <Panel className="flex flex-col items-center gap-3 py-12 text-center">
             <p className="text-[15px] font-medium">Couldn&apos;t load orders and rides</p>
-            <p className="mt-1 text-[13px] text-[var(--c-ink-2)]">{error}</p>
+            <p className="text-[13px] text-[var(--c-ink-2)]">Nothing has changed with them. This page tries again by itself every few seconds.</p>
+            <SmallButton onClick={reload}>Try again now</SmallButton>
           </Panel>
         ) : all.length === 0 ? (
           <Panel className="flex flex-col items-center gap-3 py-14 text-center">
@@ -253,14 +256,16 @@ function Stat({ label, value, tone }: { label: string; value: string | number; t
 
 function Steps({ task: t }: { task: CareTask }) {
   const at = stepOf(t);
+  const steps = stepsFor(t);
+  // the label drops below the bars on a narrow row instead of running under the status tag
   return (
-    <span className="flex items-center gap-1" aria-label={`Step ${Math.min(at + 1, 4)} of 4`}>
-      {STEPS[t.kind].map((s, i) => (
-        <span key={s} title={s} className={cn("h-1.5 w-5 rounded-full", i < at ? "bg-[var(--c-solid)]" : i === at ? "bg-[var(--c-accent)]" : "bg-[var(--c-line)]")} />
-      ))}
-      <span className="ml-1.5 text-[11.5px] text-[var(--c-ink-2)]">
-        {t.phase === "check" ? "Checking the store" : t.status === "done" ? STEPS[t.kind][3] : STEPS[t.kind][Math.min(at, 3)]}
+    <span className="flex flex-wrap items-center gap-x-2.5 gap-y-1" aria-label={`Step ${Math.min(at + 1, 4)} of 4`}>
+      <span className="flex shrink-0 items-center gap-1">
+        {steps.map((s, i) => (
+          <span key={s} title={s} className={cn("h-1.5 w-5 rounded-full", i < at ? "bg-[var(--c-solid)]" : i === at ? "bg-[var(--c-accent)]" : "bg-[var(--c-line)]")} />
+        ))}
       </span>
+      <span className="text-[11.5px] text-[var(--c-ink-2)]">{t.phase === "check" ? "Checking the store" : t.status === "done" ? steps[3] : steps[Math.min(at, 3)]}</span>
     </span>
   );
 }
@@ -436,7 +441,7 @@ function Decision({ task: t, busy, familyId, subjectId, run, reload }: { task: C
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-[12.5px] text-[var(--c-ink-2)]">Cancelling now costs {r.cancel_fee}.</p>
         <div className="flex shrink-0 gap-2">
-          <SmallButton disabled={isBusy("fee")} className="text-[var(--c-danger-ink)]" onClick={() => act("fee", () => taskInput(familyId, subjectId, t.id, "fee", "yes"), "Cancelling with the fee.")}>
+          <SmallButton tone="danger" disabled={isBusy("fee")} onClick={() => act("fee", () => taskInput(familyId, subjectId, t.id, "fee", "yes"), "Cancelling with the fee.")}>
             Cancel anyway
           </SmallButton>
           <SmallButton dark disabled={isBusy("fee")} onClick={() => act("fee", () => taskInput(familyId, subjectId, t.id, "fee", "no"), "Kept the order.")}>
@@ -628,7 +633,7 @@ function TaskDrawer({
         (live || t?.status === "scheduled") && t && familyId && subjectId && !t.cancelRequested ? (
           <SmallButton
             icon={X}
-            className="text-[var(--c-danger-ink)]"
+            tone="danger"
             disabled={busy === `${t.id}:cancel`}
             onClick={() => {
               if (!window.confirm(`Cancel this ${t.kind}?`)) return;

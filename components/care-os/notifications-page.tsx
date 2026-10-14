@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import {
+  ArrowClockwise,
   Bell,
   CaretRight,
   Checks,
@@ -26,6 +27,7 @@ const KIND: Record<string, { icon: PhosphorIcon; label: string; urgent?: boolean
   care_alert: { icon: Heartbeat, label: "Care" },
   order_placed: { icon: ShoppingBag, label: "Order" },
   lab: { icon: FirstAidKit, label: "Records" },
+  lab_new: { icon: FirstAidKit, label: "Records" },
 };
 
 function meta(item: NotificationItem) {
@@ -33,6 +35,16 @@ function meta(item: NotificationItem) {
   const urgent = k.urgent || /urgent/i.test(item.title);
   return { ...k, urgent };
 }
+
+/** An alert about one person opens on that person, not on whoever was picked last (?recipient=, other query kept). */
+function scopedUrl(url: string, recipient?: string) {
+  if (!recipient || !url.startsWith("/") || url.startsWith("//")) return url;
+  const u = new URL(url, "https://kavach.local");
+  if (!u.searchParams.has("recipient")) u.searchParams.set("recipient", recipient);
+  return `${u.pathname}${u.search}${u.hash}`;
+}
+
+const NONE: NotificationItem[] = [];
 
 const IST = "Asia/Kolkata";
 function dayLabel(iso: string | null) {
@@ -50,26 +62,27 @@ const time = (iso: string | null) => (iso ? new Date(iso).toLocaleTimeString("en
 export function NotificationsPage() {
   const { activeFamilyId } = useFamily();
   const { people } = usePerson();
-  const [items, setItems] = useState<NotificationItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  // Keyed by family (and retry), so switching family shows the skeleton, never the last family's list.
+  const [tick, setTick] = useState(0);
+  const [res, setRes] = useState<{ key: string; items: NotificationItem[]; error: string } | null>(null);
   const [filter, setFilter] = useState<Filter>("all");
-
-  const load = useCallback(async () => {
-    if (!activeFamilyId) return;
-    try {
-      const { data } = await getNotifications(activeFamilyId);
-      setItems(data?.notifications ?? []);
-    } catch {
-      setItems([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [activeFamilyId]);
+  const key = activeFamilyId ? `${activeFamilyId}#${tick}` : null;
 
   useEffect(() => {
-    const t = setTimeout(() => void load(), 0);
-    return () => clearTimeout(t);
-  }, [load]);
+    if (!activeFamilyId || !key) return;
+    let live = true;
+    getNotifications(activeFamilyId)
+      .then(({ data }) => live && setRes({ key, items: data?.notifications ?? [], error: "" }))
+      .catch((e: unknown) => live && setRes({ key, items: [], error: e instanceof Error ? e.message : "Couldn't load notifications" }));
+    return () => {
+      live = false;
+    };
+  }, [activeFamilyId, key]);
+
+  const loading = !res || res.key !== key;
+  const items = loading ? NONE : res.items;
+  const error = loading ? "" : res.error;
+  const setItems = useCallback((fn: (xs: NotificationItem[]) => NotificationItem[]) => setRes((r) => (r ? { ...r, items: fn(r.items) } : r)), []);
 
   const unread = items.filter((i) => !i.readAt).length;
   const urgent = items.filter((i) => meta(i).urgent).length;
@@ -129,6 +142,14 @@ export function NotificationsPage() {
           />
           {loading ? (
             <div className="h-[300px] animate-pulse rounded-[24px] bg-[var(--c-card)]" />
+          ) : error ? (
+            <Panel className="flex flex-col items-center py-14 text-center">
+              <p className="text-[18px] font-medium">Notifications couldn&apos;t load</p>
+              <p className="mt-1 max-w-sm text-[13px] text-[var(--c-ink-2)]">{error}</p>
+              <SmallButton dark icon={ArrowClockwise} className="mt-5" onClick={() => setTick((n) => n + 1)}>
+                Try again
+              </SmallButton>
+            </Panel>
           ) : groups.length === 0 ? (
             <Panel className="flex flex-col items-center py-16 text-center">
               <span className="flex h-14 w-14 items-center justify-center rounded-full bg-[var(--c-frame)]">
@@ -152,7 +173,7 @@ export function NotificationsPage() {
                         <span
                           className={cn(
                             "flex h-10 w-10 shrink-0 items-center justify-center rounded-full",
-                            m.urgent ? "bg-[var(--c-accent)] text-[var(--c-accent-ink)]" : it.readAt ? "border border-[var(--c-line)]" : "bg-[var(--c-solid)] text-white",
+                            m.urgent ? "bg-[var(--c-accent)] text-[var(--c-accent-ink)]" : it.readAt ? "border border-[var(--c-line)]" : "bg-[var(--c-solid)] text-[var(--c-on-solid)]",
                           )}
                         >
                           <m.icon size={18} weight={m.urgent ? "fill" : "regular"} />
@@ -179,7 +200,7 @@ export function NotificationsPage() {
                     return (
                       <li key={it.notificationId}>
                         {it.actionUrl ? (
-                          <Link href={it.actionUrl} onClick={() => void read(it)} className="block">
+                          <Link href={scopedUrl(it.actionUrl, it.recipientUserId)} onClick={() => void read(it)} className="block">
                             {body}
                           </Link>
                         ) : (
@@ -197,9 +218,9 @@ export function NotificationsPage() {
         </div>
         <aside className="space-y-4">
           <Panel accent className="flex flex-col">
-            <p className="text-[11px] font-medium uppercase tracking-[0.06em] text-white/80">Unread</p>
-            <p className="c-num mt-4 text-[56px] leading-none text-white">{unread}</p>
-            <p className="mt-2 text-[12px] text-white/80">of {items.length} in the last 30 days</p>
+            <p className="text-[11px] font-medium uppercase tracking-[0.06em] opacity-80">Unread</p>
+            <p className="c-num mt-4 text-[56px] leading-none">{unread}</p>
+            <p className="mt-2 text-[12px] opacity-80">of {items.length} in the last 30 days</p>
           </Panel>
           <Panel>
             <p className="text-[14px] font-medium">What reaches your WhatsApp</p>

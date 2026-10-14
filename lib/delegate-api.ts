@@ -1,4 +1,6 @@
 /** Saheli as a persistent delegate: permissions, open tasks, follow-ups, approvals and WHY memory. */
+import { SERVER_FAILED_MESSAGE } from "./api";
+
 
 export type DelegateTask = {
   taskId: string;
@@ -89,7 +91,7 @@ async function call<T>(path: string, init: RequestInit = {}): Promise<T> {
     } catch {
       throw new Error("Invalid response from server");
     }
-    if (!res.ok) throw new Error(json.message || `Request failed (${res.status})`);
+    if (!res.ok) throw new Error(res.status >= 500 ? SERVER_FAILED_MESSAGE : json.message || `Request failed (${res.status})`);
     return json.data as T;
   } catch (err) {
     if (err instanceof Error && err.name === "AbortError") throw new Error("Saheli is taking too long. Try again in a moment.");

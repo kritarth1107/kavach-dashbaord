@@ -70,13 +70,8 @@ export function MoodLine({ days, height = 120 }: { days: PortraitMood[]; height?
   const lowNote = pts[low].score! <= 2 ? `${dayLabel(pts[low].day || pts[low].at.slice(0, 10))} · ${pts[low].word || "low"}` : null;
   return (
     <svg viewBox={`0 0 ${W} ${height}`} width="100%" height={height} role="img" aria-label="Mood over the last two weeks">
-      <defs>
-        <linearGradient id="moodfill" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="var(--c-accent)" stopOpacity="0.32" />
-          <stop offset="1" stopColor="var(--c-accent)" stopOpacity="0" />
-        </linearGradient>
-      </defs>
-      <path d={`${path} L${W} ${bottom + 8} L0 ${bottom + 8}Z`} fill="url(#moodfill)" />
+      {/* a flat soft fill under the line (no gradients in Care OS v3) */}
+      <path d={`${path} L${W} ${bottom + 8} L0 ${bottom + 8}Z`} fill="var(--c-accent)" fillOpacity="0.12" />
       <path d={path} fill="none" stroke="var(--c-accent)" strokeWidth="2.5" strokeLinecap="round" />
       {lowNote && <circle cx={xy[low][0]} cy={xy[low][1]} r="5" fill="var(--c-frame)" stroke="var(--c-danger-ink)" strokeWidth="2.5" />}
       <circle cx={xy[xy.length - 1][0]} cy={xy[xy.length - 1][1]} r="5" fill="var(--c-accent)" />

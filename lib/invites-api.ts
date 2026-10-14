@@ -2,7 +2,7 @@
  * Invite links (the Invitations page), the public join page and the waitlist form. Kavach is invite-only for now:
  * a new account needs a one-time invite link (or an approved waitlist entry); anyone else joins the waitlist.
  */
-import { ApiError } from "./api";
+import { ApiError, SERVER_FAILED_MESSAGE } from "./api";
 
 export type InviteState = "active" | "used" | "expired" | "revoked";
 
@@ -35,7 +35,7 @@ export type WaitlistInput = { name: string; email: string; phone?: string; phone
 async function parse<T>(res: Response): Promise<T> {
   const json = (await res.json().catch(() => null)) as { data?: T; message?: string; code?: string; data_?: unknown } | null;
   if (!res.ok) {
-    throw new ApiError(json?.message || `Request failed (${res.status})`, res.status, json?.code, (json?.data as Record<string, unknown>) ?? undefined);
+    throw new ApiError(res.status >= 500 ? SERVER_FAILED_MESSAGE : json?.message || `Request failed (${res.status})`, res.status, json?.code, (json?.data as Record<string, unknown>) ?? undefined);
   }
   return (json?.data ?? null) as T;
 }

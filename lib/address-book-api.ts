@@ -84,7 +84,7 @@ async function request<T>(url: string, init: RequestInit = {}): Promise<T | unde
           : res.status === 404
             ? "Not found — it may have been deleted."
             : `Request failed (${res.status})`;
-    const generic = !json?.message || /^(Invalid|Empty) response/i.test(json.message);
+    const generic = res.status >= 500 || !json?.message || /^(Invalid|Empty) response/i.test(json.message);
     throw new AddressApiError(generic ? fallback : json!.message!, res.status);
   }
   return json.data;

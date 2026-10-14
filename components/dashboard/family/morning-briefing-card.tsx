@@ -1,7 +1,7 @@
 "use client";
 
 import { Loader2, Sun } from "lucide-react";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { getRecipientBriefing, type RecipientBriefing } from "@/lib/api";
 import { useFamily } from "@/components/dashboard/family-context";
 import { useOptionalCareSchedule } from "./care-recipient-schedule-context";
@@ -42,6 +42,8 @@ export function MorningBriefingCard({
   const isToday = dateCtx?.isToday ?? true;
   const [briefing, setBriefing] = useState<RecipientBriefing | null>(null);
   const [loading, setLoading] = useState(true);
+  const [failed, setFailed] = useState(false);
+  const reqRef = useRef(0);
 
   const daySchedules = useMemo(() => {
     if (!scheduleCtx) return [];
@@ -49,19 +51,23 @@ export function MorningBriefingCard({
   }, [scheduleCtx, selectedDate]);
 
   const load = useCallback(async () => {
+    const reqId = ++reqRef.current;
+    setFailed(false);
     if (!activeFamilyId || !recipientUserId || !isToday) {
       setBriefing(null);
       setLoading(false);
       return;
     }
     setLoading(true);
+    setBriefing(null);
     try {
       const { data } = await getRecipientBriefing(activeFamilyId, recipientUserId);
-      setBriefing(data ?? null);
+      if (reqId === reqRef.current) setBriefing(data ?? null);
     } catch {
-      setBriefing(null);
+      // A failed load is not "nothing heard": say so instead of showing a calm empty briefing.
+      if (reqId === reqRef.current) setFailed(true);
     } finally {
-      setLoading(false);
+      if (reqId === reqRef.current) setLoading(false);
     }
   }, [activeFamilyId, recipientUserId, isToday]);
 
@@ -87,6 +93,19 @@ export function MorningBriefingCard({
       {loading && isToday ? (
         <div className="flex justify-center py-10">
           <Loader2 className="h-5 w-5 animate-spin text-primary" />
+        </div>
+      ) : failed && isToday ? (
+        <div className="px-5 py-6">
+          <p className="text-[13px] text-[var(--text-secondary)]">
+            Couldn&apos;t load {recipientName}&apos;s briefing right now, so we can&apos;t say when Saheli last heard from them.
+          </p>
+          <button
+            type="button"
+            onClick={() => void load()}
+            className="mt-2 text-[12px] font-semibold text-primary hover:underline"
+          >
+            Try again
+          </button>
         </div>
       ) : (
         <div className="grid gap-4 px-5 py-4 sm:grid-cols-3">
@@ -157,7 +176,9 @@ export function MorningBriefingCard({
               <p className="mt-1 text-[12px] text-[var(--text-secondary)]">
                 {pendingCount
                   ? `${pendingCount} item${pendingCount === 1 ? "" : "s"} still open`
-                  : "Nothing scheduled for this day."}
+                  : daySchedules.length
+                    ? "Nothing waiting to be confirmed."
+                    : "Nothing scheduled for this day."}
               </p>
             )}
           </div>

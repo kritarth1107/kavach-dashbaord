@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  ArrowClockwise,
   CaretDown,
   ChatCircleText,
   House,
@@ -368,9 +369,16 @@ export function CareTeamPage() {
       </div>
 
       {err && <Notice>{err}</Notice>}
-      {team.error && !data && <Notice>{team.error}</Notice>}
 
-      {!data ? (
+      {team.error && !data ? (
+        <Panel className="flex flex-col items-center py-14 text-center">
+          <p className="text-[18px] font-medium">The care team couldn&apos;t load</p>
+          <p className="mt-1 max-w-sm text-[13px] text-[var(--c-ink-2)]">{team.error}</p>
+          <SmallButton dark icon={ArrowClockwise} className="mt-5" disabled={team.loading} onClick={team.reload}>
+            {team.loading ? "Trying…" : "Try again"}
+          </SmallButton>
+        </Panel>
+      ) : !data ? (
         <div className="grid gap-4 lg:grid-cols-[1fr_300px]">
           <div className="h-[360px] animate-pulse rounded-[24px] bg-[var(--c-card)]" />
           <div className="h-[200px] animate-pulse rounded-[24px] bg-[var(--c-card)]" />
@@ -471,21 +479,21 @@ export function CareTeamPage() {
 
           <aside className="space-y-4">
             <Panel accent className="flex flex-col">
-              <p className="text-[11px] font-medium uppercase tracking-[0.06em] text-white/80">Next appointment</p>
+              <p className="text-[11px] font-medium uppercase tracking-[0.06em] opacity-80">Next appointment</p>
               {next && next.when && nextIn !== null ? (
                 <>
-                  <p className="c-num mt-4 text-[56px] leading-none text-white">
+                  <p className="c-num mt-4 text-[56px] leading-none">
                     {nextIn <= 0 ? "Today" : nextIn}
                     {nextIn > 0 && <span className="ml-2 text-[18px] tracking-normal">{nextIn === 1 ? "day" : "days"}</span>}
                   </p>
-                  <p className="mt-2 text-[12px] text-white/80">
+                  <p className="mt-2 text-[12px] opacity-80">
                     {next.doctor} · {fmtDay(istDate(next.when))}, {fmtTime(istDate(next.when))}
                   </p>
                 </>
               ) : (
                 <>
-                  <p className="c-num mt-4 text-[56px] leading-none text-white">—</p>
-                  <p className="mt-2 text-[12px] text-white/80">Nothing booked yet</p>
+                  <p className="c-num mt-4 text-[56px] leading-none">—</p>
+                  <p className="mt-2 text-[12px] opacity-80">Nothing booked yet</p>
                 </>
               )}
             </Panel>

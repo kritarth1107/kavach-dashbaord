@@ -7,6 +7,8 @@
  * which forward the session token to the backend.
  */
 
+import { SERVER_FAILED_MESSAGE } from "./api";
+
 export type ActivityKind =
   | "message_in"
   | "message_out"
@@ -131,6 +133,8 @@ export async function request<T>(
             : res.status === 429
               ? "Please wait a couple of minutes before regenerating."
               : `Request failed (${res.status})`;
+    // A server failure carries developer text ("Cannot reach the AI engine. Start … on port 8000"): never shown to a family.
+    if (res.status >= 500) throw new ActivityApiError(SERVER_FAILED_MESSAGE, res.status);
     // The proxy fills in generic messages when the backend returns non-JSON (e.g. a route 404).
     const generic = !json?.message || /^(Invalid|Empty) response/i.test(json.message);
     throw new ActivityApiError(generic ? fallback : (json?.message ?? fallback), res.status);

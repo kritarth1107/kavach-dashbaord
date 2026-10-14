@@ -21,7 +21,7 @@ function BloodDrop({ group }: { group?: string }) {
   return (
     <div className="relative flex h-[132px] w-[118px] shrink-0 flex-col items-center justify-end pb-5">
       <svg viewBox="0 0 118 132" className="absolute inset-0" aria-hidden>
-        <path d="M59 4 C59 4 12 56 12 84 a47 44 0 0 0 94 0 C106 56 59 4 59 4z" fill="#d6453f" />
+        <path d="M59 4 C59 4 12 56 12 84 a47 44 0 0 0 94 0 C106 56 59 4 59 4z" className="fill-[var(--c-danger)]" />
       </svg>
       <span className="relative text-[9.5px] tracking-[0.12em] opacity-90">BLOOD</span>
       <span className="c-num relative text-[40px] leading-none">{group || "?"}</span>
@@ -89,7 +89,7 @@ export function MedicalIdCard({
         <div
           className={cn(
             "relative mt-6 flex items-center gap-3 rounded-[18px] px-4 py-3",
-            allergies.length ? "bg-[#c8352f]" : "border border-white/10 bg-white/[0.07]",
+            allergies.length ? "bg-[var(--c-danger)]" : "border border-white/10 bg-white/[0.07]",
           )}
         >
           <Warning size={22} weight="fill" className="shrink-0" />
@@ -160,15 +160,16 @@ export function MedicalIdCard({
             <div className="rounded-[18px] border border-dashed border-white/25 p-3 text-[12.5px] text-white/70 sm:col-span-2">No one to call yet. Add an emergency contact with a phone number.</div>
           )}
           {callers.length === 1 && <div className="hidden sm:block" />}
-          <div className="flex flex-col items-center justify-center rounded-[18px] bg-white p-2.5 text-[var(--c-ink)] dark:text-[#1b201e]">
+          {/* The QR needs a light quiet zone in both themes: the on-solid chip, with jade text, stays light in dark mode. */}
+          <div className="flex flex-col items-center justify-center rounded-[18px] bg-[var(--c-on-solid)] p-2.5 text-[var(--c-solid)]">
             {qrSvg ? (
               <>
                 <span className="block h-[96px] w-[96px] [&>svg]:h-full [&>svg]:w-full" dangerouslySetInnerHTML={{ __html: qrSvg }} />
-                <span className="mt-1 text-center text-[10px] leading-tight text-[#66706b]">Scan for the live card</span>
+                <span className="mt-1 text-center text-[10px] leading-tight opacity-80">Scan for the live card</span>
               </>
             ) : (
-              <button type="button" onClick={onMakeLink} className="flex flex-col items-center gap-1.5 py-2 text-center text-[11px] text-[#66706b]">
-                <QrCode size={40} className="text-[#1b201e]" />
+              <button type="button" onClick={onMakeLink} className="flex flex-col items-center gap-1.5 py-2 text-center text-[11px] opacity-80">
+                <QrCode size={40} />
                 Make a link to get a QR
               </button>
             )}
@@ -177,7 +178,7 @@ export function MedicalIdCard({
 
         <div className="relative mt-4 flex flex-col gap-1 text-[12px] text-white/75 sm:flex-row sm:justify-between">
           <span className="flex items-start gap-1.5">
-            <MapPin size={14} weight="fill" className="mt-0.5 shrink-0 text-[#ff9b6a]" />
+            <MapPin size={14} weight="fill" className="mt-0.5 shrink-0 text-[var(--c-accent)]" />
             {card.home ? <b className="font-medium text-white">{card.home}</b> : <span>Home address not saved</span>}
           </span>
           <span className="truncate">{[doctor?.name, hospital?.name, insurance].filter(Boolean).join(" · ")}</span>

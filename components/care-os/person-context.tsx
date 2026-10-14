@@ -77,31 +77,44 @@ export function PersonProvider({ children }: { children: React.ReactNode }) {
     return [...recipients, { id: userId, name: me.name || mine?.name || "You", relation: "self care", photo: me.avatar ?? mine?.avatarUrl, self: true }];
   }, [members, isCaregiver, userId, me.name, me.avatar, state.key, activeFamilyId]);
 
+  // A family member's own page (/dashboard/family/<userId>, …/health-record) names the person in the route.
+  const route = /^\/dashboard\/family\/([^/]+)(\/health-record)?$/.exec(pathname);
+  const routeId = route && route[1] !== "new" ? route[1] : null;
+  const routeSuffix = route?.[2] ?? "";
   const requested = params.get("recipient");
   const stored = typeof window !== "undefined" && activeFamilyId ? window.localStorage.getItem(key(activeFamilyId)) : null;
   const selectedId = useMemo(() => {
     if (!people.length) return isRecipient ? userId : null;
-    for (const id of [requested, stored]) if (id && people.some((p) => p.id === id)) return id;
+    for (const id of [routeId, requested, stored]) if (id && people.some((p) => p.id === id)) return id;
     return people[0].id;
-  }, [people, requested, stored, isRecipient, userId]);
+  }, [people, routeId, requested, stored, isRecipient, userId]);
 
-  // Keep ?recipient= in the URL so older pages that read it agree with the switcher.
+  // Keep ?recipient= in the URL so older pages that read it agree with the switcher (not on a member's own page:
+  // there the route already says who it is).
   useEffect(() => {
-    if (selectedId && !requested && people.length > 1) {
+    if (selectedId && !routeId && !requested && people.length > 1) {
       const q = new URLSearchParams(params.toString());
       q.set("recipient", selectedId);
       router.replace(`${pathname}?${q}`, { scroll: false });
     }
-  }, [selectedId, requested, people.length, params, pathname, router]);
+  }, [selectedId, routeId, requested, people.length, params, pathname, router]);
 
   const select = useCallback(
     (id: string) => {
       if (activeFamilyId) window.localStorage.setItem(key(activeFamilyId), id);
+      if (routeId) {
+        // On a member's page, picking someone opens their page. Self care has no member page: go to their home.
+        const self = people.find((p) => p.id === id)?.self;
+        if (id === routeId) return;
+        if (!self) router.push(`/dashboard/family/${encodeURIComponent(id)}${routeSuffix}`);
+        else router.push(`${routeSuffix ? "/dashboard/record" : "/dashboard"}?recipient=${encodeURIComponent(id)}`);
+        return;
+      }
       const q = new URLSearchParams(params.toString());
       q.set("recipient", id);
       router.replace(`${pathname}?${q}`, { scroll: false });
     },
-    [activeFamilyId, params, pathname, router],
+    [activeFamilyId, routeId, routeSuffix, people, params, pathname, router],
   );
 
   const value: PersonCtx = {

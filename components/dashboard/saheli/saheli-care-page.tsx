@@ -68,11 +68,17 @@ function draftFrom(f: CareFact): Draft {
 /**
  * The whole care record, every kind, with add / change / remove / approve and history.
  * embedded: the lower half of the Care plan page (the page above shows the person, approvals and stock); addSignal opens
- * the add form each time it changes; onChanged lets the page above refresh.
+ * the add form each time it changes; onChanged lets the page above refresh; person: whose record, from the page above, so
+ * both halves show the same person (audit 2026-10-14).
  */
-export function SaheliCarePage({ embedded, addSignal = 0, onChanged }: { embedded?: boolean; addSignal?: number; onChanged?: () => void } = {}) {
+export function SaheliCarePage({
+  embedded,
+  person,
+  addSignal = 0,
+  onChanged,
+}: { embedded?: boolean; person?: { familyId: string | null; selectedId: string | null }; addSignal?: number; onChanged?: () => void } = {}) {
   const sel = useRecipientSelection();
-  const { familyId, selectedId } = sel;
+  const { familyId, selectedId } = person ?? sel;
   const { data, error, loading, reload: reloadOwn } = useCareOverview(familyId, selectedId);
   const { busy, banner, run } = useAction();
   const [draft, setDraft] = useState<Draft | null>(null);

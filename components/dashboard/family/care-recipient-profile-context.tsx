@@ -5,6 +5,7 @@ import {
   useCallback,
   useContext,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -29,23 +30,27 @@ export function CareRecipientProfileProvider({ children }: { children: ReactNode
   const params = useParams();
   const userId = params.userId as string | undefined;
   const { activeFamilyId } = useFamily();
-  const [member, setMember] = useState<FamilyMember | null>(null);
+  // The profile is keyed by family + person, so a switch never shows the previous person while the next one loads.
+  const key = activeFamilyId && userId ? `${activeFamilyId}|${userId}` : "";
+  const [loaded, setLoaded] = useState<{ key: string; member: FamilyMember | null; error: string } | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const reqRef = useRef(0);
 
   const refresh = useCallback(async () => {
+    const reqId = ++reqRef.current;
     if (!activeFamilyId || !userId) {
-      setMember(null);
+      setLoaded(null);
       setLoading(false);
       return;
     }
+    const forKey = `${activeFamilyId}|${userId}`;
 
     setLoading(true);
-    setError("");
 
     try {
       const { data } = await getFamilyMembers(activeFamilyId);
       if (!data) throw new Error("Failed to load family members");
+      if (reqId !== reqRef.current) return;
 
       const found = data.members
         .map(apiMemberToFamilyMember)
@@ -57,17 +62,16 @@ export function CareRecipientProfileProvider({ children }: { children: ReactNode
         );
 
       if (!found) {
-        setError("Care recipient not found or you don't have access.");
-        setMember(null);
+        setLoaded({ key: forKey, member: null, error: "Care recipient not found or you don't have access." });
         return;
       }
 
-      setMember(found);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load care recipient");
-      setMember(null);
+      setLoaded({ key: forKey, member: found, error: "" });
+    } catch {
+      if (reqId !== reqRef.current) return;
+      setLoaded({ key: forKey, member: null, error: "Couldn't load this profile right now. Please try again in a minute." });
     } finally {
-      setLoading(false);
+      if (reqId === reqRef.current) setLoading(false);
     }
   }, [activeFamilyId, userId]);
 
@@ -75,24 +79,26 @@ export function CareRecipientProfileProvider({ children }: { children: ReactNode
 
   const applyMembersList = useCallback(
     (members: FamilyMember[]) => {
-      if (!userId) return;
+      if (!activeFamilyId || !userId) return;
       const found = members.find(
         (m) =>
           m.userId === userId &&
           m.role === "care_recipient" &&
           m.status === "joined",
       );
-      if (found) {
-        setMember(found);
-        setError("");
-      }
+      if (found) setLoaded({ key: `${activeFamilyId}|${userId}`, member: found, error: "" });
     },
-    [userId],
+    [activeFamilyId, userId],
   );
 
+  const current = loaded && loaded.key === key ? loaded : null;
+  const member = current?.member ?? null;
+  const error = current?.error ?? "";
+  const busy = loading || (Boolean(key) && !current);
+
   const value = useMemo(
-    () => ({ member, loading, error, refresh, applyMembersList }),
-    [member, loading, error, refresh, applyMembersList],
+    () => ({ member, loading: busy, error, refresh, applyMembersList }),
+    [member, busy, error, refresh, applyMembersList],
   );
 
   return (

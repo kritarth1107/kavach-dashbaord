@@ -65,6 +65,7 @@ export function severityCardClass(severity: ActivitySeverity): string {
   return "border-[var(--border)] bg-[var(--card)]";
 }
 
+/** diag is not here: it is a diagnostic/system row (e.g. a feature request) and only joins an order run by its jobId. */
 export const ORDER_KINDS = new Set([
   "order_step",
   "order_confirm_card",
@@ -72,10 +73,12 @@ export const ORDER_KINDS = new Set([
   "order_failed",
   "order_cancelled",
   "order_interrupt",
-  "diag",
 ]);
 
 export const TERMINAL_ORDER_KINDS = new Set(["order_placed", "order_failed", "order_cancelled"]);
+
+/** Rows that are real health / caregiver alerts (an error-severity mood row is not one). */
+export const ALERT_KINDS = new Set(["caregiver_alert", "care_alert", "emergency", "health"]);
 
 export type FilterKey = "all" | "alerts" | "conversations" | "orders" | "rides" | "reminders" | "nudges";
 
@@ -83,7 +86,8 @@ export const FILTERS: Array<{ key: FilterKey; label: string; kinds: string[] | n
   { key: "all", label: "All", kinds: null },
   { key: "alerts", label: "Health & alerts", kinds: ["health", "caregiver_alert", "mood"] },
   { key: "conversations", label: "Conversations", kinds: ["message_in", "voice_note", "message_out"] },
-  { key: "orders", label: "Orders", kinds: [...ORDER_KINDS] },
+  // diag stays in the query so an order run keeps its diagnostic steps and screenshots.
+  { key: "orders", label: "Orders", kinds: [...ORDER_KINDS, "diag"] },
   { key: "rides", label: "Rides", kinds: ["ride"] },
   { key: "reminders", label: "Reminders", kinds: ["reminder"] },
   { key: "nudges", label: "Nudges", kinds: ["nudge"] },
@@ -103,7 +107,7 @@ export function strList(value: unknown): string[] {
 
 /** Internal order-run id (v1.1): data.jobId, alias data.orderId. Not the merchant order number. */
 export function jobIdOf(item: ActivityItem): string | null {
-  if (!ORDER_KINDS.has(item.kind)) return null;
+  if (!ORDER_KINDS.has(item.kind) && item.kind !== "diag") return null;
   return str(item.data?.jobId) ?? str(item.data?.orderId);
 }
 

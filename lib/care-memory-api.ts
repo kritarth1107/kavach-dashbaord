@@ -256,7 +256,8 @@ export type CareHomeSummary = {
   doses: Array<{ id: string; time: string; name: string; dose?: string | null; status: "taken" | "reminded" | "missed" | "due" | "upcoming" | "skipped" | "unmarked" }>;
   week: { taken: number; scheduled: number; streakDays: number; adherence: number[]; days: string[] };
   vitals: Record<"bp" | "sugar" | "weight" | "temperature" | "spo2", VitalSummary>;
-  needsYou: Array<{ id: string; kind: "fact" | "task" | "refill" | "appointment"; key?: string; taskId?: string; input?: string | null; title: string; meta: string }>;
+  /** stuck: a piece of work that stopped (live 14 Oct); the engine may add kinds, so code must not assume this list is all. */
+  needsYou: Array<{ id: string; kind: "fact" | "task" | "refill" | "appointment" | "stuck"; key?: string; taskId?: string; input?: string | null; title: string; meta: string }>;
   followUps: OpenLoop[];
   tasks: CareTask[];
   timeline: Array<{ id: number; at: string; kind: string; text: string }>;
@@ -340,5 +341,17 @@ export type PortraitActivity = {
 export async function getPortrait(familyId: string, subjectUserId: string): Promise<Portrait> {
   const data = await request<Portrait>(`${base(familyId, subjectUserId)}/portrait`, {}, 45_000);
   if (!data) throw new Error("Empty response");
-  return data;
+  return { ...data, people: uniquePeople(data.people ?? []) };
+}
+
+/** Each person once: a family whose roster lists a member twice sent them twice (live 14 Oct), which drew the same
+ *  person twice and gave React two children with one key. Same id, or the same kind and name without an id, is one. */
+export function uniquePeople<T extends { id?: string; name: string; kind: string }>(people: T[]): T[] {
+  const seen = new Set<string>();
+  return people.filter((p) => {
+    const k = p.id ? `id:${p.id}` : `${p.kind}:${p.name.trim().toLowerCase()}`;
+    if (seen.has(k)) return false;
+    seen.add(k);
+    return true;
+  });
 }

@@ -136,7 +136,8 @@ export function apiMemberToFamilyMember(
   member: ApiFamilyMember,
   index: number,
 ): FamilyMember {
-  const colors = ["#165246", "#c77a14", "#2f5446", "#5e6661", "#8a4b06"];
+  // Avatar fills carry white initials: every colour here is dark enough for that (no marigold/orange).
+  const colors = ["#165246", "#9a5507", "#2f5446", "#5e6661", "#8a4b06"];
   const phoneFields = normalizePhoneFields(member.phone, member.phoneCountryCode);
 
   const explicitPrefix = member.namePrefix?.trim() ?? "";
@@ -158,10 +159,11 @@ export function apiMemberToFamilyMember(
         : "—",
     phone: phoneFields.phone,
     phoneCountryCode: phoneFields.phoneCountryCode,
-    relationship: member.relationship || "—",
+    // Empty when unknown, so each screen can fall back to its own wording ("Care recipient", no map pin).
+    relationship: member.relationship || "",
     role: ROLE_MAP[member.role] ?? "view_only",
     status: normalizeStatus(member.status),
-    location: member.location || "—",
+    location: member.location || "",
     avatarColor: colors[index % colors.length],
     avatarUrl: member.avatarUrl ?? null,
   };

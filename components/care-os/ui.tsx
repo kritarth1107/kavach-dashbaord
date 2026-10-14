@@ -3,13 +3,17 @@
 import { ArrowRight, ArrowUpRight, ArrowDownRight, type Icon as PhosphorIcon } from "@phosphor-icons/react";
 import { cn } from "@/lib/utils";
 
+/** Fills a panel can take. cn() only joins classes, so a bg- in className does not reliably beat the base fill: pick a tone. */
+const PANEL_TONE = {
+  card: "bg-[var(--c-card)]",
+  accent: "bg-[var(--c-accent)] text-[var(--c-accent-ink)]",
+  wash: "border border-[var(--c-accent-soft)] bg-[var(--c-accent-wash)]",
+} as const;
+
 /** Grey panel on the white frame. */
-export function Panel({ children, className, accent, ...rest }: React.HTMLAttributes<HTMLElement> & { accent?: boolean }) {
+export function Panel({ children, className, accent, tone, ...rest }: React.HTMLAttributes<HTMLElement> & { accent?: boolean; tone?: keyof typeof PANEL_TONE }) {
   return (
-    <section
-      {...rest}
-      className={cn("rounded-[24px] p-5", accent ? "bg-[var(--c-accent)] text-[var(--c-accent-ink)]" : "bg-[var(--c-card)]", className)}
-    >
+    <section {...rest} className={cn("rounded-[24px] p-5", PANEL_TONE[tone ?? (accent ? "accent" : "card")] ?? PANEL_TONE.card, className)}>
       {children}
     </section>
   );
@@ -28,12 +32,26 @@ export function PanelTitle({ title, right, marker = true }: { title: string; rig
   );
 }
 
-export function Tag({ children, tone = "accent", trend, className }: { children: React.ReactNode; tone?: "accent" | "dark" | "light" | "danger" | "ok" | "warn"; trend?: "up" | "down"; className?: string }) {
+export function Tag({
+  children,
+  tone = "accent",
+  trend,
+  wrap,
+  className,
+}: {
+  children: React.ReactNode;
+  tone?: "accent" | "dark" | "light" | "danger" | "ok" | "warn";
+  trend?: "up" | "down";
+  /** Long text (e.g. a next action) wraps instead of running off a narrow screen. */
+  wrap?: boolean;
+  className?: string;
+}) {
   const Icon = trend === "up" ? ArrowUpRight : trend === "down" ? ArrowDownRight : null;
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-0.5 whitespace-nowrap rounded-full px-2 py-[3px] text-[11px] font-medium",
+        "inline-flex items-center gap-0.5 rounded-full px-2 py-[3px] text-[11px] font-medium",
+        wrap ? "min-w-0 whitespace-normal break-words" : "whitespace-nowrap",
         tone === "accent" && "bg-[var(--c-accent-soft)] text-[var(--c-accent-soft-ink)]",
         tone === "dark" && "bg-[var(--c-solid)] text-[var(--c-on-solid)]",
         tone === "light" && "bg-[var(--c-chip)] text-[var(--c-ink-2)]",
@@ -94,14 +112,29 @@ export function DarkButton({ children, className, ...rest }: React.ButtonHTMLAtt
   );
 }
 
-export function SmallButton({ children, dark, className, icon: Icon, ...rest }: React.ButtonHTMLAttributes<HTMLButtonElement> & { dark?: boolean; icon?: PhosphorIcon }) {
+/** Each fill comes with the text that reads on it (marigold always carries dark ink). */
+const BUTTON_TONE = {
+  plain: "border border-[var(--c-line)] bg-[var(--c-frame)] hover:bg-[var(--c-card)]",
+  solid: "bg-[var(--c-solid)] text-[var(--c-on-solid)] hover:opacity-90",
+  accent: "bg-[var(--c-accent)] text-[var(--c-accent-ink)] hover:opacity-90",
+  danger: "border border-[var(--c-line)] bg-[var(--c-frame)] text-[var(--c-danger-ink)] hover:bg-[var(--c-card)]",
+} as const;
+
+export function SmallButton({
+  children,
+  dark,
+  tone,
+  className,
+  icon: Icon,
+  ...rest
+}: React.ButtonHTMLAttributes<HTMLButtonElement> & { dark?: boolean; tone?: keyof typeof BUTTON_TONE; icon?: PhosphorIcon }) {
   return (
     <button
       type="button"
       {...rest}
       className={cn(
         "inline-flex h-8 items-center gap-1.5 rounded-full px-3.5 text-[12px] font-medium transition-colors disabled:opacity-40",
-        dark ? "bg-[var(--c-solid)] text-[var(--c-on-solid)] hover:opacity-90" : "border border-[var(--c-line)] bg-[var(--c-frame)] hover:bg-[var(--c-card)]",
+        BUTTON_TONE[tone ?? (dark ? "solid" : "plain")] ?? BUTTON_TONE.plain,
         className,
       )}
     >
@@ -147,7 +180,7 @@ export function Avatar({ name, src, size = 36, className }: { name: string; src?
   return (
     <span
       aria-hidden
-      className={cn("inline-flex shrink-0 items-center justify-center rounded-full bg-[var(--c-solid)] font-medium text-[var(--c-accent-text)]", className)}
+      className={cn("inline-flex shrink-0 items-center justify-center rounded-full bg-[var(--c-solid)] font-medium text-[var(--c-on-solid)]", className)}
       style={{ width: size, height: size, fontSize: Math.round(size * 0.36) }}
     >
       {initials || "•"}
@@ -187,7 +220,7 @@ export function Bars({
                 className={cn("absolute bottom-0 w-full max-w-[26px] rounded-full", hi ? "bg-[var(--c-accent)]" : "bg-[var(--c-solid)]")}
                 style={{ height: h }}
               >
-                {hi && <span className="absolute left-1/2 top-1.5 h-2.5 w-2.5 -translate-x-1/2 rounded-full border-2 border-white bg-[var(--c-accent)]" />}
+                {hi && <span className="absolute left-1/2 top-1.5 h-2.5 w-2.5 -translate-x-1/2 rounded-full border-2 border-[var(--c-frame)] bg-[var(--c-accent)]" />}
               </div>
             </div>
           );

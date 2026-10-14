@@ -68,13 +68,13 @@ export function CareRecipientCaregiverRightPanel({
                 />
               ) : (
                 <div
-                  className="flex h-14 w-14 items-center justify-center rounded-2xl text-[15px] font-extrabold text-white ring-2 ring-white"
-                  style={{ backgroundColor: member.avatarColor || "#1e7458" }}
+                  className="flex h-14 w-14 items-center justify-center rounded-2xl text-[15px] font-extrabold text-white ring-2 ring-[var(--card)]"
+                  style={{ backgroundColor: member.avatarColor || "#165246" }}
                 >
                   {initials}
                 </div>
               )}
-              <span className="absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full border-2 border-white bg-primary" />
+              <span className="absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full border-2 border-[var(--card)] bg-primary" />
             </div>
 
             <div className="min-w-0 flex-1">
@@ -108,7 +108,7 @@ export function CareRecipientCaregiverRightPanel({
           </div>
         </div>
 
-        <div className="divide-y divide-[#f5f5f7] border-b border-[var(--border-strong)]">
+        <div className="divide-y divide-[var(--border-strong)] border-b border-[var(--border-strong)]">
           {email && (
             <div className="flex items-start gap-3 px-4 py-3.5">
               <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[var(--surface)]">
@@ -230,7 +230,7 @@ export function CareRecipientCaregiverRightPanel({
               </p>
             )}
           </div>
-          <NextIcon className="absolute -right-1 bottom-2 h-16 w-16 text-[#f0f0f2]" strokeWidth={1.25} />
+          <NextIcon className="absolute -right-1 bottom-2 h-16 w-16 text-[var(--border-strong)]" strokeWidth={1.25} />
         </div>
       ) : !scheduleCtx?.loading ? (
         <div className="panel-card border border-[var(--border-strong)] p-5">

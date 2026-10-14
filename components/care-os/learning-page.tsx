@@ -1,6 +1,6 @@
 "use client";
 
-import { Brain, ChartLineUp, Clock, Gavel, Siren, Wrench } from "@phosphor-icons/react";
+import { ArrowClockwise, Brain, ChartLineUp, Clock, Gavel, Siren, Wrench } from "@phosphor-icons/react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { request } from "@/lib/activity-api";
 import { cn } from "@/lib/utils";
@@ -55,6 +55,25 @@ const STATUS_TONE: Record<Playbook["status"], "accent" | "dark" | "light" | "dan
   rejected: "danger",
   blocked: "danger",
 };
+/** The admin endpoint can leave a list or a count out (older engine, failed sub-query): default them so the page never crashes. */
+function withDefaults(d: Partial<Overview>): Overview {
+  return {
+    ...d,
+    messages: d.messages ?? 0,
+    scored: d.scored ?? 0,
+    avgScore: d.avgScore ?? null,
+    corpus: d.corpus ?? 0,
+    playbooks: d.playbooks ?? [],
+    trend: d.trend ?? [],
+    gaps: (d.gaps ?? []).map((g) => ({ ...g, examples: g.examples ?? [] })),
+    timing: (d.timing ?? []).map((t) => ({ ...t, windows: t.windows ?? [] })),
+    ruleProposals: (d.ruleProposals ?? []).map((r) => ({ ...r, evidence: r.evidence ?? [] })),
+    calibration: d.calibration ?? null,
+    drift: d.drift ?? null,
+    gapSpecs: d.gapSpecs ?? null,
+  };
+}
+
 const pct = (x: number | null | undefined) => (x == null ? "—" : `${Math.round(x * 100)}%`);
 const sc = (x: number | null | undefined) => (x == null ? "—" : x.toFixed(2));
 const hoursSince = (iso: string | null | undefined) => (iso ? (Date.now() - new Date(iso).getTime()) / 3_600_000 : null);
@@ -64,12 +83,18 @@ export function LearningPage() {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
 
+  const [loading, setLoading] = useState(false);
+
   const load = useCallback(async () => {
+    setLoading(true);
     try {
-      setData((await request<Overview>("/api/admin/learning?weeks=8", {}, 45_000)) ?? null);
-      setError("");
+      const d = await request<Partial<Overview>>("/api/admin/learning?weeks=8", {}, 45_000);
+      setData(d ? withDefaults(d) : null);
+      setError(d ? "" : "Nothing came back from the server");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Couldn't load");
+    } finally {
+      setLoading(false);
     }
   }, []);
 
@@ -114,8 +139,16 @@ export function LearningPage() {
         dark="Learning"
         sub="How Saheli is learning to reply and when, from what worked across families that agreed to share (anonymised). Safety rules never change here."
       />
-      {error && <ErrorNote>{error}</ErrorNote>}
-      {!data ? (
+      {error && data && <ErrorNote>{error}</ErrorNote>}
+      {error && !data ? (
+        <Panel className="flex flex-col items-center py-14 text-center">
+          <p className="text-[18px] font-medium">Learning couldn&apos;t load</p>
+          <p className="mt-1 max-w-sm text-[13px] text-[var(--c-ink-2)]">{error}</p>
+          <SmallButton dark icon={ArrowClockwise} className="mt-5" disabled={loading} onClick={() => void load()}>
+            {loading ? "Trying…" : "Try again"}
+          </SmallButton>
+        </Panel>
+      ) : !data ? (
         <div className="h-[200px] animate-pulse rounded-[24px] bg-[var(--c-card)]" />
       ) : (
         <>
@@ -180,7 +213,7 @@ export function LearningPage() {
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <div className="flex items-center gap-2">
                         <span className="text-[14px] font-medium">Version {p.version}</span>
-                        <Tag tone={STATUS_TONE[p.status]}>{p.status}</Tag>
+                        <Tag tone={STATUS_TONE[p.status] ?? "light"}>{p.status}</Tag>
                         <span className="text-[11px] text-[var(--c-ink-3)]">{new Date(p.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}</span>
                       </div>
                       <div className="flex gap-2">

@@ -5,7 +5,7 @@
  * times, with what happened to each; skip one time, change the time or stop it here (or by telling Saheli on WhatsApp).
  */
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Alarm, ArrowsClockwise, CheckCircle, Prohibit, SkipForward, X } from "@phosphor-icons/react";
+import { Alarm, ArrowsClockwise, CheckCircle, Prohibit, SkipForward, WarningCircle, X } from "@phosphor-icons/react";
 import {
   changeReminder,
   deliveryTicks,
@@ -31,6 +31,17 @@ export const STATUS_WORD: Record<ReminderOccurrence["status"], string> = {
   skipped: "Skipped",
   done: "Already done",
 };
+
+/** The word for a time's status; a status the engine adds later reads as itself, never "undefined". */
+export function statusWord(status: string | null | undefined): string {
+  const known = STATUS_WORD[status as ReminderOccurrence["status"]];
+  if (known) return known;
+  const t = String(status ?? "").replace(/_/g, " ").trim();
+  return t ? t.charAt(0).toUpperCase() + t.slice(1) : "Not known yet";
+}
+
+/** Sent, but WhatsApp says it never reached their phone: not a delivered reminder (no green check, not counted). */
+export const undelivered = (o: Pick<ReminderOccurrence, "status" | "delivery">) => o.status === "sent" && o.delivery === "failed";
 
 /** WhatsApp's ticks for a sent reminder, as WhatsApp draws them: ✓ sent, ✓✓ delivered, ✓✓ in blue once read. */
 export function Ticks({ delivery }: { delivery?: ReminderOccurrence["delivery"] }) {
@@ -58,40 +69,48 @@ export function dayWord(day: string, today: string): string {
   return new Date(`${day}T12:00:00+05:30`).toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short", timeZone: IST });
 }
 
-/** The day's reminder times with their status, refreshed with the page. */
+/**
+ * The day's reminder times with their status, refreshed with the page. Kept per family + person + day: another
+ * person's reminders never show (audit 2026-10-14), and a failed load is an error, not an empty day.
+ */
 export function useReminderDay(familyId: string | null, subjectId: string | null, day: string, pollMs = 0) {
-  const [data, setData] = useState<ReminderDay | null>(null);
+  const key = `${familyId}|${subjectId}|${day}`;
+  const [st, setSt] = useState<{ key: string; data: ReminderDay | null; error: boolean }>({ key: "", data: null, error: false });
   const [tick, setTick] = useState(0);
   const req = useRef(0);
   useEffect(() => {
     if (!familyId || !subjectId) return;
     const id = ++req.current;
     getReminderDay(familyId, subjectId, day)
-      .then((d) => id === req.current && setData(d))
-      .catch(() => id === req.current && setData((cur) => (cur && cur.day === day ? cur : { day, occurrences: [], reminders: [] })));
-  }, [familyId, subjectId, day, tick]);
+      .then((d) => id === req.current && setSt({ key, data: d, error: false }))
+      .catch(() => id === req.current && setSt((s) => ({ key, data: s.key === key ? s.data : null, error: true })));
+  }, [familyId, subjectId, day, key, tick]);
   useEffect(() => {
     if (!pollMs) return;
     const t = setInterval(() => setTick((n) => n + 1), pollMs);
     return () => clearInterval(t);
   }, [pollMs]);
   const reload = useCallback(() => setTick((n) => n + 1), []);
-  return { data: data && data.day === day ? data : null, reload };
+  const fresh = st.key === key;
+  return { data: fresh ? st.data : null, error: fresh && st.error && !st.data, reload };
 }
 
+/** Every reminder of the person, kept per family + person like the day above. */
 export function useAllReminders(familyId: string | null, subjectId: string | null, tick: number) {
-  const [rows, setRows] = useState<Reminder[] | null>(null);
+  const key = `${familyId}|${subjectId}`;
+  const [st, setSt] = useState<{ key: string; rows: Reminder[] | null; error: boolean }>({ key: "", rows: null, error: false });
   useEffect(() => {
     if (!familyId || !subjectId) return;
     let live = true;
     listReminders(familyId, subjectId, true)
-      .then((r) => live && setRows(r))
-      .catch(() => live && setRows([]));
+      .then((r) => live && setSt({ key, rows: r, error: false }))
+      .catch(() => live && setSt((s) => ({ key, rows: s.key === key ? s.rows : null, error: true })));
     return () => {
       live = false;
     };
-  }, [familyId, subjectId, tick]);
-  return rows;
+  }, [familyId, subjectId, key, tick]);
+  const fresh = st.key === key;
+  return { rows: fresh ? st.rows : null, error: fresh && st.error && !st.rows };
 }
 
 type Act = { familyId: string; subjectId: string; onDone: () => void };
@@ -259,7 +278,8 @@ export function ReminderDetail({
   const [editing, setEditing] = useState(false);
   const mine = occurrences.filter((o) => o.reminderId === reminder.reminderId);
   const active = reminder.status === "active";
-  const sentNow = mine.filter((o) => o.status === "sent");
+  const sentNow = mine.filter((o) => o.status === "sent" && !undelivered(o));
+  const notDelivered = mine.filter(undelivered);
   const upcomingHere = mine.find((o) => o.status === "scheduled");
   const skippedHere = mine.find((o) => o.status === "skipped");
   return (
@@ -287,8 +307,8 @@ export function ReminderDetail({
                 {mine.slice(0, 6).map((o, i) => (
                   <span key={o.time}>
                     {i > 0 && " · "}
-                    {o.time} {(STATUS_WORD[o.status] ?? String(o.status).replace(/_/g, " ")).toLowerCase()}
-                    {o.status === "sent" && <Ticks delivery={o.delivery ?? "sent"} />}
+                    {o.time} {statusWord(o.status).toLowerCase()}
+                    {undelivered(o) ? " (not delivered)" : o.status === "sent" && <Ticks delivery={o.delivery ?? "sent"} />}
                   </span>
                 ))}
                 {mine.length > 6 ? ` · +${mine.length - 6}` : ""}
@@ -327,18 +347,24 @@ export function ReminderDetail({
             <button
               type="button"
               onClick={() => setConfirm(true)}
-              className="mt-2 inline-flex h-8 w-full items-center justify-center gap-1.5 rounded-full border border-[#f0c4c6] bg-[var(--c-frame)] text-[12px] font-medium text-[#b4232a] hover:bg-[#fff5f5]"
+              className="mt-2 inline-flex h-8 w-full items-center justify-center gap-1.5 rounded-full border border-[var(--c-danger-line)] bg-[var(--c-frame)] text-[12px] font-medium text-[var(--c-danger-ink)] hover:bg-[var(--c-danger-wash)]"
             >
               <Prohibit size={14} weight="bold" /> Stop this reminder
             </button>
           </>
         )}
         {editing && <ChangeEditor reminder={reminder} busy={!!a.busy} onCancel={() => setEditing(false)} onSave={(c) => a.change(reminder, c).then((ok) => ok && setEditing(false))} />}
-        {a.err && <p className="mt-2 text-[12px] text-[#b4232a]">{a.err}</p>}
+        {a.err && <p className="mt-2 text-[12px] text-[var(--c-danger-ink)]">{a.err}</p>}
         {sentNow.length > 0 && (
           <p className="mt-2 flex items-center gap-1 text-[11.5px] text-[var(--c-ink-2)]">
             <CheckCircle size={12} weight="fill" />
             {sentNow.some((o) => o.delivery === "read") ? "Read on WhatsApp" : sentNow.some((o) => o.delivery === "delivered") ? "Delivered on WhatsApp (not read yet)" : "Sent on WhatsApp"}
+          </p>
+        )}
+        {notDelivered.length > 0 && (
+          <p className="mt-2 flex items-center gap-1 text-[11.5px] text-[var(--c-warn-ink)]">
+            <WarningCircle size={12} weight="fill" />
+            Sent, but WhatsApp could not deliver it ({notDelivered.map((o) => o.time).join(", ")})
           </p>
         )}
         <p className="mt-2 text-[11.5px] leading-relaxed text-[var(--c-ink-2)]">Same on WhatsApp: tell Saheli &quot;skip it tomorrow&quot;, &quot;change it to 7 pm&quot; or &quot;stop this reminder&quot;.</p>
@@ -349,15 +375,44 @@ export function ReminderDetail({
 }
 
 /** Every reminder of the person: what, when, the next time, skip / change / stop. */
-export function AllReminders({ rows, today, familyId, subjectId, onDone, onPick }: { rows: Reminder[] | null; today: string; familyId: string; subjectId: string; onDone: () => void; onPick: (r: Reminder) => void }) {
+export function AllReminders({
+  rows,
+  error,
+  onRetry,
+  today,
+  familyId,
+  subjectId,
+  onDone,
+  onPick,
+}: {
+  rows: Reminder[] | null;
+  error?: boolean;
+  onRetry?: () => void;
+  today: string;
+  familyId: string;
+  subjectId: string;
+  onDone: () => void;
+  onPick: (r: Reminder) => void;
+}) {
   const a = useActions({ familyId, subjectId, onDone });
   const [confirm, setConfirm] = useState<Reminder | null>(null);
   const [showOld, setShowOld] = useState(false);
+  if (!rows && error) {
+    return (
+      <p className="px-5 py-6 text-[13px] text-[var(--c-ink-2)]">
+        Couldn&apos;t load the reminders.{" "}
+        <button type="button" className="font-medium underline" onClick={onRetry}>
+          Try again
+        </button>
+      </p>
+    );
+  }
   if (!rows) return <p className="px-5 py-6 text-[13px] text-[var(--c-ink-3)]">Loading reminders…</p>;
   const active = rows.filter((r) => r.status === "active");
   const old = rows.filter((r) => r.status !== "active");
+  // one column on a phone (the next time and Skip / Stop under the words), the four columns from md up
   const row = (r: Reminder) => (
-    <li key={r.reminderId} className={cn("grid grid-cols-[minmax(150px,0.9fr)_minmax(200px,2fr)_minmax(110px,0.8fr)_auto] items-center gap-3 rounded-[14px] bg-[var(--c-frame)] px-4 py-3", r.status !== "active" && "opacity-70")}>
+    <li key={r.reminderId} className={cn("grid grid-cols-1 gap-1.5 rounded-[14px] bg-[var(--c-frame)] px-4 py-3 md:grid-cols-[minmax(150px,0.9fr)_minmax(200px,2fr)_minmax(110px,0.8fr)_auto] md:items-center md:gap-3", r.status !== "active" && "opacity-70")}>
       <span className="text-[12.5px] font-medium">{r.schedule}</span>
       <button type="button" className="text-left text-[13px] font-medium hover:underline" onClick={() => onPick(r)}>
         {r.text}
@@ -365,14 +420,14 @@ export function AllReminders({ rows, today, familyId, subjectId, onDone, onPick 
       <span className="text-[12px] text-[var(--c-ink-2)]">
         {r.status === "active" ? (r.next ? `${dayWord(r.next.day, today)} ${r.next.time}` : "nothing left") : r.status === "completed" ? "finished" : "stopped"}
       </span>
-      <span className="flex justify-end gap-3 whitespace-nowrap text-[12px] font-medium">
+      <span className="flex gap-3 whitespace-nowrap text-[12px] font-medium md:justify-end">
         {r.status === "active" && r.next && r.repeat !== "once" && (
           <button type="button" disabled={!!a.busy} onClick={() => a.skip(r, { day: r.next!.day, time: r.next!.time })} className="hover:underline disabled:opacity-40">
             Skip next
           </button>
         )}
         {r.status === "active" && (
-          <button type="button" onClick={() => setConfirm(r)} className="text-[#b4232a] hover:underline">
+          <button type="button" onClick={() => setConfirm(r)} className="text-[var(--c-danger-ink)] hover:underline">
             {r.repeat === "once" ? "Cancel" : "Stop"}
           </button>
         )}
@@ -386,7 +441,7 @@ export function AllReminders({ rows, today, familyId, subjectId, onDone, onPick 
       ) : (
         <ul className="space-y-2">{active.map(row)}</ul>
       )}
-      {a.err && <p className="mt-2 text-[12px] text-[#b4232a]">{a.err}</p>}
+      {a.err && <p className="mt-2 text-[12px] text-[var(--c-danger-ink)]">{a.err}</p>}
       <p className="mt-3 px-1 text-[12px] text-[var(--c-ink-2)]">
         {old.length > 0 && (
           <button type="button" className="underline" onClick={() => setShowOld(!showOld)}>

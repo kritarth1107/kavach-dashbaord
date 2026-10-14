@@ -6,13 +6,14 @@ import { cn } from "@/lib/utils";
 import { telHref } from "./care-kit";
 import { Avatar } from "./ui";
 
-export const PROFILE_FIELDS: Array<{ key: string; label: string }> = [
+/** private: for the family's own card only, never the public no-login link (id_note can hold a full ID number). */
+export const PROFILE_FIELDS: Array<{ key: string; label: string; private?: boolean }> = [
   { key: "blood_group", label: "Blood group" },
   { key: "mobility", label: "Mobility" },
   { key: "height", label: "Height" },
   { key: "weight", label: "Weight" },
   { key: "insurance", label: "Insurance" },
-  { key: "id_note", label: "ID" },
+  { key: "id_note", label: "ID", private: true },
 ];
 
 export function CallLink({ phone, label, dark }: { phone: string; label?: string; dark?: boolean }) {
@@ -88,7 +89,7 @@ export function EmergencyCardView({
           <Warning size={15} weight="fill" /> Allergies
         </p>
         {card.allergies.length === 0 ? (
-          <p className="mt-2 text-[14px]">No known allergies recorded.</p>
+          <p className="mt-2 text-[14px]">{card.none?.allergy ? "No known allergies (the family confirmed)." : "Allergies not recorded yet."}</p>
         ) : (
           <ul className="mt-2 flex flex-wrap gap-2">
             {card.allergies.map((a) => (

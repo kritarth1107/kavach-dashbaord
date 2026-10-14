@@ -36,7 +36,8 @@ function Spark({ values, color }: { values: number[]; color: string }) {
   );
 }
 
-function Vital({ label, v, warnWhenFlag = true }: { label: string; v: VitalSummary; warnWhenFlag?: boolean }) {
+/** empty: what an empty tile says; "Not logged yet" only once the readings have loaded (audit 2026-10-14). */
+function Vital({ label, v, warnWhenFlag = true, empty = "Not logged yet" }: { label: string; v: VitalSummary; warnWhenFlag?: boolean; empty?: string }) {
   return (
     <div className="rounded-[16px] bg-[var(--c-frame)] px-3.5 py-3">
       <div className="flex items-center justify-between gap-2 text-[11px] text-[var(--c-ink-2)]">
@@ -52,13 +53,13 @@ function Vital({ label, v, warnWhenFlag = true }: { label: string; v: VitalSumma
           <Spark values={v.trend} color={v.redFlag ? "var(--c-accent)" : "var(--c-solid)"} />
         </>
       ) : (
-        <p className="mt-2 text-[12px] text-[var(--c-ink-3)]">Not logged yet</p>
+        <p className="mt-2 text-[12px] text-[var(--c-ink-3)]">{empty}</p>
       )}
     </div>
   );
 }
 
-type Cell = { doses: PortraitDose[]; state: "empty" | "taken" | "missed" | "unmarked" | "today" | "later" };
+type Cell = { doses: PortraitDose[]; state: "empty" | "taken" | "skipped" | "missed" | "unmarked" | "today" | "later" };
 const SLOTS: Array<{ id: string; label: string; from: number; to: number }> = [
   { id: "morning", label: "Morning", from: 240, to: 720 },
   { id: "afternoon", label: "Afternoon", from: 720, to: 1020 },
@@ -74,14 +75,15 @@ function cellOf(doses: PortraitDose[], isToday: boolean): Cell {
   if (!doses.length) return { doses, state: "empty" };
   if (doses.some((d) => d.status === "missed")) return { doses, state: "missed" };
   if (doses.some((d) => d.status === "unmarked" || d.status === "reminded")) return { doses, state: "unmarked" };
-  if (doses.every((d) => d.status === "taken" || d.status === "skipped")) return { doses, state: "taken" };
+  if (doses.every((d) => d.status === "taken")) return { doses, state: "taken" };
+  // a skipped dose is not a dose taken: no ✓ (audit 2026-10-14)
+  if (doses.every((d) => d.status === "taken" || d.status === "skipped")) return { doses, state: "skipped" };
   return { doses, state: isToday ? "today" : "later" };
 }
 
-function Pillbox({ week, colorOf }: { week: Portrait["week"]; colorOf: (name: string) => string }) {
+/** onTime: the engine's week (taken / scheduled), the same number Home shows. */
+function Pillbox({ week, colorOf, onTime }: { week: Portrait["week"]; colorOf: (name: string) => string; onTime: number | null }) {
   const rows = SLOTS.filter((s) => week.some((d) => d.doses.some((x) => slotOf(x.time) === s.id)));
-  const scheduled = week.flatMap((d) => d.doses).filter((d) => d.status !== "upcoming" && d.status !== "due");
-  const onTime = scheduled.length ? Math.round((scheduled.filter((d) => d.status === "taken").length / scheduled.length) * 100) : null;
   if (!rows.length) {
     return (
       <Panel>
@@ -134,18 +136,20 @@ function Pillbox({ week, colorOf }: { week: Portrait["week"]; colorOf: (name: st
                       "relative flex h-[62px] items-center justify-center gap-1 rounded-[16px] shadow-[inset_0_-3px_0_rgba(27,32,30,0.05)]",
                       cell.state === "empty" && "border border-dashed border-[var(--c-line)] shadow-none",
                       cell.state === "taken" && "bg-[var(--c-frame)]",
-                      cell.state === "missed" && "border-[1.5px] border-dashed border-[#e69a9a] bg-[var(--c-frame)]",
-                      cell.state === "unmarked" && "border-[1.5px] border-dashed border-[var(--c-line)] bg-[var(--c-frame)]",
+                      cell.state === "missed" && "border-[1.5px] border-dashed border-[var(--c-danger-line)] bg-[var(--c-frame)]",
+                      (cell.state === "unmarked" || cell.state === "skipped") && "border-[1.5px] border-dashed border-[var(--c-line)] bg-[var(--c-frame)]",
                       cell.state === "today" && "bg-[var(--c-accent-wash)] outline outline-2 -outline-offset-2 outline-[var(--c-accent)]",
                       cell.state === "later" && "bg-[var(--c-frame)]/60",
                     )}
                   >
                     {cell.doses.map((x) => (
-                      <PillShape key={x.id} color={colorOf(x.name)} faded={cell.state === "today" || cell.state === "later"} />
+                      <PillShape key={x.id} color={colorOf(x.name)} faded={cell.state === "today" || cell.state === "later" || cell.state === "skipped"} />
                     ))}
-                    {cell.state === "taken" && <span className="absolute right-1.5 top-1.5 flex h-[15px] w-[15px] items-center justify-center rounded-full bg-[var(--c-ok-ink)] text-[9px] text-white">✓</span>}
+                    {/* the ✓ in the page colour: dark on the light green of dark mode, white on the deep green of light mode */}
+                    {cell.state === "taken" && <span className="absolute right-1.5 top-1.5 flex h-[15px] w-[15px] items-center justify-center rounded-full bg-[var(--c-ok-ink)] text-[9px] text-[var(--c-frame)]">✓</span>}
                     {cell.state === "missed" && <span className="absolute right-1.5 top-1 text-[10px] font-semibold text-[var(--c-danger-ink)]">missed</span>}
                     {cell.state === "unmarked" && <span className="absolute right-1.5 top-1 text-[10px] text-[var(--c-ink-3)]">not marked</span>}
+                    {cell.state === "skipped" && <span className="absolute right-1.5 top-1 text-[10px] text-[var(--c-ink-3)]">skipped</span>}
                   </div>
                 );
               }),
@@ -157,10 +161,24 @@ function Pillbox({ week, colorOf }: { week: Portrait["week"]; colorOf: (name: st
   );
 }
 
+/** While the care record loads, or after it failed: say so, never "none yet" (audit 2026-10-14). */
+function RecordState({ error, onRetry }: { error: boolean; onRetry: () => void }) {
+  return error ? (
+    <p className="text-[13px] text-[var(--c-ink-2)]">
+      Couldn&apos;t load the care record.{" "}
+      <button type="button" className="font-medium underline" onClick={onRetry}>
+        Try again
+      </button>
+    </p>
+  ) : (
+    <p className="text-[13px] text-[var(--c-ink-3)]">Loading…</p>
+  );
+}
+
 export function CarePlanPage() {
+  // the gate only; whose plan this is comes from the person switcher, like the name, photo and refills (audit 2026-10-14)
   const sel = useRecipientSelection();
-  const { familyId, selectedId } = sel;
-  const { selected, members } = usePerson();
+  const { familyId, selectedId, selected, members } = usePerson();
   const key = familyId && selectedId ? `${familyId}/${selectedId}` : null;
   const overview = useCareOverview(familyId, selectedId);
   const portrait = useLoad<Portrait>(key, useCallback(() => getPortrait(familyId!, selectedId!), [familyId, selectedId]));
@@ -183,6 +201,9 @@ export function CarePlanPage() {
     [meds],
   );
   const pending = overview.data?.pending ?? [];
+  const record = overview.data ? null : <RecordState error={!!overview.error} onRetry={overview.reload} />;
+  const weekPct = home.data?.week.scheduled ? Math.round((home.data.week.taken / home.data.week.scheduled) * 100) : null;
+  const vitalEmpty = home.data ? "Not logged yet" : home.error ? "Couldn't load" : "Loading…";
   const activeByKey = new Map(active.map((f) => [f.key, f]));
   const p = portrait.data;
   const person = p?.person;
@@ -236,7 +257,7 @@ export function CarePlanPage() {
         <Banner banner={banner} />
 
         <div className="grid gap-4 xl:grid-cols-[minmax(0,1.45fr)_minmax(0,1fr)]">
-          <section className="grid gap-5 rounded-[28px] bg-gradient-to-br from-[var(--c-accent-wash)] to-[var(--c-card)] p-5 md:grid-cols-[200px_1fr]">
+          <section className="grid gap-5 rounded-[28px] bg-[var(--c-accent-wash)] p-5 md:grid-cols-[200px_1fr]">
             <PersonPhoto name={selected?.name ?? ""} src={selected?.photo} className="h-[220px] w-full md:h-[236px] md:w-[200px]" text={56} />
             <div className="min-w-0">
               <div className="flex flex-wrap items-start justify-between gap-2">
@@ -274,10 +295,18 @@ export function CarePlanPage() {
                 </p>
               </div>
               <div className="mt-3 grid grid-cols-1 gap-2.5 sm:grid-cols-3">
-                <Vital label="Blood pressure" v={home.data?.vitals.bp ?? null} />
-                <Vital label="Sugar" v={home.data?.vitals.sugar ?? null} />
-                <Vital label="Weight" v={home.data?.vitals.weight ?? null} warnWhenFlag={false} />
+                <Vital label="Blood pressure" v={home.data?.vitals.bp ?? null} empty={vitalEmpty} />
+                <Vital label="Sugar" v={home.data?.vitals.sugar ?? null} empty={vitalEmpty} />
+                <Vital label="Weight" v={home.data?.vitals.weight ?? null} warnWhenFlag={false} empty={vitalEmpty} />
               </div>
+              {!home.data && home.error && (
+                <p className="mt-2 text-[12px] text-[var(--c-ink-2)]">
+                  Couldn&apos;t load the readings.{" "}
+                  <button type="button" className="font-medium underline" onClick={home.reload}>
+                    Try again
+                  </button>
+                </p>
+              )}
             </div>
           </section>
 
@@ -289,7 +318,9 @@ export function CarePlanPage() {
               </h2>
               {pending.length > 0 && <Tag tone="light">{pending.length} to decide</Tag>}
             </div>
-            {!first ? (
+            {record ? (
+              <div className="flex flex-1 items-center justify-center rounded-[18px] bg-[var(--c-frame)] p-6 text-center">{record}</div>
+            ) : !first ? (
               <div className="flex flex-1 flex-col items-center justify-center gap-2 rounded-[18px] bg-[var(--c-frame)] p-6 text-center">
                 <CheckCircle size={30} weight="fill" className="text-[var(--c-ok-ink)]" />
                 <p className="text-[14px] font-medium">Nothing waits for you</p>
@@ -343,7 +374,7 @@ export function CarePlanPage() {
 
         <div className="grid gap-4 xl:grid-cols-[minmax(0,1.45fr)_minmax(0,1fr)]">
           {p ? (
-            <Pillbox week={p.week} colorOf={colorOf} />
+            <Pillbox week={p.week} colorOf={colorOf} onTime={weekPct} />
           ) : portrait.error ? (
             <Panel>
               <PanelTitle title="This week's pillbox" />
@@ -365,19 +396,25 @@ export function CarePlanPage() {
               }
             />
             <div className="mt-4 flex flex-col gap-2">
-              {meds.length === 0 && (
-                <p className="rounded-[18px] bg-[var(--c-frame)] p-4 text-[13px] text-[var(--c-ink-2)]">{hasNone("medicine") ? "Takes no regular medicines." : "No medicines saved yet."}</p>
+              {record ? (
+                <div className="rounded-[18px] bg-[var(--c-frame)] p-4">{record}</div>
+              ) : (
+                meds.length === 0 && (
+                  <p className="rounded-[18px] bg-[var(--c-frame)] p-4 text-[13px] text-[var(--c-ink-2)]">{hasNone("medicine") ? "Takes no regular medicines." : "No medicines saved yet."}</p>
+                )
               )}
               {meds.map((m) => {
                 const v = m.value as { name?: string; dose?: string; times?: string[]; food_timing?: string; days?: number[] };
                 const row = (stock.data?.medicines ?? []).find((s) => s.key === m.key);
-                const days = v.days?.length ? v.days.map((d) => WEEKDAY[d]).join(", ") : null;
+                // all seven days is every day: no "Mon, Tue, …, Sun" (audit 2026-10-14)
+                const days = v.days?.length && new Set(v.days).size < 7 ? v.days.map((d) => WEEKDAY[d]).join(", ") : null;
+                const label = `${v.name ?? m.name}${v.dose ? ` ${v.dose}` : ""}`;
                 return (
                   <div key={m.id} className="flex items-center gap-3 rounded-[18px] bg-[var(--c-frame)] p-3">
                     <PillShape color={colorOf(String(v.name ?? m.name))} />
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center justify-between gap-2">
-                        <p className="truncate text-[13.5px] font-medium">
+                        <p className="truncate text-[13.5px] font-medium" title={label}>
                           {v.name ?? m.name}
                           {v.dose ? ` ${v.dose}` : ""}
                         </p>
@@ -411,7 +448,7 @@ export function CarePlanPage() {
           <Panel>
             <PanelTitle title="Allergies" />
             <div className="mt-3 space-y-2">
-              {allergies.length === 0 && <p className="text-[13px] text-[var(--c-ink-2)]">{hasNone("allergy") ? "No known allergies (the family confirmed)." : "None recorded yet."}</p>}
+              {record ?? (allergies.length === 0 && <p className="text-[13px] text-[var(--c-ink-2)]">{hasNone("allergy") ? "No known allergies (the family confirmed)." : "None recorded yet."}</p>)}
               {allergies.map((a) => (
                 <div key={a.id} className="flex items-center gap-2.5 rounded-[16px] border-l-4 border-[var(--c-danger-ink)] bg-[var(--c-frame)] px-3 py-2.5">
                   <Warning size={16} weight="fill" className="shrink-0 text-[var(--c-danger-ink)]" />
@@ -426,7 +463,7 @@ export function CarePlanPage() {
           <Panel>
             <PanelTitle title="Food rules" />
             <div className="mt-3 flex flex-wrap gap-2">
-              {diet.length === 0 && <p className="text-[13px] text-[var(--c-ink-2)]">No diet rules yet.</p>}
+              {record ?? (diet.length === 0 && <p className="text-[13px] text-[var(--c-ink-2)]">No diet rules yet.</p>)}
               {diet.map((d, i) => (
                 <span key={d.id} className="inline-flex h-9 items-center gap-2 rounded-full bg-[var(--c-frame)] px-3.5 text-[12.5px] font-medium">
                   <span className="h-2.5 w-2.5 rounded-full" style={{ background: PILL_COLORS[(i + 2) % PILL_COLORS.length] }} />
@@ -440,7 +477,7 @@ export function CarePlanPage() {
             <div className="mt-3 space-y-2">
               {team.length === 0 && <p className="text-[13px] text-[var(--c-ink-2)]">Add a doctor or contact below.</p>}
               {team.slice(0, 4).map((t) => (
-                <div key={`${t.kind}-${t.name}`} className="flex items-center gap-2.5 rounded-[16px] bg-[var(--c-frame)] p-2">
+                <div key={`${t.kind}-${t.id ?? t.key ?? t.name}`} className="flex items-center gap-2.5 rounded-[16px] bg-[var(--c-frame)] p-2">
                   <PersonPhoto name={t.name} src={t.photo} rounded="rounded-full" className="h-10 w-10" text={14} />
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-[13px] font-medium">{t.name}</p>
@@ -490,7 +527,7 @@ export function CarePlanPage() {
           </Panel>
         </div>
 
-        <SaheliCarePage embedded addSignal={addSignal} onChanged={refresh} />
+        <SaheliCarePage embedded person={{ familyId, selectedId }} addSignal={addSignal} onChanged={refresh} />
 
         <SideDrawer open={stockOpen} onClose={() => setStockOpen(false)} top="Stock" bottom="& refills" label="Stock and refills" footer={<DarkButton onClick={() => setStockOpen(false)}>Done</DarkButton>}>
           <RefillsPanel />

@@ -36,37 +36,43 @@ export function WellbeingPage() {
   const [result, setResult] = useState<{ key: string; data: Wellbeing | null; error: string } | null>(null);
   const [picked, setPicked] = useState<string | null>(null);
   const [now] = useState(() => Date.now());
-  const key = `${selectedId}:${range}`;
+  const key = `${familyId}:${selectedId}:${range}`;
   const self = Boolean(selected?.self);
   const name = callName(selected);
 
   const load = useCallback(async () => {
-    if (!familyId || !selectedId) return;
+    if (!familyId || !selectedId) return null;
     try {
-      setResult({ key, data: await getWellbeing(familyId, selectedId, Number(range)), error: "" });
+      return { key, data: await getWellbeing(familyId, selectedId, Number(range)), error: "" };
     } catch (e) {
-      setResult({ key, data: null, error: e instanceof Error ? e.message : "Couldn't load wellbeing" });
+      return { key, data: null, error: e instanceof Error ? e.message : "Couldn't load wellbeing" };
     }
   }, [familyId, selectedId, range, key]);
 
+  // Only the answer for the person and range on screen lands: an older, slower request is dropped.
   useEffect(() => {
-    const t = setTimeout(() => void load(), 0);
-    return () => clearTimeout(t);
+    let live = true;
+    const t = setTimeout(() => void load().then((r) => live && r && setResult(r)), 0);
+    return () => {
+      live = false;
+      clearTimeout(t);
+    };
   }, [load]);
 
   // What Saheli noticed by herself over the last two weeks (independent of the range tabs).
-  const [noticed, setNoticed] = useState<{ id: string; items: CarePattern[] } | null>(null);
+  const [noticed, setNoticed] = useState<{ id: string; items: CarePattern[]; error?: string } | null>(null);
   useEffect(() => {
     if (!familyId || !selectedId) return;
     let live = true;
     getPatterns(familyId, selectedId)
-      .then((r) => live && setNoticed({ id: selectedId, items: r.patterns }))
-      .catch(() => live && setNoticed({ id: selectedId, items: [] }));
+      .then((r) => live && setNoticed({ id: selectedId, items: r?.patterns ?? [] }))
+      .catch((e: unknown) => live && setNoticed({ id: selectedId, items: [], error: e instanceof Error ? e.message : "Couldn't load" }));
     return () => {
       live = false;
     };
   }, [familyId, selectedId]);
   const patterns = noticed?.id === selectedId ? noticed.items : null;
+  const patternsError = noticed?.id === selectedId ? noticed.error : undefined;
   const [votes, setVotes] = useState<Record<string, "up" | "down">>({});
   const vote = async (p: CarePattern, v: "up" | "down") => {
     if (!familyId || !selectedId) return;
@@ -76,25 +82,27 @@ export function WellbeingPage() {
   };
 
   // What happened: falls, visits, medicine changes, recoveries (Saheli learns from these).
-  const [events, setEvents] = useState<{ id: string; view: OutcomesView } | null>(null);
+  // On a failed load the view stays null: an error, not "nothing logged" with consent unticked.
+  const [events, setEvents] = useState<{ id: string; view: OutcomesView | null; error?: string } | null>(null);
   const [draft, setDraft] = useState<{ kind: string; summary: string; saving: boolean; error: string }>({ kind: "", summary: "", saving: false, error: "" });
   useEffect(() => {
     if (!familyId || !selectedId) return;
     let live = true;
     getOutcomes(familyId, selectedId)
       .then((v) => live && setEvents({ id: selectedId, view: v }))
-      .catch(() => live && setEvents({ id: selectedId, view: { outcomes: [], kinds: {}, consent: { granted: false, by: null, at: null } } }));
+      .catch((e: unknown) => live && setEvents({ id: selectedId, view: null, error: e instanceof Error ? e.message : "Couldn't load" }));
     return () => {
       live = false;
     };
   }, [familyId, selectedId]);
-  const outcomes = events?.id === selectedId ? events.view : null;
+  const eventsHere = events?.id === selectedId ? events : null;
+  const outcomes = eventsHere?.view ?? null;
   const saveOutcome = async () => {
     if (!familyId || !selectedId || !draft.kind) return;
     setDraft((d) => ({ ...d, saving: true, error: "" }));
     try {
       const r = await logOutcome(familyId, selectedId, draft.kind, draft.summary.trim());
-      setEvents((e) => (e ? { ...e, view: { ...e.view, outcomes: r.outcomes } } : e));
+      setEvents((e) => (e?.view ? { ...e, view: { ...e.view, outcomes: r.outcomes } } : e));
       setDraft({ kind: "", summary: "", saving: false, error: "" });
     } catch (e) {
       setDraft((d) => ({ ...d, saving: false, error: e instanceof Error ? e.message : "Couldn't save" }));
@@ -102,9 +110,9 @@ export function WellbeingPage() {
   };
   const toggleConsent = async (granted: boolean) => {
     if (!familyId || !selectedId) return;
-    setEvents((e) => (e ? { ...e, view: { ...e.view, consent: { ...e.view.consent, granted } } } : e));
+    setEvents((e) => (e?.view ? { ...e, view: { ...e.view, consent: { ...e.view.consent, granted } } } : e));
     await setLearningConsent(familyId, selectedId, granted).catch(() =>
-      setEvents((e) => (e ? { ...e, view: { ...e.view, consent: { ...e.view.consent, granted: !granted } } } : e)),
+      setEvents((e) => (e?.view ? { ...e, view: { ...e.view, consent: { ...e.view.consent, granted: !granted } } } : e)),
     );
   };
 
@@ -155,11 +163,11 @@ export function WellbeingPage() {
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-[1fr_1fr_1.4fr]">
             <Panel accent className="flex flex-col">
               <div className="flex items-center justify-between">
-                <p className="text-[11px] font-medium uppercase tracking-[0.06em] text-white/80">{self ? "Last chat with Saheli" : "Last heard"}</p>
-                <ChatCircleDots size={18} weight="fill" className="text-white" />
+                <p className="text-[11px] font-medium uppercase tracking-[0.06em] opacity-80">{self ? "Last chat with Saheli" : "Last heard"}</p>
+                <ChatCircleDots size={18} weight="fill" />
               </div>
-              <p className="c-num mt-6 text-[40px] leading-none text-white sm:text-[44px]">{lastHeard ? ago(lastHeard, now) : "Not yet"}</p>
-              <p className="mt-auto pt-6 text-[12px] text-white/80">
+              <p className="c-num mt-6 text-[40px] leading-none sm:text-[44px]">{lastHeard ? ago(lastHeard, now) : "Not yet"}</p>
+              <p className="mt-auto pt-6 text-[12px] opacity-80">
                 {lastHeard ? `${dayWord(lastHeard, now)} at ${clock(lastHeard)}` : self ? "Say hi to Saheli on WhatsApp" : "No conversation in this period"}
               </p>
             </Panel>
@@ -213,6 +221,10 @@ export function WellbeingPage() {
             </p>
             {patterns === null ? (
               <div className="mt-4 h-14 animate-pulse rounded-[16px] bg-[var(--c-frame)]" />
+            ) : patternsError ? (
+              <div className="mt-4">
+                <ErrorNote>Couldn&apos;t load what Saheli noticed: {patternsError}</ErrorNote>
+              </div>
             ) : patterns.length === 0 ? (
               <p className="mt-4 flex items-center gap-2 text-[13px] text-[var(--c-ink-2)]">
                 <SealCheck size={16} /> Nothing stands out in the last two weeks.
@@ -326,8 +338,12 @@ export function WellbeingPage() {
             <p className="mt-1 text-[12px] text-[var(--c-ink-3)]">
               Falls, doctor or hospital visits, medicine changes and recoveries. Tell Saheli on WhatsApp, tap her follow-up, or log it here.
             </p>
-            {outcomes === null ? (
+            {eventsHere === null ? (
               <div className="mt-4 h-14 animate-pulse rounded-[16px] bg-[var(--c-frame)]" />
+            ) : outcomes === null ? (
+              <div className="mt-4">
+                <ErrorNote>Couldn&apos;t load what happened: {eventsHere.error || "please try again later"}</ErrorNote>
+              </div>
             ) : (
               <>
                 {outcomes.outcomes.length === 0 ? (

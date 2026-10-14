@@ -35,6 +35,7 @@ import {
   useRecipientSelection,
 } from "./activity-shared";
 import {
+  ALERT_KINDS,
   FILTERS,
   ORDER_KINDS,
   TERMINAL_ORDER_KINDS,
@@ -98,10 +99,12 @@ function buildEntries(items: ActivityItem[]): Entry[] {
     a.dayKey === b.dayKey &&
     Math.abs(new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()) <= ORDER_GROUP_GAP_MS;
 
-  // diag rows may lack jobId — adopt the job of an adjacent order event in the same run.
+  // Order diag rows (screenshot / url / stage) may lack jobId — adopt the job of an adjacent order event in the same
+  // run. Other diag rows (feature requests, system notes) stay on their own.
   const jobs = items.map(jobIdOf);
   items.forEach((item, i) => {
     if (jobs[i] || item.kind !== "diag") return;
+    if (!screenshotOf(item) && !str(item.data?.url) && !str(item.data?.stage)) return;
     for (const j of [i - 1, i + 1]) {
       const n = items[j];
       if (n && jobs[j] && n.kind !== "diag" && within(item, n)) {
@@ -257,12 +260,17 @@ export function ActivityFeedPage() {
       if (!buckets.has(k)) buckets.set(k, []);
       buckets.get(k)!.push(it);
     }
-    for (const [dayKey, list] of buckets) groups.push({ dayKey, entries: buildEntries(list) });
+    for (const [dayKey, list] of buckets) {
+      let entries = buildEntries(list);
+      // The Orders filter fetches diag rows for order runs; a stand-alone diag row is not an order.
+      if (filter === "orders") entries = entries.filter((e) => !(e.type === "event" && e.item.kind === "diag"));
+      if (entries.length) groups.push({ dayKey, entries });
+    }
     return groups;
-  }, [items]);
+  }, [items, filter]);
 
   const alerts = useMemo(
-    () => items.filter((i) => i.severity === "error" || (i.severity === "warn" && (i.kind === "health" || i.kind === "caregiver_alert"))),
+    () => items.filter((i) => ALERT_KINDS.has(i.kind) && i.severity !== "info"),
     [items],
   );
 
@@ -312,7 +320,7 @@ export function ActivityFeedPage() {
                   "shrink-0 rounded-full px-3 py-1.5 text-[12px] font-semibold transition-colors",
                   filter === f.key
                     ? f.key === "alerts"
-                      ? "bg-[var(--danger-text)] text-white"
+                      ? "bg-[var(--c-danger-ink)] text-[var(--c-frame)]"
                       : "bg-primary text-white"
                     : "theme-chip hover:border-primary/40",
                 )}
@@ -427,7 +435,7 @@ export function ActivityFeedPage() {
           <div className="space-y-6">
             {byDay.map((group) => (
               <section key={group.dayKey}>
-                <div className="sticky top-[64px] z-10 -mx-1 mb-2 flex items-center justify-between bg-[var(--main-surface)]/90 px-1 py-2 backdrop-blur">
+                <div className="sticky top-0 z-10 -mx-1 mb-2 flex items-center justify-between bg-[var(--main-surface)]/90 px-1 py-2 backdrop-blur">
                   <h2 className="text-[12px] font-extrabold uppercase tracking-wider text-[var(--text-secondary)]">
                     {dayKeyLabel(group.dayKey, today)}
                   </h2>
@@ -521,7 +529,9 @@ function TimeStamp({ iso, now }: { iso: string; now: number }) {
   );
 }
 
-function EventRow({ item, now, highlighted }: { item: ActivityItem; now: number; highlighted: boolean }) {
+function EventRow({ item: row, now, highlighted }: { item: ActivityItem; now: number; highlighted: boolean }) {
+  // A diag row is a system note, never an alert: always shown neutral.
+  const item: ActivityItem = row.kind === "diag" ? { ...row, severity: "info" } : row;
   const meta = kindMeta(item);
   const Icon = meta.icon;
   const detail = str(item.detail);
@@ -558,8 +568,8 @@ function EventRow({ item, now, highlighted }: { item: ActivityItem; now: number;
   const from = item.kind === "ride" ? str(item.data?.from) : null;
   const to = item.kind === "ride" ? str(item.data?.to) : null;
   const isAlert = item.severity !== "info";
-  // Proactive Saheli messages are context, not events — keep them visually quiet.
-  const subtle = item.kind === "nudge" && !isAlert;
+  // Proactive Saheli messages and system notes are context, not events — keep them visually quiet.
+  const subtle = (item.kind === "nudge" || item.kind === "diag") && !isAlert;
 
   return (
     <li id={`act-${item.id}`} className="relative scroll-mt-28">
@@ -596,7 +606,7 @@ function EventRow({ item, now, highlighted }: { item: ActivityItem; now: number;
             </p>
             <p
               className={cn(
-                "mt-0.5 leading-snug",
+                "mt-0.5 break-words leading-snug",
                 subtle ? "text-[12.5px] font-semibold" : "text-[13.5px] font-bold",
                 item.severity === "error" ? "text-[var(--danger-text)]" : "text-[var(--text-primary)]",
               )}
@@ -741,10 +751,10 @@ function OrderRun({
                 {outcome.label}
               </span>
             </div>
-            <p className="mt-0.5 text-[13.5px] font-bold leading-snug text-[var(--text-primary)]">
+            <p className="mt-0.5 break-words text-[13.5px] font-bold leading-snug text-[var(--text-primary)]">
               {confirmItems.length ? confirmItems.join(", ") : partner ? `Order on ${partner}` : newest.title}
             </p>
-            <p className="mt-1 text-[12px] text-[var(--text-secondary)]">
+            <p className="mt-1 break-words text-[12px] text-[var(--text-secondary)]">
               {[partner, total, placed ? "Cash on delivery" : null, address].filter(Boolean).join(" · ")}
               {orderIds.length > 0 && (
                 <span className="text-[var(--text-tertiary)]"> · #{orderIds.join(", #")}</span>
@@ -802,7 +812,7 @@ function OrderRun({
                   )}
                   <div className="min-w-0 flex-1">
                     <div className="flex items-baseline justify-between gap-3">
-                      <p className="text-[12.5px] font-semibold text-[var(--text-primary)]">
+                      <p className="min-w-0 break-words text-[12.5px] font-semibold text-[var(--text-primary)]">
                         {step.kind === "order_step" && stage ? humanize(stage) : step.title}
                         {step.kind === "order_interrupt" && intent && (
                           <span className="ml-1.5 rounded-full bg-[var(--surface)] px-1.5 py-0.5 text-[10px] font-bold text-[var(--text-secondary)]">

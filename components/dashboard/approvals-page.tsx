@@ -1,7 +1,7 @@
 "use client";
 
 import { Loader2 } from "lucide-react";
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import {
   approveOrder,
   getOrderHistory,
@@ -45,11 +45,19 @@ export function ApprovalsPage() {
   const [error, setError] = useState("");
   const [banner, setBanner] = useState("");
   const canApprove = canApproveOrders(activeFamily?.role);
+  // whose lists are on screen, and the latest load: a slow answer for the previous person is dropped, never shown
+  // under the next one (and their list is hidden until it is theirs)
+  const key = `${activeFamilyId}|${selectedId}`;
+  const [shownKey, setShownKey] = useState("");
+  const req = useRef(0);
 
   const load = useCallback(async () => {
+    const id = ++req.current;
+    const k = `${activeFamilyId}|${selectedId}`;
     if (!activeFamilyId || !selectedId) {
       setOrders([]);
       setRecentPlaced([]);
+      setShownKey(k);
       setLoading(false);
       return;
     }
@@ -60,20 +68,25 @@ export function ApprovalsPage() {
         getPendingApprovals(activeFamilyId, selectedId),
         getOrderHistory(activeFamilyId, selectedId).catch(() => ({ data: { orders: [] as PendingOrder[] } })),
       ]);
+      if (id !== req.current) return;
       const theirs = (o: PendingOrder) => o.subject_user_id === selectedId;
       setOrders((data?.orders ?? []).filter(theirs));
       const placed = (history.data?.orders ?? [])
         .filter((o) => theirs(o) && (o.status === "paid" || o.status === "delivered"))
         .slice(0, 8);
       setRecentPlaced(placed);
+      setShownKey(k);
     } catch (err) {
+      if (id !== req.current) return;
       setError(err instanceof Error ? err.message : "Failed to load approvals");
       setOrders([]);
       setRecentPlaced([]);
+      setShownKey(k);
     } finally {
-      setLoading(false);
+      if (id === req.current) setLoading(false);
     }
   }, [activeFamilyId, selectedId]);
+  const busy = loading || shownKey !== key;
 
   useRun(load);
 
@@ -156,7 +169,7 @@ export function ApprovalsPage() {
       </div>
 
       {banner && (
-        <div className="rounded-xl border border-primary/30 bg-primary-light px-4 py-3 text-[12px] text-primary">
+        <div className="rounded-xl bg-[var(--c-accent-soft)] px-4 py-3 text-[12px] text-[var(--c-accent-soft-ink)]">
           {banner}
         </div>
       )}
@@ -168,9 +181,9 @@ export function ApprovalsPage() {
       )}
 
       <div className="panel-card overflow-hidden">
-        {loading ? (
+        {busy ? (
           <div className="flex justify-center py-16">
-            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+            <Loader2 className="h-6 w-6 animate-spin text-[var(--c-accent-text)]" />
           </div>
         ) : orders.length === 0 ? (
           <p className="px-5 py-16 text-center text-[13px] text-[var(--text-tertiary)]">
@@ -198,7 +211,7 @@ export function ApprovalsPage() {
                         href={order.deep_link}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="mt-2 inline-block text-[11px] font-semibold text-primary hover:underline"
+                        className="mt-2 inline-block text-[11px] font-semibold text-[var(--c-accent-text)] hover:underline"
                       >
                         {partner.openLabel}
                       </a>
@@ -212,7 +225,7 @@ export function ApprovalsPage() {
                             type="button"
                             disabled={busyId === order.order_id}
                             onClick={() => void handleApproveAndPlace(order)}
-                            className="rounded-full bg-primary px-4 py-1.5 text-[11px] font-bold text-white disabled:opacity-50"
+                            className="rounded-full bg-[var(--c-solid)] px-4 py-1.5 text-[11px] font-bold text-[var(--c-on-solid)] disabled:opacity-50"
                           >
                             Approve & place
                           </button>
@@ -231,7 +244,7 @@ export function ApprovalsPage() {
                           type="button"
                           disabled={busyId === order.order_id}
                           onClick={() => void handlePay(order)}
-                          className="rounded-full bg-primary px-4 py-1.5 text-[11px] font-bold text-white disabled:opacity-50"
+                          className="rounded-full bg-[var(--c-solid)] px-4 py-1.5 text-[11px] font-bold text-[var(--c-on-solid)] disabled:opacity-50"
                         >
                           Place order
                         </button>
@@ -246,7 +259,7 @@ export function ApprovalsPage() {
         )}
       </div>
 
-      {!loading && recentPlaced.length > 0 && (
+      {!busy && recentPlaced.length > 0 && (
         <div className="panel-card overflow-hidden">
           <div className="border-b border-[var(--border-strong)] px-5 py-3">
             <h2 className="text-[14px] font-extrabold text-[var(--text-primary)]">
@@ -267,7 +280,7 @@ export function ApprovalsPage() {
                   <p className="mt-0.5 text-[12px] text-[var(--text-secondary)]">
                     {order.items.map((i) => `${i.name} x${i.quantity}`).join(" · ")}
                   </p>
-                  <p className="mt-1 text-[11px] text-emerald-700 dark:text-emerald-400">
+                  <p className="mt-1 text-[11px] text-[var(--c-ok-ink)]">
                     {statusLabel(order.status)}
                   </p>
                 </li>

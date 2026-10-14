@@ -3,42 +3,28 @@
 import { CaretLeft, CaretRight, Car, Money, ShoppingBag, Wallet } from "@phosphor-icons/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { getSpending, type Spending } from "@/lib/care-features-api";
+import { forPerson } from "@/lib/care-memory-api";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
-import { ErrorNote, IST, OnWhatsApp, PageHeading, parseIst, rupees, shortDate } from "./feature-kit";
+import { IST, OnWhatsApp, PageHeading, parseIst, rupees, shortDate } from "./feature-kit";
 import { callName, possessive, usePerson } from "./person-context";
-import { Bars, IconCircle, Panel, PanelTitle, Tag } from "./ui";
+import { ServiceLogo } from "./service-logo";
+import { Bars, IconCircle, Panel, PanelTitle, SmallButton, Tag } from "./ui";
 
-const SERVICE: Record<string, { name: string; logo?: string }> = {
-  swiggy: { name: "Swiggy", logo: "/assets/brands/swiggy.png" },
-  instamart: { name: "Instamart", logo: "/assets/brands/instamart.png" },
-  zepto: { name: "Zepto", logo: "/assets/brands/zepto.png" },
-  blinkit: { name: "Blinkit" },
-  apollo: { name: "Apollo 24|7" },
-  "1mg": { name: "Tata 1mg" },
-  pharmeasy: { name: "PharmEasy" },
-  ola: { name: "Ola" },
-  uber: { name: "Uber" },
-  rapido: { name: "Rapido" },
+const SERVICE: Record<string, string> = {
+  swiggy: "Swiggy",
+  instamart: "Instamart",
+  zepto: "Zepto",
+  blinkit: "Blinkit",
+  zomato: "Zomato",
+  apollo: "Apollo 24|7",
+  "1mg": "Tata 1mg",
+  pharmeasy: "PharmEasy",
+  ola: "Ola",
+  uber: "Uber",
+  rapido: "Rapido",
 };
-const serviceName = (s: string) => SERVICE[s]?.name ?? s.charAt(0).toUpperCase() + s.slice(1);
-
-function ServiceMark({ service, size = 34 }: { service: string; size?: number }) {
-  const logo = SERVICE[service]?.logo;
-  if (logo) {
-    // eslint-disable-next-line @next/next/no-img-element
-    return <img src={logo} alt="" width={size} height={size} className="shrink-0 rounded-[10px] object-cover" style={{ width: size, height: size }} />;
-  }
-  return (
-    <span
-      aria-hidden
-      className="inline-flex shrink-0 items-center justify-center rounded-[10px] bg-[var(--c-solid)] font-medium text-[var(--c-accent-text)]"
-      style={{ width: size, height: size, fontSize: Math.round(size * 0.42) }}
-    >
-      {serviceName(service).charAt(0).toUpperCase()}
-    </span>
-  );
-}
+const serviceName = (s: string) => SERVICE[s] ?? s.charAt(0).toUpperCase() + s.slice(1);
 
 const monthKey = (d: Date) => d.toLocaleDateString("en-CA", { timeZone: IST }).slice(0, 7);
 function shiftMonth(m: string, by: number) {
@@ -89,8 +75,29 @@ export function SpendingPage() {
 
   // keyed by person and month: the previous person's numbers never show while the next one's load
   const loading = !result || result.key !== key;
-  const data = loading ? null : result.data;
+  const failed = !loading && !!result.error;
+  const data = useMemo(() => {
+    const d = loading || !result ? null : result.data;
+    if (!d) return null;
+    // only what was placed for this person, as on Orders (the engine sends only theirs; an older one sent the whole
+    // family's): when anyone else's slipped in, the totals are counted again from this person's own items
+    const items = forPerson(d.items ?? [], selectedId);
+    if (items.length === (d.items ?? []).length) return d;
+    const add = (acc: Record<string, number>, k: string, v: number) => ({ ...acc, [k]: (acc[k] ?? 0) + v });
+    return {
+      ...d,
+      items,
+      count: items.length,
+      total: items.reduce((s, it) => s + it.total, 0),
+      byService: items.reduce((acc, it) => add(acc, it.service, it.total), {} as Record<string, number>),
+      byKind: items.reduce((acc, it) => add(acc, it.kind, it.total), {} as Record<string, number>),
+    };
+  }, [loading, result, selectedId]);
   const total = data?.total ?? 0;
+  const retry = () => {
+    setResult(null);
+    void load();
+  };
 
   const services = useMemo(() => Object.entries(data?.byService ?? {}).sort((a, b) => b[1] - a[1]), [data]);
   const items = useMemo(() => [...(data?.items ?? [])].sort((a, b) => parseIst(b.at).getTime() - parseIst(a.at).getTime()), [data]);
@@ -134,14 +141,18 @@ export function SpendingPage() {
         }
       />
 
-      {result?.error && !loading && <ErrorNote>{result.error}</ErrorNote>}
-
       {loading ? (
         <div className="grid gap-4 md:grid-cols-2">
           {[0, 1].map((i) => (
             <div key={i} className="h-[240px] animate-pulse rounded-[24px] bg-[var(--c-card)]" />
           ))}
         </div>
+      ) : failed ? (
+        <Panel className="flex flex-col items-center gap-3 py-16 text-center">
+          <p className="text-[16px] font-medium">Couldn&apos;t load the spending for {monthLabel(month).split(" ")[0]}</p>
+          <p className="max-w-sm text-[13px] text-[var(--c-ink-2)]">Nothing has changed. Try again in a moment.</p>
+          <SmallButton onClick={retry}>Try again</SmallButton>
+        </Panel>
       ) : !data || data.count === 0 ? (
         <Panel className="flex flex-col items-center py-16 text-center">
           <span className="flex h-14 w-14 items-center justify-center rounded-full bg-[var(--c-frame)]">
@@ -183,7 +194,7 @@ export function SpendingPage() {
               <ul className="mt-4 space-y-3.5">
                 {services.map(([s, v], i) => (
                   <li key={s} className="flex items-center gap-3">
-                    <ServiceMark service={s} />
+                    <ServiceLogo service={s} label={serviceName(s)} size={34} />
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center justify-between gap-2 text-[13px]">
                         <span className="truncate">{serviceName(s)}</span>
@@ -229,7 +240,7 @@ export function SpendingPage() {
             <ul className="mt-3">
               {items.map((it, i) => (
                 <li key={`${it.at}-${i}`} className="flex items-center gap-3 border-b border-[var(--c-line)] py-3 last:border-0">
-                  <ServiceMark service={it.service} size={38} />
+                  <ServiceLogo service={it.service} label={serviceName(it.service)} size={38} />
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-[14px] font-medium">{it.goal}</p>
                     <p className="mt-0.5 flex flex-wrap items-center gap-x-1.5 text-[12px] text-[var(--c-ink-3)]">

@@ -22,7 +22,8 @@ import { closeLoop, resolveFact, type CareEvent } from "@/lib/care-memory-api";
 import { useCareOverview } from "@/components/dashboard/saheli/saheli-shared";
 import { cn } from "@/lib/utils";
 import { callName, possessive, usePerson } from "./person-context";
-import { AllReminders, deliveryText, ReminderDetail, STATUS_WORD, useAllReminders, useReminderDay } from "./reminders-panel";
+import { AllReminders, deliveryText, ReminderDetail, statusWord, undelivered, useAllReminders, useReminderDay } from "./reminders-panel";
+import type { ReminderOccurrence } from "@/lib/reminders-api";
 import { Panel, PanelTitle, PillTabs, SmallButton, Tag } from "./ui";
 
 const IST = "Asia/Kolkata";
@@ -109,10 +110,12 @@ type Block = {
   skipped?: boolean;
 };
 
-function reminderLook(status: keyof typeof STATUS_WORD): ReturnType<typeof eventLook> {
-  if (status === "sent" || status === "done") return { label: STATUS_WORD[status], icon: CheckCircle, tone: "plain" };
-  if (status === "failed" || status === "not_sent") return { label: STATUS_WORD[status], icon: WarningCircle, tone: "soft" };
-  return { label: STATUS_WORD[status], icon: Alarm, tone: "plain" };
+function reminderLook(o: Pick<ReminderOccurrence, "status" | "delivery">): ReturnType<typeof eventLook> {
+  // sent but never delivered: a concern, not a check (audit 2026-10-14)
+  if (undelivered(o)) return { label: "Sent, not delivered", icon: WarningCircle, tone: "soft" };
+  if (o.status === "sent" || o.status === "done") return { label: statusWord(o.status), icon: CheckCircle, tone: "plain" };
+  if (o.status === "failed" || o.status === "not_sent") return { label: statusWord(o.status), icon: WarningCircle, tone: "soft" };
+  return { label: statusWord(o.status), icon: Alarm, tone: "plain" };
 }
 /** x / w: where the card sits across its lane (fractions); a many-times reminder's small card next to a full card gets a narrow strip. */
 type Placed = Block & { y: number; col: number; cols: number; x: number; w: number; more?: Block[] };
@@ -183,18 +186,38 @@ export function DayCalendarPage() {
   const lastDay = shift(today, AHEAD_DAYS);
   const raw = params.get("day");
   const day = raw && /^\d{4}-\d{2}-\d{2}$/.test(raw) && raw <= lastDay ? raw : today;
-  const { data, loading, reload } = useCareOverview(familyId, selectedId, day, day === today ? 30_000 : 0);
+  const { data, loading, error, reload } = useCareOverview(familyId, selectedId, day, day === today ? 30_000 : 0);
   const rem = useReminderDay(familyId, selectedId, day, day === today ? 30_000 : 0);
   const [view, setView] = useState<"day" | "all">("day");
-  const [picked, setPicked] = useState<string | null>(null);
+  // the reminder open on the side, kept with its person: switching person closes it, so Skip / Stop never send one
+  // person's reminder under another's id (audit 2026-10-14)
+  const who = `${familyId}|${selectedId}`;
+  const [pickedFor, setPickedFor] = useState<{ who: string; id: string } | null>(null);
+  const picked = pickedFor?.who === who ? pickedFor.id : null;
+  const setPicked = (id: string | null) => setPickedFor(id ? { who, id } : null);
   const [remTick, setRemTick] = useState(0);
-  const allReminders = useAllReminders(familyId, selectedId, remTick);
+  const all = useAllReminders(familyId, selectedId, remTick);
+  const allReminders = all.rows;
   const remindersChanged = () => {
     rem.reload();
     setRemTick((n) => n + 1);
   };
   const [nowMins, setNowMins] = useState(() => istMinutes(new Date().toISOString()));
   const [busy, setBusy] = useState<string | null>(null);
+  const [actionErr, setActionErr] = useState<string | null>(null);
+  /** Approve / Reject / Mark resolved: a failure says so under the item instead of vanishing. */
+  const act = async (id: string, fn: () => Promise<unknown>) => {
+    setBusy(id);
+    setActionErr(null);
+    try {
+      await fn();
+    } catch {
+      setActionErr(id);
+    } finally {
+      setBusy(null);
+      reload();
+    }
+  };
   const scroller = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -229,6 +252,8 @@ export function DayCalendarPage() {
       const done = d.status === "taken";
       const missed = d.status === "missed" || d.status === "skipped";
       const past = day < today || (day === today && start < nowMins);
+      // a dose they chose to skip reads "Skipped", as on Home
+      const missedWord = d.status === "skipped" ? "Skipped" : "Missed";
       out.push({
         id: `plan:${d.id}`,
         lane: "medicines",
@@ -239,7 +264,7 @@ export function DayCalendarPage() {
         look: done
           ? { label: "Taken", icon: CheckCircle, tone: "dark" }
           : missed
-            ? { label: "Missed", icon: WarningCircle, tone: "soft" }
+            ? { label: missedWord, icon: WarningCircle, tone: "soft" }
             : past
               ? { label: "Not marked", icon: WarningCircle, tone: "soft" }
               : { label: "Scheduled", icon: Pill, tone: "plain" },
@@ -271,8 +296,8 @@ export function DayCalendarPage() {
         lane: "reminders",
         start: h * 60 + m,
         title: o.text,
-        sub: `${STATUS_WORD[o.status]}${deliveryText(o)} · ${o.schedule}`,
-        look: reminderLook(o.status),
+        sub: `${statusWord(o.status)}${deliveryText(o)} · ${o.schedule}`,
+        look: reminderLook(o),
         planned: o.status === "scheduled",
         reminderId: o.reminderId,
         compact: o.many,
@@ -302,7 +327,7 @@ export function DayCalendarPage() {
     planned: blocks.filter((b) => b.id.startsWith("plan:")).length,
     alerts: events.filter((e) => e.kind.startsWith("alert_")).length,
     readings: events.filter((e) => e.kind === "vital").length,
-    remindersSent: (rem.data?.occurrences ?? []).filter((o) => o.status === "sent").length,
+    remindersSent: (rem.data?.occurrences ?? []).filter((o) => o.status === "sent" && !undelivered(o)).length,
     remindersDue: (rem.data?.occurrences ?? []).filter((o) => o.status !== "skipped" && o.status !== "done").length,
   };
   const pickedReminder = picked
@@ -323,11 +348,12 @@ export function DayCalendarPage() {
           </h1>
           <p className="mt-2 text-[13px] text-[var(--c-ink-2)]">{label}</p>
         </div>
-        <div className="flex items-center gap-2">
+        {/* on a phone the week wraps under the arrows instead of running off the screen */}
+        <div className="flex flex-wrap items-center gap-2 max-sm:justify-between">
           <button type="button" aria-label="Previous day" onClick={() => go(shift(day, -1))} className="flex h-12 w-12 items-center justify-center rounded-full border border-[var(--c-line)] hover:bg-[var(--c-card)]">
             <CaretLeft size={16} />
           </button>
-          <div className="flex gap-1 rounded-full bg-[var(--c-card)] p-1">
+          <div className="flex gap-1 rounded-full bg-[var(--c-card)] p-1 max-sm:order-last max-sm:w-full max-sm:justify-between">
             {week.map((d) => {
               const dt = new Date(`${d}T12:00:00+05:30`);
               const on = d === day;
@@ -369,7 +395,17 @@ export function DayCalendarPage() {
             {view === "all" && <span className="text-[12px] text-[var(--c-ink-2)]">Everything Saheli will remind {personWord === "You" ? "you" : personWord} about</span>}
           </div>
           {view === "all" ? (
-            <AllReminders rows={allReminders} today={today} familyId={familyId ?? ""} subjectId={selectedId ?? ""} onDone={remindersChanged} onPick={(r) => setPicked(r.reminderId)} />
+            <AllReminders
+              key={who}
+              rows={allReminders}
+              error={all.error}
+              onRetry={() => setRemTick((n) => n + 1)}
+              today={today}
+              familyId={familyId ?? ""}
+              subjectId={selectedId ?? ""}
+              onDone={remindersChanged}
+              onPick={(r) => setPicked(r.reminderId)}
+            />
           ) : (
           <>
           <div className={cn("grid border-b border-[var(--c-line)] px-2 py-3", GRID_COLS)}>
@@ -483,7 +519,24 @@ export function DayCalendarPage() {
               )}
             </div>
           </div>
-          {!loading && blocks.length === 0 && (
+          {/* a failed load says so, never "nothing on this day" (audit 2026-10-14) */}
+          {error && !data && (
+            <p className="border-t border-[var(--c-line)] px-5 py-4 text-[13px] text-[var(--c-ink-2)]">
+              Couldn&apos;t load the medicines and events for this day.{" "}
+              <button type="button" className="font-medium underline" onClick={reload}>
+                Try again
+              </button>
+            </p>
+          )}
+          {rem.error && (
+            <p className="border-t border-[var(--c-line)] px-5 py-4 text-[13px] text-[var(--c-ink-2)]">
+              Couldn&apos;t load the reminders for this day.{" "}
+              <button type="button" className="font-medium underline" onClick={rem.reload}>
+                Try again
+              </button>
+            </p>
+          )}
+          {!loading && !!data && !!rem.data && blocks.length === 0 && (
             <p className="border-t border-[var(--c-line)] px-5 py-4 text-[13px] text-[var(--c-ink-2)]">
               Nothing on this day yet. Add medicines on the{" "}
               <Link className="underline" href="/dashboard/saheli/care">
@@ -498,24 +551,34 @@ export function DayCalendarPage() {
 
         <aside className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
+            {/* marigold: Panel accent sets the dark accent ink; no white on it */}
             <Panel accent>
-              <p className="text-[11px] font-medium uppercase tracking-[0.06em] text-white/80">Doses</p>
-              <p className="c-num mt-3 text-[40px] leading-none text-white">
-                {counts.taken}
-                <span className="text-white/60">/{counts.planned}</span>
+              <p className="text-[11px] font-medium uppercase tracking-[0.06em] opacity-80">Doses</p>
+              <p className="c-num mt-3 text-[40px] leading-none">
+                {data ? counts.taken : "–"}
+                {data && <span className="opacity-60">/{counts.planned}</span>}
               </p>
             </Panel>
             <Panel>
               <p className="text-[11px] font-medium uppercase tracking-[0.06em] text-[var(--c-ink-2)]">Reminders</p>
-              <p className="c-num mt-3 text-[40px] leading-none">
-                {counts.remindersSent}
-                <span className="text-[var(--c-ink-3)]">/{counts.remindersDue}</span>
-              </p>
+              {rem.error ? (
+                <p className="mt-3 text-[12.5px] text-[var(--c-ink-2)]">
+                  Couldn&apos;t load.{" "}
+                  <button type="button" className="font-medium underline" onClick={rem.reload}>
+                    Try again
+                  </button>
+                </p>
+              ) : (
+                <p className="c-num mt-3 text-[40px] leading-none">
+                  {rem.data ? counts.remindersSent : "–"}
+                  {rem.data && <span className="text-[var(--c-ink-3)]">/{counts.remindersDue}</span>}
+                </p>
+              )}
             </Panel>
           </div>
           {pickedReminder && familyId && selectedId && (
             <ReminderDetail
-              key={pickedReminder.reminderId}
+              key={`${who}|${pickedReminder.reminderId}`}
               reminder={pickedReminder}
               occurrences={rem.data?.occurrences ?? []}
               day={day}
@@ -535,30 +598,14 @@ export function DayCalendarPage() {
                   <li key={l.id} className="rounded-[16px] bg-[var(--c-frame)] p-3">
                     <p className="text-[13px] font-medium">{l.title}</p>
                     <div className="mt-2 flex gap-2">
-                      <SmallButton
-                        dark
-                        disabled={busy === l.id}
-                        onClick={async () => {
-                          setBusy(l.id);
-                          await resolveFact(familyId!, selectedId!, String(l.detail?.key ?? ""), true).catch(() => undefined);
-                          setBusy(null);
-                          reload();
-                        }}
-                      >
+                      <SmallButton dark disabled={busy === l.id} onClick={() => act(l.id, () => resolveFact(familyId!, selectedId!, String(l.detail?.key ?? ""), true))}>
                         Approve
                       </SmallButton>
-                      <SmallButton
-                        disabled={busy === l.id}
-                        onClick={async () => {
-                          setBusy(l.id);
-                          await resolveFact(familyId!, selectedId!, String(l.detail?.key ?? ""), false).catch(() => undefined);
-                          setBusy(null);
-                          reload();
-                        }}
-                      >
+                      <SmallButton disabled={busy === l.id} onClick={() => act(l.id, () => resolveFact(familyId!, selectedId!, String(l.detail?.key ?? ""), false))}>
                         Reject
                       </SmallButton>
                     </div>
+                    {actionErr === l.id && <p className="mt-2 text-[12px] text-[var(--c-danger-ink)]">That didn&apos;t go through. Try again.</p>}
                   </li>
                 ))}
               </ul>
@@ -567,7 +614,7 @@ export function DayCalendarPage() {
           <Panel>
             <PanelTitle title="Saheli is following up" />
             {following.length === 0 ? (
-              <p className="mt-3 text-[13px] text-[var(--c-ink-3)]">Nothing open.</p>
+              <p className="mt-3 text-[13px] text-[var(--c-ink-3)]">{data ? "Nothing open." : error ? "Couldn't load." : "Loading…"}</p>
             ) : (
               <ul className="mt-3 space-y-2">
                 {following.map((l) => (
@@ -577,15 +624,14 @@ export function DayCalendarPage() {
                       <Tag tone="light">{l.wakeAt ? `checks ${new Date(l.wakeAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: IST })}` : "open"}</Tag>
                       <button
                         type="button"
-                        className="text-[12px] text-[var(--c-ink-2)] hover:text-[var(--c-ink)]"
-                        onClick={async () => {
-                          await closeLoop(familyId!, selectedId!, l.id, "resolved by caregiver").catch(() => undefined);
-                          reload();
-                        }}
+                        disabled={busy === l.id}
+                        className="text-[12px] text-[var(--c-ink-2)] hover:text-[var(--c-ink)] disabled:opacity-40"
+                        onClick={() => act(l.id, () => closeLoop(familyId!, selectedId!, l.id, "resolved by caregiver"))}
                       >
                         Mark resolved
                       </button>
                     </div>
+                    {actionErr === l.id && <p className="mt-2 text-[12px] text-[var(--c-danger-ink)]">That didn&apos;t go through. Try again.</p>}
                   </li>
                 ))}
               </ul>

@@ -8,16 +8,18 @@ import { Panel, PanelTitle, SmallButton } from "./ui";
 
 /** Saheli's profile card of this person, record problems she will ask about, and forget / restore. */
 export function MemoryHealthPanel({ familyId, subjectId, name, canEdit = true }: { familyId: string; subjectId: string; name: string; canEdit?: boolean }) {
-  const [data, setData] = useState<{ id: string; v: MemoryHealth } | null>(null);
+  // v is null when the load failed: an error, never "looks consistent" or an empty card
+  const [data, setData] = useState<{ id: string; v: MemoryHealth | null } | null>(null);
   const [what, setWhat] = useState("");
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState("");
+  const [error, setError] = useState("");
 
   const load = useCallback(async () => {
     try {
       setData({ id: subjectId, v: await getMemoryHealth(familyId, subjectId) });
     } catch {
-      setData({ id: subjectId, v: { issues: [], profileCard: null, forgotten: [] } });
+      setData((d) => (d?.id === subjectId && d.v ? d : { id: subjectId, v: null }));
     }
   }, [familyId, subjectId]);
 
@@ -26,27 +28,60 @@ export function MemoryHealthPanel({ familyId, subjectId, name, canEdit = true }:
     return () => clearTimeout(t);
   }, [load]);
 
-  const v = data?.id === subjectId ? data.v : null;
+  const loaded = data?.id === subjectId;
+  const v = loaded ? data.v : null;
+  const failed = loaded && !data.v;
+  const retry = () => {
+    setData(null);
+    void load();
+  };
 
   const doForget = async () => {
     if (what.trim().length < 3) return;
     setBusy(true);
+    setError("");
     try {
       const r = await forgetMemory(familyId, subjectId, what.trim());
       setNote(r.forgotten ? `Forgot ${r.forgotten} item${r.forgotten === 1 ? "" : "s"}. You can restore it below.` : "Nothing matched those words.");
       setWhat("");
       await load();
+    } catch (e) {
+      setNote("");
+      setError(e instanceof Error ? e.message : "Couldn't forget that. Nothing was changed.");
     } finally {
       setBusy(false);
     }
   };
+
+  const doRestore = async (id: number) => {
+    setBusy(true);
+    setError("");
+    try {
+      await restoreForgotten(familyId, subjectId, id);
+      setNote("Restored.");
+      await load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Couldn't restore it. Nothing was changed.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const failNote = (
+    <div className="mt-4 flex items-center justify-between gap-3 rounded-[14px] bg-[var(--c-accent-soft)] px-4 py-2.5 text-[13px] text-[var(--c-accent-soft-ink)]" role="alert">
+      <span>Couldn&apos;t load this right now.</span>
+      <SmallButton onClick={retry}>Try again</SmallButton>
+    </div>
+  );
 
   return (
     <div className="grid gap-3">
       <Panel>
         <PanelTitle title={`Saheli's card for ${name === "You" ? "you" : name || "them"}`} right={<IdentificationCard size={18} />} />
         <p className="mt-1 text-[12px] text-[var(--c-ink-3)]">Rebuilt every night from the care record and notes. Every reply starts from this.</p>
-        {!v ? (
+        {failed ? (
+          failNote
+        ) : !v ? (
           <div className="mt-4 h-20 animate-pulse rounded-[16px] bg-[var(--c-frame)]" />
         ) : v.profileCard ? (
           <ul className="mt-4 space-y-1.5 text-[13px]">
@@ -66,7 +101,9 @@ export function MemoryHealthPanel({ familyId, subjectId, name, canEdit = true }:
       <div className="space-y-4">
         <Panel>
           <PanelTitle title="Things to check" right={<Wrench size={18} />} />
-          {!v ? null : v.issues.length === 0 ? (
+          {failed ? (
+            <p className="mt-3 text-[13px] text-[var(--c-ink-2)]">Couldn&apos;t check the care record right now.</p>
+          ) : !v ? null : v.issues.length === 0 ? (
             <p className="mt-3 text-[13px] text-[var(--c-ink-2)]">The care record looks consistent.</p>
           ) : (
             <ul className="mt-3 space-y-2">
@@ -89,6 +126,11 @@ export function MemoryHealthPanel({ familyId, subjectId, name, canEdit = true }:
             </SmallButton>
           </div>
           {note && <p className="mt-2 text-[12px] text-[var(--c-ink-2)]">{note}</p>}
+          {error && (
+            <p className="mt-2 text-[12px] text-[var(--c-accent-text)]" role="alert">
+              {error}
+            </p>
+          )}
           {v && v.forgotten.length > 0 && (
             <ul className="mt-3 space-y-1.5">
               {v.forgotten.slice(0, 5).map((f) => (
@@ -97,7 +139,7 @@ export function MemoryHealthPanel({ familyId, subjectId, name, canEdit = true }:
                   {f.restored ? (
                     <span className="text-[11px] text-[var(--c-ink-3)]">restored</span>
                   ) : (
-                    <SmallButton icon={ArrowCounterClockwise} onClick={() => void restoreForgotten(familyId, subjectId, f.id).then(load)}>
+                    <SmallButton icon={ArrowCounterClockwise} disabled={busy} onClick={() => void doRestore(f.id)}>
                       Restore
                     </SmallButton>
                   )}

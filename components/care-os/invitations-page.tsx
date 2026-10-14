@@ -119,7 +119,8 @@ function Row({ invite, firstName, copied, onCopy, onRevoke, revoking }: {
   onRevoke: (id: string) => void;
   revoking: boolean;
 }) {
-  const tag = STATE_TAG[invite.state];
+  // A state the server adds later still renders, as a neutral tag.
+  const tag = STATE_TAG[invite.state] ?? { label: "Link", tone: "light" as const };
   const icon: PhosphorIcon = invite.state === "used" ? Check : invite.state === "active" ? LinkSimple : X;
   const Icon = icon;
   const line =
@@ -129,7 +130,9 @@ function Row({ invite, firstName, copied, onCopy, onRevoke, revoking }: {
         ? `Made ${day(invite.createdAt)} · open until ${day(invite.expiresAt)}`
         : invite.state === "expired"
           ? `Made ${day(invite.createdAt)} · expired ${day(invite.expiresAt)}, unused`
-          : `Made ${day(invite.createdAt)} · cancelled ${day(invite.revokedAt)}`;
+          : invite.state === "revoked"
+            ? `Made ${day(invite.createdAt)} · cancelled ${day(invite.revokedAt)}`
+            : `Made ${day(invite.createdAt)}`;
   return (
     <li className="flex flex-col gap-3 rounded-[18px] bg-[var(--c-frame)] p-3.5 sm:flex-row sm:items-center">
       <div className="flex min-w-0 flex-1 items-center gap-3">

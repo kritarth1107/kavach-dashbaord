@@ -55,7 +55,7 @@ export function CareRecipientViewPage() {
     return (
       <div className="rounded-2xl border border-[var(--danger-border)] bg-[var(--danger-bg)] px-5 py-8 text-center">
         <p className="text-[14px] font-bold text-[var(--text-primary)]">Unable to load care recipient</p>
-        <p className="mt-2 text-[13px] text-[var(--text-secondary)]">{error || "Member not found."}</p>
+        <p className="mt-2 text-[13px] text-[var(--text-secondary)]">{error || "Care recipient not found or you don't have access."}</p>
         <Link
           href="/dashboard/family"
           className="mt-4 inline-flex items-center gap-1.5 text-[13px] font-semibold text-primary hover:underline"

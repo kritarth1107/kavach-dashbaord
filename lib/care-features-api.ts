@@ -76,7 +76,8 @@ export const revokeEmergencyLink = (familyId: string, subjectUserId: string) =>
 export async function getPublicEmergency(token: string): Promise<PublicEmergency> {
   const res = await fetch(`/api/public/emergency/${encodeURIComponent(token)}`, { cache: "no-store" });
   const json = (await res.json().catch(() => null)) as { success?: boolean; data?: PublicEmergency; message?: string } | null;
-  if (!res.ok || !json?.data) throw new Error(json?.message || "This emergency link is not active");
+  // the server's own text on a failure is for developers; a helper reading this card needs the plain version
+  if (!res.ok || !json?.data) throw new Error(res.status >= 500 ? "The card couldn't load just now. Try again, and in an emergency call 112." : json?.message || "This emergency link is not active");
   return json.data;
 }
 
@@ -97,7 +98,9 @@ export type CareTeam = {
   doctors: EmergencyCard["doctors"];
   hospital: EmergencyCard["hospital"];
   contacts: EmergencyCard["contacts"];
-  helpers: Array<{ name: string; text: string; phone: string | null }>;
+  /** The people who help at home (cook, maid, driver…). The engine leaves out the address and living set-up, which the
+   *  home record also keeps (before 2026-10-14 it sent them too, and Remove deleted the address). */
+  helpers: Array<{ key?: string; name: string; text: string; phone: string | null }>;
   upcoming: Appointment[];
   past: Appointment[];
 };
@@ -130,6 +133,8 @@ export type CareReport = {
   changes: Array<{ at: string; text: string; kind: string }>;
   orders: Array<{ at: string; service: string; kind: string; goal: string; status: string; total: number | null }>;
   appointments: Appointment[];
+  /** Problems that keep coming back (last 3 months), for the doctor. Not shown on the page yet. */
+  patterns?: Array<{ theme: string; count: number; events: Array<{ date: string; what: string }>; askDoctor: string }>;
 };
 
 export async function getReport(familyId: string, subjectUserId: string, days = 7) {

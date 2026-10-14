@@ -5,6 +5,7 @@ import {
   useCallback,
   useContext,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import { useParams } from "next/navigation";
@@ -32,6 +33,7 @@ type CareScheduleContextValue = {
 };
 
 const CareScheduleContext = createContext<CareScheduleContextValue | null>(null);
+const NO_SCHEDULES: CareScheduleItem[] = [];
 
 export function CareRecipientScheduleProvider({
   children,
@@ -43,33 +45,43 @@ export function CareRecipientScheduleProvider({
   const params = useParams();
   const recipientUserId = recipientUserIdProp ?? (params.userId as string | undefined);
   const { activeFamilyId } = useFamily();
-  const [schedules, setSchedules] = useState<CareScheduleItem[]>([]);
+  // Schedules are keyed by family + person: after a switch the previous person's list (and the counts built on it)
+  // is never shown, and a late response for them is dropped.
+  const key = activeFamilyId && recipientUserId ? `${activeFamilyId}|${recipientUserId}` : "";
+  const [loaded, setLoaded] = useState<{ key: string; schedules: CareScheduleItem[]; canManage: boolean } | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
-  const [canManage, setCanManage] = useState(false);
+  const reqRef = useRef(0);
 
   const refresh = useCallback(async () => {
+    const reqId = ++reqRef.current;
     if (!activeFamilyId || !recipientUserId) {
-      setSchedules([]);
+      setLoaded(null);
       setLoading(false);
       return;
     }
+    const forKey = `${activeFamilyId}|${recipientUserId}`;
 
     setLoading(true);
     setError("");
     try {
       const { data } = await getCareSchedule(activeFamilyId, recipientUserId);
-      setSchedules(data?.schedules ?? []);
-      setCanManage(Boolean(data?.canManage));
+      if (reqId !== reqRef.current) return;
+      setLoaded({ key: forKey, schedules: data?.schedules ?? [], canManage: Boolean(data?.canManage) });
     } catch (err) {
+      if (reqId !== reqRef.current) return;
       setError(err instanceof Error ? err.message : "Failed to load care schedule");
-      setSchedules([]);
-      setCanManage(false);
+      setLoaded({ key: forKey, schedules: [], canManage: false });
     } finally {
-      setLoading(false);
+      if (reqId === reqRef.current) setLoading(false);
     }
   }, [activeFamilyId, recipientUserId]);
+
+  const current = loaded && loaded.key === key ? loaded : null;
+  const schedules = current?.schedules ?? NO_SCHEDULES;
+  const canManage = current?.canManage ?? false;
+  const busy = loading || (Boolean(key) && !current);
 
   useRun(refresh);
 
@@ -130,7 +142,7 @@ export function CareRecipientScheduleProvider({
   const value = useMemo(
     () => ({
       schedules,
-      loading,
+      loading: busy,
       saving,
       error,
       canManage,
@@ -139,7 +151,7 @@ export function CareRecipientScheduleProvider({
       updateSchedule,
       removeSchedule,
     }),
-    [schedules, loading, saving, error, canManage, refresh, addSchedule, updateSchedule, removeSchedule],
+    [schedules, busy, saving, error, canManage, refresh, addSchedule, updateSchedule, removeSchedule],
   );
 
   return (

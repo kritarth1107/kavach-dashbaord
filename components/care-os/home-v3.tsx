@@ -76,45 +76,60 @@ export function HomeV3({
   saheliSays,
   kavachNumber,
   onDecide,
+  onRetry,
   busy,
 }: {
   person: HomeV3Person;
   me: string;
-  home: CareHomeSummary;
+  /** null: the day's summary did not load; what did load still shows, with a note and a retry */
+  home: CareHomeSummary | null;
   portrait: Portrait | null;
   saheliSays: string | null;
   kavachNumber: string | null;
   onDecide: (id: string, approve: boolean) => void;
+  onRetry: () => void;
   busy: string | null;
 }) {
   const acts = (portrait?.activities ?? []).filter((a) => !a.paused);
   const habits = acts.filter((a) => a.kind !== "routine");
   const routines = acts.filter((a) => a.kind === "routine");
-  const vitals = (Object.entries(home.vitals) as Array<[string, VitalSummary]>).filter(([, v]) => v);
-  const moduleCount = [home.doses.length, habits.length, vitals.length, home.followUps.length, home.tasks.length, home.timeline.length].filter(Boolean).length;
+  const vitals = home ? (Object.entries(home.vitals) as Array<[string, VitalSummary]>).filter(([, v]) => v) : [];
+  const moduleCount = home ? [home.doses.length, habits.length, vitals.length, home.followUps.length, home.tasks.length, home.timeline.length].filter(Boolean).length : 1;
   const ask = person.self ? "" : `How is ${person.callAs} today?`;
 
   return (
     <div className="space-y-4">
       <MoodHero person={person} me={me} home={home} portrait={portrait} saheliSays={saheliSays} habits={habits} askHref={waLink(kavachNumber, ask)} />
 
-      {home.needsYou.length > 0 && <NeedsYou items={home.needsYou} onDecide={onDecide} busy={busy} />}
+      {home && home.needsYou.length > 0 && <NeedsYou items={home.needsYou} personId={person.id} onDecide={onDecide} busy={busy} />}
 
       <div className="grid gap-4 lg:grid-cols-12">
         <div className="space-y-4 lg:col-span-7">
+          {!home && <NotLoaded onRetry={onRetry} />}
           {habits.length > 0 && <Habits person={person} habits={habits} routines={routines} />}
           {vitals.length > 0 && <Readings person={person} vitals={vitals} />}
-          {home.timeline.length > 0 && <Timeline items={home.timeline} />}
+          {home && home.timeline.length > 0 && <Timeline items={home.timeline} />}
           {moduleCount === 0 && <QuietDay person={person} askHref={waLink(kavachNumber, person.self ? "Hi Saheli" : `Hi Saheli, please check on ${person.callAs}`)} />}
         </div>
         <div className="space-y-4 lg:col-span-5">
-          {home.doses.length > 0 && <Medicines person={person} home={home} />}
-          {home.followUps.length > 0 && <ComingUp items={home.followUps} />}
-          {home.tasks.length > 0 && <Errands tasks={home.tasks} personId={person.id} />}
+          {home && home.doses.length > 0 && <Medicines person={person} home={home} />}
+          {home && home.followUps.length > 0 && <ComingUp items={home.followUps} />}
+          {home && home.tasks.length > 0 && <Errands tasks={home.tasks} personId={person.id} />}
           {portrait?.gaps && <KnowMore person={person} gaps={portrait.gaps} kavachNumber={kavachNumber} />}
         </div>
       </div>
     </div>
+  );
+}
+
+/** The day's summary (medicines, readings, orders, decisions) did not load: a calm note and a retry, never the raw error. */
+function NotLoaded({ onRetry }: { onRetry: () => void }) {
+  return (
+    <Panel className="flex flex-col items-start gap-3 p-6">
+      <p className="text-[16px] font-medium">Today&apos;s medicines, readings and orders didn&apos;t load</p>
+      <p className="max-w-md text-[13px] text-[var(--c-ink-2)]">Nothing is lost. Try again in a moment.</p>
+      <SmallButton onClick={onRetry}>Try again</SmallButton>
+    </Panel>
   );
 }
 
@@ -131,30 +146,36 @@ function MoodHero({
 }: {
   person: HomeV3Person;
   me: string;
-  home: CareHomeSummary;
+  home: CareHomeSummary | null;
   portrait: Portrait | null;
   saheliSays: string | null;
   habits: PortraitActivity[];
   askHref: string | null;
 }) {
-  const mood = home.mood;
+  // without the day's summary, the portrait's mood; and no "no word yet" claim, as we do not know
+  const mood = home ? home.mood : (portrait?.mood.now ?? null);
   const tone = toneOf(mood?.score);
   const T = TONE[tone];
   const h = istHour();
   const greeting = h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening";
   const word = mood?.word?.toLowerCase();
-  const heardToday = !!home.lastHeardAt && new Date(home.lastHeardAt).toLocaleDateString("en-CA", { timeZone: IST }) === todayIst();
+  const lastHeardAt = home?.lastHeardAt ?? null;
+  const heardToday = !!lastHeardAt && new Date(lastHeardAt).toLocaleDateString("en-CA", { timeZone: IST }) === todayIst();
   const headline = word
     ? person.self
       ? `You seem ${word} today`
       : `${person.callAs} seems ${word} today`
-    : heardToday
+    : !home
       ? person.self
-        ? "Saheli has been with you today"
-        : `${person.callAs} has been chatting with Saheli`
-      : person.self
-        ? "Saheli hasn't heard from you today"
-        : `No word from ${person.callAs} yet today`;
+        ? "Your day"
+        : `${person.callAs}'s day`
+      : heardToday
+        ? person.self
+          ? "Saheli has been with you today"
+          : `${person.callAs} has been chatting with Saheli`
+        : person.self
+          ? "Saheli hasn't heard from you today"
+          : `No word from ${person.callAs} yet today`;
   const lowLine = person.self
     ? "Go easy on yourself today. Saheli will check in gently, and you can always just talk to her."
     : `A short call from you would mean a lot today.`;
@@ -180,9 +201,9 @@ function MoodHero({
                   {cap(mood.word || "mood")} · {hm(mood.at)}
                 </span>
               )}
-              {home.lastHeardAt && (
+              {lastHeardAt && (
                 <span className="inline-flex h-8 items-center rounded-full bg-[var(--c-frame)] px-3 text-[12.5px] text-[var(--c-ink-2)]">
-                  Last heard {ago(home.lastHeardAt)}
+                  Last heard {ago(lastHeardAt)}
                 </span>
               )}
               {best && best.streak >= 2 && (
@@ -281,8 +302,9 @@ function MoodWeek({ days }: { days: Array<{ day?: string; score: number | null; 
 
 /* ── needs you ────────────────────────────────────────────────────────────── */
 
-function NeedsYou({ items, onDecide, busy }: { items: CareHomeSummary["needsYou"]; onDecide: (id: string, approve: boolean) => void; busy: string | null }) {
-  const labels = (n: CareHomeSummary["needsYou"][number]) =>
+function NeedsYou({ items, personId, onDecide, busy }: { items: CareHomeSummary["needsYou"]; personId: string; onDecide: (id: string, approve: boolean) => void; busy: string | null }) {
+  // Buttons only for kinds Home can act on; stuck work (live 14 Oct) or a kind the engine adds later links to Orders & rides.
+  const labels = (n: CareHomeSummary["needsYou"][number]): [string, string] | null =>
     n.kind === "refill"
       ? ["Reorder", "Later"]
       : n.kind === "appointment"
@@ -291,27 +313,39 @@ function NeedsYou({ items, onDecide, busy }: { items: CareHomeSummary["needsYou"
           ? n.input === "confirm"
             ? ["Confirm", "Decline"]
             : ["Open", "Later"]
-          : ["Approve", "Reject"];
+          : n.kind === "fact"
+            ? ["Approve", "Reject"]
+            : null;
   return (
     <Panel className="bg-[var(--c-accent-wash)] shadow-[inset_0_0_0_1px_var(--c-accent-soft)]">
       <PanelTitle title="Needs you" right={<Tag>{items.length}</Tag>} />
       <ul className="mt-3 divide-y divide-[var(--c-line)]">
         {items.map((n) => {
-          const [yes, no] = labels(n);
+          const both = labels(n);
           return (
             <li key={n.id} className="flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="min-w-0">
                 <p className="text-[14px] font-medium">{n.title}</p>
                 {n.meta && <p className="mt-0.5 text-[12px] text-[var(--c-ink-2)]">{n.meta}</p>}
               </div>
-              <div className="flex shrink-0 gap-2">
-                <SmallButton dark disabled={busy === n.id} onClick={() => onDecide(n.id, true)}>
-                  {yes}
-                </SmallButton>
-                <SmallButton disabled={busy === n.id} onClick={() => onDecide(n.id, false)}>
-                  {no}
-                </SmallButton>
-              </div>
+              {both ? (
+                <div className="flex shrink-0 gap-2">
+                  <SmallButton dark disabled={busy === n.id} onClick={() => onDecide(n.id, true)}>
+                    {both[0]}
+                  </SmallButton>
+                  <SmallButton disabled={busy === n.id} onClick={() => onDecide(n.id, false)}>
+                    {both[1]}
+                  </SmallButton>
+                </div>
+              ) : (
+                <Link
+                  href={`/dashboard/saheli/tasks?recipient=${personId}`}
+                  className="inline-flex h-8 shrink-0 items-center gap-1.5 self-start rounded-full border border-[var(--c-line)] bg-[var(--c-frame)] px-3.5 text-[12px] font-medium transition-colors hover:bg-[var(--c-card)] sm:self-auto"
+                >
+                  Orders &amp; rides
+                  <ArrowRight size={12} weight="bold" aria-hidden />
+                </Link>
+              )}
             </li>
           );
         })}
@@ -501,7 +535,7 @@ function Medicines({ person, home }: { person: HomeV3Person; home: CareHomeSumma
           return (
             <li key={d.id} className="flex items-center gap-3 py-2.5">
               <span className="c-num w-12 shrink-0 text-[13px] text-[var(--c-ink-2)]">{d.time}</span>
-              <span className="min-w-0 flex-1 truncate text-[13.5px]">
+              <span className="min-w-0 flex-1 truncate text-[13.5px]" title={d.dose ? `${d.name} · ${d.dose}` : d.name}>
                 {d.name}
                 {d.dose ? <span className="text-[var(--c-ink-2)]"> · {d.dose}</span> : null}
               </span>

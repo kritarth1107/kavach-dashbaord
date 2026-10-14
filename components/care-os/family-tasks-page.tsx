@@ -1,12 +1,12 @@
 "use client";
 
 import { BellRinging, CheckCircle, Clock, ListChecks } from "@phosphor-icons/react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { addFamilyTask, completeFamilyTask, getFamilyTasks, type FamilyTask } from "@/lib/care-features-api";
 import { useFamily } from "@/components/dashboard/family-context";
 import { cn } from "@/lib/utils";
 import { Drawer, ErrorNote, INPUT, LABEL, OnWhatsApp, PageHeading, clock, dayKey, dayWord, parseIst, shortDate } from "./feature-kit";
-import { callName, usePerson } from "./person-context";
+import { callName, possessive, usePerson } from "./person-context";
 import { Avatar, DarkButton, Panel, PanelTitle, PillTabs, SmallButton, Tag } from "./ui";
 
 type Filter = "all" | "mine" | "others";
@@ -14,10 +14,12 @@ type Draft = { title: string; assignee: string; date: string; time: string; abou
 
 export function FamilyTasksPage() {
   const { userId } = useFamily();
-  const { familyId, selectedId, people, members, me } = usePerson();
+  const { familyId, selectedId, selected, people, members, me } = usePerson();
   const myId = userId ?? people.find((p) => p.self)?.id ?? me.id;
-  const [tasks, setTasks] = useState<FamilyTask[]>([]);
-  const [loading, setLoading] = useState(true);
+  const subject = selectedId;
+  const key = `${familyId}|${subject}`;
+  // keyed by person: the previous person's list never shows (or lands) under the next one while it loads
+  const [state, setState] = useState<{ key: string; tasks: FamilyTask[]; error: string } | null>(null);
   const [error, setError] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
   const [busy, setBusy] = useState<string | null>(null);
@@ -25,17 +27,22 @@ export function FamilyTasksPage() {
   const [formError, setFormError] = useState("");
   const [saving, setSaving] = useState(false);
   const [now] = useState(() => Date.now());
-  const subject = selectedId;
+  const who = selected?.self ? "you" : callName(selected) || "them";
+
+  const latest = useRef(key);
+  useEffect(() => {
+    latest.current = key;
+  }, [key]);
 
   const load = useCallback(async () => {
     if (!familyId || !subject) return;
+    const k = `${familyId}|${subject}`;
     try {
-      setTasks(await getFamilyTasks(familyId, subject));
-      setError("");
+      const list = await getFamilyTasks(familyId, subject);
+      if (latest.current === k) setState({ key: k, tasks: list, error: "" });
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Couldn't load tasks");
-    } finally {
-      setLoading(false);
+      const text = e instanceof Error ? e.message : "Couldn't load tasks";
+      if (latest.current === k) setState((s) => ({ key: k, tasks: s?.key === k ? s.tasks : [], error: text }));
     }
   }, [familyId, subject]);
 
@@ -43,6 +50,14 @@ export function FamilyTasksPage() {
     const t = setTimeout(() => void load(), 0);
     return () => clearTimeout(t);
   }, [load]);
+
+  const loading = state?.key !== key;
+  // this person's tasks and the ones for the whole family, never another person's (as on Orders and Tasks)
+  const tasks = useMemo(
+    () => (state && !loading ? state.tasks.filter((t) => !t.subjectId || t.subjectId === subject || t.subjectId === "family") : []),
+    [state, loading, subject],
+  );
+  const setTasks = (fn: (xs: FamilyTask[]) => FamilyTask[]) => setState((s) => (s ? { ...s, tasks: fn(s.tasks) } : s));
 
   const joined = useMemo(() => members.filter((m) => m.userId && m.status === "joined"), [members]);
   const nameOf = useCallback(
@@ -56,8 +71,10 @@ export function FamilyTasksPage() {
   );
   const avatarOf = (id: string | null) => members.find((x) => x.userId === id)?.avatarUrl ?? null;
   const fullName = (id: string | null) => members.find((x) => x.userId === id)?.name ?? nameOf(id);
-  // a family task is shared by everyone, so each one says whom it is for
+  // the page is one person's, so only a task for someone else (the whole family) says whom it is for
   const aboutOf = (id: string) => {
+    if (id === subject) return null;
+    if (id === "family") return "the whole family";
     const p = people.find((x) => x.id === id);
     if (p) return p.self ? "Self care" : callName(p);
     const m = members.find((x) => x.userId === id);
@@ -172,9 +189,9 @@ export function FamilyTasksPage() {
   return (
     <div className="space-y-4">
       <PageHeading
-        light="Family"
-        dark="Tasks"
-        sub="Shared by the whole family: who's doing what for everyone you care for, each marked with whom it is for. Anyone in the family can pick up a task and mark it done."
+        light={possessive(selected)}
+        dark="Family tasks"
+        sub={`Who in the family is doing what for ${who}, and the tasks for the whole family. Anyone in the family can pick up a task and mark it done.`}
         right={<DarkButton onClick={openForm} className="self-start lg:self-auto">New task</DarkButton>}
       />
 
@@ -189,9 +206,11 @@ export function FamilyTasksPage() {
               { id: "others", label: `Others · ${tasks.filter((t) => t.assignee !== myId).length}` },
             ]}
           />
-          {error && <ErrorNote>{error}</ErrorNote>}
+          {(error || (!loading && state?.error)) && <ErrorNote>{error || state?.error}</ErrorNote>}
           {loading ? (
-            <div className="h-[300px] animate-pulse rounded-[24px] bg-[var(--c-card)]" />
+            <div className="h-[300px] animate-pulse rounded-[24px] bg-[var(--c-card)]" aria-busy="true" aria-label="Loading" />
+          ) : state?.error && !state.tasks.length ? (
+            <SmallButton onClick={() => void load()}>Try again</SmallButton>
           ) : (
             <>
               <Panel>
@@ -222,10 +241,9 @@ export function FamilyTasksPage() {
         <aside className="space-y-4">
           <Panel accent className="flex flex-col">
             <p className="text-[11px] font-medium uppercase tracking-[0.06em] opacity-80">Open tasks</p>
-            <p className="c-num mt-4 text-[56px] leading-none">{allOpen.length}</p>
+            <p className="c-num mt-4 text-[56px] leading-none">{loading ? "–" : allOpen.length}</p>
             <p className="mt-2 text-[12px] opacity-80">
-              {overdue ? `${overdue} overdue · ` : ""}
-              {mineOpen} {mineOpen === 1 ? "is" : "are"} yours
+              {loading ? "Loading…" : `${overdue ? `${overdue} overdue · ` : ""}${mineOpen} ${mineOpen === 1 ? "is" : "are"} yours`}
             </p>
           </Panel>
           {workload.length > 0 && (

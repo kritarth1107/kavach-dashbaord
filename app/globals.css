@@ -28,6 +28,7 @@
   --shadow-soft: 0 1px 4px rgba(22, 82, 70, 0.06);
   --elevated: #ffffff;
   --elevated-muted: #f8f9fb;
+  --surface-muted: #f8f9fb;
   --table-row-alt: #fcfcfd;
   --table-row-hover: #fafbfd;
   --chart-grid: #f0f0f2;
@@ -67,6 +68,7 @@
   --shadow-soft: 0 1px 4px rgba(0, 0, 0, 0.35);
   --elevated: #161b18;
   --elevated-muted: #1c221e;
+  --surface-muted: #1c221e;
   --table-row-alt: #121714;
   --table-row-hover: #232924;
   --chart-grid: rgba(255, 255, 255, 0.06);
@@ -458,6 +460,7 @@ input[type="checkbox"] {
   --input-bg: var(--c-frame);
   --elevated: var(--c-frame);
   --elevated-muted: var(--c-card);
+  --surface-muted: var(--c-frame);
   --shadow-soft: none;
 }
 
@@ -473,8 +476,14 @@ input[type="checkbox"] {
   background: #eef0ec;
 }
 
+.dark .care-os .dashboard-card-hover:hover {
+  background: var(--c-chip);
+}
+
+/* Filled hero card: jade with its own text colour (its children use text-white, never on marigold). */
 .care-os .lime-card {
-  background: var(--c-accent);
+  background: var(--c-solid);
+  color: var(--c-on-solid);
   border-radius: 24px;
 }
 
@@ -491,8 +500,8 @@ input[type="checkbox"] {
 }
 
 .care-os .status-pill-success {
-  background: #e6f2ec;
-  color: var(--c-forest);
+  background: var(--c-ok-soft);
+  color: var(--c-ok-ink);
 }
 
 .care-os .status-pill-pending {
@@ -500,12 +509,26 @@ input[type="checkbox"] {
   color: var(--c-accent-soft-ink);
 }
 
-.care-os .bg-primary {
-  background-color: var(--c-ink);
+.care-os .status-pill-rejected {
+  background: var(--c-danger-soft);
+  color: var(--c-danger-ink);
 }
 
-.care-os .text-primary {
-  color: var(--c-accent);
+/* Legacy filled buttons, selected pills and dots: jade with its own text colour, so `bg-primary text-white` reads in
+   both themes. --primary itself stays marigold for borders, rings and tints. */
+.care-os .bg-primary {
+  background-color: var(--c-solid);
+  color: var(--c-on-solid);
+}
+
+.care-os .bg-primary.border-primary {
+  border-color: var(--c-solid);
+}
+
+/* Marigold as text on light surfaces uses the darker accent-text. */
+.care-os .text-primary,
+.care-os .hover\:text-primary:hover {
+  color: var(--c-accent-text);
 }
 
 .care-os .icon-chip-green,
@@ -517,8 +540,8 @@ input[type="checkbox"] {
 }
 
 .care-os .icon-chip-red {
-  background: var(--c-accent-soft);
-  color: var(--c-accent-soft-ink);
+  background: var(--c-danger-soft);
+  color: var(--c-danger-ink);
 }
 
 .care-os .font-extrabold {

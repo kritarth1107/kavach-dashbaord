@@ -75,7 +75,7 @@ function PeopleOrbit({ people, center, centerPhoto, photos }: { people: Portrait
           <b className="mt-2.5 text-[13px] font-medium">{center}</b>
         </div>
         {ring.map((x, i) => (
-          <div key={`${x.kind}-${x.name}`} className={cn("absolute flex max-w-[48%] items-center gap-2 rounded-full bg-[var(--c-frame)] py-1 pl-1 pr-3.5 shadow-[0_10px_20px_-14px_rgba(0,0,0,0.4)]", spots[i])}>
+          <div key={`${x.kind}-${x.id ?? x.key ?? x.name}`} className={cn("absolute flex max-w-[48%] items-center gap-2 rounded-full bg-[var(--c-frame)] py-1 pl-1 pr-3.5 shadow-[0_10px_20px_-14px_rgba(0,0,0,0.4)]", spots[i])}>
             <PersonPhoto name={x.name} src={x.id ? photos.get(x.id) : null} rounded="rounded-full" className="h-[42px] w-[42px]" text={15} />
             <div className="min-w-0">
               <b className="block truncate text-[12.5px] font-medium">
@@ -89,7 +89,7 @@ function PeopleOrbit({ people, center, centerPhoto, photos }: { people: Portrait
       </div>
       <ul className={cn("mt-3 space-y-2", ring.length > 0 && "sm:hidden")}>
         {ring.map((x) => (
-          <li key={`m-${x.kind}-${x.name}`} className="flex items-center gap-2.5 rounded-[16px] bg-[var(--c-frame)] p-2">
+          <li key={`m-${x.kind}-${x.id ?? x.key ?? x.name}`} className="flex items-center gap-2.5 rounded-[16px] bg-[var(--c-frame)] p-2">
             <PersonPhoto name={x.name} src={x.id ? photos.get(x.id) : null} rounded="rounded-full" className="h-9 w-9" text={13} />
             <span className="min-w-0 truncate text-[13px]">
               <b className="font-medium">{x.name}</b> <span className="capitalize text-[var(--c-ink-2)]">{x.relation}</span>
@@ -133,7 +133,7 @@ function noteLines(body: string) {
 
 export function MemoryPage() {
   const { familyId, selectedId, selected, isCaregiver } = usePerson();
-  const { data, loading, reload } = useCareOverview(familyId, selectedId);
+  const { data, error, loading, reload } = useCareOverview(familyId, selectedId);
   const [learned, setLearned] = useState<CareEvent[]>([]);
   // search belongs to one person: switching person starts with an empty search
   const [search, setSearch] = useState<{ id: string | null; q: string }>({ id: null, q: "" });
@@ -244,6 +244,13 @@ export function MemoryPage() {
             <div key={i} className="h-[220px] animate-pulse rounded-[24px] bg-[var(--c-card)]" />
           ))}
         </div>
+      ) : error && !data ? (
+        // a failed load is not an empty memory: say so, and nothing below pretends Saheli knows nothing
+        <Panel className="flex flex-col items-center gap-3 py-14 text-center">
+          <p className="text-[16px] font-medium">Couldn&apos;t load {selected?.self ? "your" : "their"} story right now</p>
+          <p className="max-w-sm text-[13px] text-[var(--c-ink-2)]">Nothing Saheli knows is lost. Try again in a moment.</p>
+          <SmallButton onClick={reload}>Try again</SmallButton>
+        </Panel>
       ) : (
         <>
           <div className="grid gap-4 xl:grid-cols-[minmax(0,1.55fr)_minmax(0,1fr)]">
@@ -254,7 +261,8 @@ export function MemoryPage() {
               ) : (
                 <div className="absolute inset-0 bg-[var(--c-solid)]" />
               )}
-              <div className="absolute inset-0 bg-gradient-to-r from-[rgba(15,42,34,0.92)] via-[rgba(15,42,34,0.72)] to-[rgba(15,42,34,0.05)]" />
+              {/* flat scrim over a photo so the words read (no gradients in Care OS v3) */}
+              {selected?.photo && <div className="absolute inset-0 bg-[rgba(15,42,34,0.72)]" />}
               <div className="relative flex h-full min-h-[340px] max-w-[640px] flex-col justify-between gap-6 p-6 sm:p-7">
                 <span className="inline-flex w-max items-center gap-1.5 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-[11.5px]">
                   <WhatsappLogo size={13} weight="fill" />
@@ -276,7 +284,7 @@ export function MemoryPage() {
                 )}
                 {hero?.said?.voice ? (
                   <span className="inline-flex w-max items-center gap-2 rounded-full bg-white/[0.12] py-1.5 pl-1.5 pr-4 text-[12px]">
-                    <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--c-accent)]">
+                    <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--c-accent)] text-[var(--c-accent-ink)]">
                       <Microphone size={14} weight="fill" />
                     </span>
                     Said in a voice note
@@ -310,7 +318,7 @@ export function MemoryPage() {
                   <b className="c-num block text-[22px] font-normal">+{p?.stats.learnedWeek ?? thisWeek}</b>
                   <span className="text-[11px] text-[var(--c-ink-2)]">learned this week</span>
                 </div>
-                <Link href="/dashboard/saheli/care" className={cn("rounded-[16px] px-3 py-2.5", (p?.stats.pending ?? 0) > 0 ? "bg-[var(--c-accent-soft)] text-[var(--c-accent-soft-ink)]" : "bg-[var(--c-frame)]")}>
+                <Link href={`/dashboard/saheli/care${selectedId ? `?recipient=${selectedId}` : ""}`} className={cn("rounded-[16px] px-3 py-2.5", (p?.stats.pending ?? 0) > 0 ? "bg-[var(--c-accent-soft)] text-[var(--c-accent-soft-ink)]" : "bg-[var(--c-frame)]")}>
                   <b className="c-num block text-[22px] font-normal">{p?.stats.pending ?? 0}</b>
                   <span className="text-[11px]">need your OK</span>
                 </Link>
@@ -385,7 +393,7 @@ export function MemoryPage() {
                         </div>
                         {isCaregiver &&
                           (pendingRow ? (
-                            <button type="button" disabled={deciding === l.key} onClick={() => void decide(l.key, true)} className="h-8 shrink-0 rounded-full bg-[var(--c-ok-ink)] px-3 text-[12px] font-medium text-white disabled:opacity-50">
+                            <button type="button" disabled={deciding === l.key} onClick={() => void decide(l.key, true)} className="h-8 shrink-0 rounded-full bg-[var(--c-solid)] px-3 text-[12px] font-medium text-[var(--c-on-solid)] disabled:opacity-50">
                               Approve
                             </button>
                           ) : (

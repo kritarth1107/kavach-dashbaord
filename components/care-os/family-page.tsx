@@ -108,10 +108,11 @@ function RecipientCard({ m, canManage, onRemove, onBlock }: { m: FamilyMember; c
           </p>
         )}
       </div>
-      {m.userId && (
+      {/* The person switcher only knows recipients who have joined; for anyone else the link would open someone else. */}
+      {m.userId && m.status === "joined" && (
         <Link
           href={`/dashboard?recipient=${m.userId}`}
-          className="mt-6 inline-flex h-10 items-center justify-center rounded-full bg-[var(--c-solid)] px-4 text-[13px] font-medium text-white hover:opacity-90"
+          className="mt-6 inline-flex h-10 items-center justify-center rounded-full bg-[var(--c-solid)] px-4 text-[13px] font-medium text-[var(--c-on-solid)] hover:opacity-90"
         >
           Open {m.name.split(" ")[0]}&apos;s care
         </Link>
@@ -145,7 +146,7 @@ function CircleRow({ m, me, canManage, onRemove, onBlock }: { m: FamilyMember; m
 
 export function FamilyPage() {
   const router = useRouter();
-  const { activeFamilyId, activeFamily, userId } = useFamily();
+  const { activeFamilyId, activeFamily, userId, loading: familyLoading } = useFamily();
   const { reloadMembers } = usePerson();
   const [members, setMembers] = useState<FamilyMember[]>([]);
   const [myRole, setMyRole] = useState<string | null>(null);
@@ -154,18 +155,29 @@ export function FamilyPage() {
   const [q, setQ] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
   const canManage = canManageFamilyMembers(myRole ?? activeFamily?.role);
+  const reqRef = useRef(0);
 
   const load = useCallback(async () => {
-    if (!activeFamilyId) return;
+    // Only the newest request may write, and a family switch starts empty: never show the previous family.
+    const reqId = ++reqRef.current;
+    setMembers([]);
+    setMyRole(null);
+    setError("");
+    if (!activeFamilyId) {
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
     try {
       const { data } = await getFamilyMembers(activeFamilyId);
+      if (reqId !== reqRef.current) return;
       setMyRole(data?.myRole ?? null);
       setMembers((data?.members ?? []).map(apiMemberToFamilyMember));
-      setError("");
     } catch (err) {
+      if (reqId !== reqRef.current) return;
       setError(err instanceof Error ? err.message : "Couldn't load family");
     } finally {
-      setLoading(false);
+      if (reqId === reqRef.current) setLoading(false);
     }
   }, [activeFamilyId]);
 
@@ -229,12 +241,18 @@ export function FamilyPage() {
 
       {error && <p className="rounded-[14px] bg-[var(--c-accent-soft)] px-4 py-2.5 text-[13px] text-[var(--c-accent-soft-ink)]">{error}</p>}
 
-      {loading ? (
+      {loading || (familyLoading && !activeFamilyId) ? (
         <div className="grid gap-4 md:grid-cols-3">
           {[0, 1, 2].map((i) => (
             <div key={i} className="h-[260px] animate-pulse rounded-[24px] bg-[var(--c-card)]" />
           ))}
         </div>
+      ) : !activeFamilyId ? (
+        <Panel>
+          <p className="py-6 text-center text-[13px] text-[var(--c-ink-3)]">
+            No family yet. Once you set one up or accept an invite, everyone in it shows up here.
+          </p>
+        </Panel>
       ) : (
         <>
           {filter !== "circle" && (

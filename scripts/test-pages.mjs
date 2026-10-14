@@ -18,8 +18,17 @@ const BASE = process.env.PAGES_BASE || "http://localhost:3123";
 const FAMILIES = Number(process.env.PAGES_FAMILIES || 12);
 const WIDTHS = (process.env.PAGES_WIDTHS || "1440,390").split(",").map(Number);
 const PARALLEL = Number(process.env.PAGES_PARALLEL || 4);
-const OUT = path.join(here, "out", "pages");
-const world = JSON.parse(zlib.gunzipSync(fs.readFileSync(path.join(here, "fixtures", "world-ui.json.gz"))).toString());
+const THEMES = (process.env.PAGES_THEMES || "light").split(",");
+const OUT = process.env.PAGES_OUT || path.join(here, "out", "pages");
+// PAGES_WORLD=<file.json[.gz]> replays another world: families whose `routes` map answers /api paths exactly as recorded
+// (a read-only capture of production stays in /tmp and is never committed)
+const readWorld = (file) => JSON.parse((file.endsWith(".gz") ? zlib.gunzipSync(fs.readFileSync(file)) : fs.readFileSync(file)).toString());
+const worldFiles = (process.env.PAGES_WORLD || ["world-ui.json.gz", "world-shapes.json.gz"].map((f) => path.join(here, "fixtures", f)).join(",")).split(",");
+const worlds = worldFiles.map(readWorld);
+// the first world drives the scripted checks; families of a world with `now` (production's shapes) see the browser clock
+// at that moment and are opened for every person they have, each at 1440 light and 390 dark
+const world = worlds[0];
+const SHAPE_WIDTHS = [[1440, "light"], [390, "dark"]];
 
 // invite links (invite-only sign-up): one usable, one already used
 const JOIN_ACTIVE = "7K2M9QXA4TBC8D1EFGHJ5NPRSV";
@@ -44,6 +53,20 @@ const PAGES = [
   { name: "tasks", path: "/dashboard/tasks" },
   { name: "approvals", path: "/dashboard/approvals" },
   { name: "billing", path: "/dashboard/billing" },
+  { name: "family-tasks", path: "/dashboard/family-tasks" },
+  { name: "learning", path: "/dashboard/learning" },
+  { name: "activity", path: "/dashboard/activity" },
+  { name: "activity-snapshot", path: "/dashboard/activity/snapshot" },
+  { name: "alerts", path: "/dashboard/alerts" },
+  { name: "addresses", path: "/dashboard/addresses" },
+  { name: "integrations", path: "/dashboard/integrations" },
+  { name: "help", path: "/dashboard/help" },
+  { name: "reports", path: "/dashboard/reports" },
+  { name: "member", path: (fam, p) => `/dashboard/family/${p.id}` },
+  { name: "member-edit", path: (fam, p) => `/dashboard/family/${p.id}/edit` },
+  { name: "member-new", path: "/dashboard/family/new" },
+  { name: "member-records", path: (fam, p) => `/dashboard/family/${p.id}/health-record` },
+  { name: "record-review", path: (fam, p) => `/dashboard/record/review/${firstDocument(fam, p) || "00000000-0000-4000-8000-0000000000d1"}` },
   { name: "emergency-link", path: "/e/world-link", public: true },
   // Food & nutrition (behind nutrition.page; the switch is on here) and the doctor's link: for families whose world
   // fixture has a food log
@@ -60,12 +83,39 @@ const PAGES = [
   { name: "join-used", path: `/join/${JOIN_USED}`, public: true, noWhatsAppLink: true, has: ["has been used", "Join the waitlist"], hasNot: ["Accept invite and sign up"] },
 ].filter((p) => !process.env.PAGES_ONLY || process.env.PAGES_ONLY.split(",").includes(p.name));
 
-const ERROR_SCREEN = /Application error|Something went wrong|This page couldn.t load|Unhandled Runtime Error/i;
+/** A health-record document of the person, when the family has one (the review page opens it). */
+function firstDocument(fam, p) {
+  const docs = fam.routes?.[`/api/families/${fam.familyId}/recipients/${p.id}/labs`]?.documents || fam.documents?.[p.id] || [];
+  return docs[0]?.documentId || null;
+}
+
+const ERROR_SCREEN =/Application error|Something went wrong|This page couldn.t load|Unhandled Runtime Error/i;
 const HYDRATION = /hydrat|did not match|server rendered HTML/i;
 // console noise that is not the page's fault (dev-only notices, the browser refusing a mocked image)
-const NOISE = /Download the React DevTools|\[Fast Refresh\]|\[HMR\]|favicon|Failed to load resource: the server responded with a status of 404 \(Not Found\)/i;
+const NOISE = /Download the React DevTools|\[Fast Refresh\]|\[HMR\]|favicon|Failed to load resource: the server responded with a status of (404|5\d\d) /i;
+
+// every route production answers, by template, from the worlds that carry recorded answers (production's shapes)
+const ID = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi;
+const template = (p) => p.replace(ID, ":id");
+const SHAPES = new Map();
+for (const w of worlds) for (const f of w.families) for (const [k, v] of Object.entries(f.routes || {})) if (!SHAPES.has(template(k.split("?")[0]))) SHAPES.set(template(k.split("?")[0]), v);
+/** The same answer with every list empty: what a person with nothing recorded yet gets. */
+const emptied = (v) => (Array.isArray(v) ? [] : v && typeof v === "object" ? Object.fromEntries(Object.entries(v).map(([k, x]) => [k, emptied(x)])) : v);
 
 function api(fam, url) {
+  const p = url.pathname;
+  if (fam.routes) {
+    const hit = fam.routes[p + url.search] ?? fam.routes[p];
+    if (hit !== undefined) return hit;
+  }
+  const answer = known(fam, url);
+  if (answer !== undefined) return answer;
+  // a route this family has no answer for: production's shape for it, nothing recorded
+  const shape = SHAPES.get(template(p));
+  return shape === undefined ? undefined : emptied(shape);
+}
+
+function known(fam, url) {
   const p = url.pathname;
   const primary = fam.people.find((x) => x.backendRole === "PRIMARY_CAREGIVER") || fam.people[0];
   const cared = fam.people.filter((x) => x.careRecipient);
@@ -104,6 +154,12 @@ function api(fam, url) {
     if (route in answers) return answers[route];
     return undefined;
   }
+  if (/\/daily-snapshot$/.test(p)) return { snapshot: null };
+  if (/\/saheli\/memories$/.test(p)) return { memories: [] };
+  if (/\/saheli\/memory\/profile$/.test(p)) return { profile_md: "", entities: [] };
+  if (p === "/api/admin/learning") return {};
+  // a record that isn't there (an old link): the backend's real answer
+  if (/\/labs\/[^/]+$/.test(p) && !/\/labs\/(highlights|trends)$/.test(p)) return { __status: 404, message: "Document not found." };
   if (new RegExp(`^/api/families/${fid}/subjects/[^/]+/reminders$`).test(p)) return { reminders: [] };
   if (new RegExp(`^/api/families/${fid}/subjects/[^/]+/reminders/day$`).test(p)) return { day: url.searchParams.get("day") || world.today, occurrences: [], reminders: [] };
   if (new RegExp(`^/api/families/${fid}/recipients/[^/]+/labs$`).test(p)) return { documents: [] };
@@ -135,7 +191,14 @@ function api(fam, url) {
   return undefined;
 }
 
-async function visit(ctx, fam, pg, width) {
+// what the backend answers when the engine is down (its real message): no page may show it, or crash, or go blank
+const ENGINE_DOWN = "Cannot reach the AI engine. Start kawach-ai-engine on port 8000.";
+const RAW_ERROR = /kawach-ai-engine|port \d{4}|Cannot reach the (AI engine|API server)|HTTP \d{3}|not in the world fixture|\[object Object\]/;
+// data that never belongs on a screen: a missing value, a broken number or date
+const BROKEN = /\bundefined\b|\bNaN\b|Invalid Date|\bnull\b(?! ?\w)|\bInfinity\b/;
+const FAMILY_ROUTES = /^\/api\/(auth\/me|users\/me|families\/switcher|families|families\/[^/]+|families\/[^/]+\/members)$/;
+
+async function visit(ctx, fam, pg, width, person, theme = "light", fail = false) {
   const page = await ctx.newPage();
   const problems = [];
   const missing = new Set();
@@ -160,25 +223,31 @@ async function visit(ctx, fam, pg, width) {
     }
     if (u.pathname.startsWith("/api/auth/") && u.pathname !== "/api/auth/me") return r.fulfill({ json: {} });
     if (r.request().method() !== "GET") return r.fulfill({ json: { success: true, data: {} } });
+    if (fail && !FAMILY_ROUTES.test(u.pathname)) return r.fulfill({ status: 503, json: { success: false, message: ENGINE_DOWN } });
     const data = api(fam, u);
     if (data === undefined) {
       missing.add(u.pathname.replaceAll(fam.familyId, ":familyId").replace(/\/(subjects|recipients)\/[^/]+/, "/$1/:id"));
       return r.fulfill({ status: 404, json: { success: false, message: "not in the world fixture" } });
     }
+    if (data && data.__status) return r.fulfill({ status: data.__status, json: { success: false, message: data.message } });
     return r.fulfill({ json: { success: true, data } });
   });
-  const cared = fam.people.find((x) => x.careRecipient) || fam.people[0];
-  const url = `${BASE}${pg.path}${pg.public ? "" : `?recipient=${cared.id}`}`;
+  if (fam.now) await page.clock.setFixedTime(new Date(fam.now));
+  const cared = person || fam.people.find((x) => x.careRecipient) || fam.people[0];
+  const route = typeof pg.path === "function" ? pg.path(fam, cared) : pg.path;
+  const url = `${BASE}${route}${pg.public ? "" : `${route.includes("?") ? "&" : "?"}recipient=${cared.id}`}`;
   try {
     await page.goto(url, { waitUntil: "networkidle", timeout: 90000 });
     await page.waitForTimeout(800);
     const text = await page.evaluate(() => document.body.innerText || "");
     if (ERROR_SCREEN.test(text)) problems.push(`error screen: ${text.match(ERROR_SCREEN)[0]}`);
     if (text.trim().length < 40) problems.push("empty page");
+    if (RAW_ERROR.test(text)) problems.push(`raw error text on screen: "${text.match(RAW_ERROR)[0]}"`);
+    if (BROKEN.test(text)) problems.push(`broken value on screen: "${text.slice(Math.max(0, text.search(BROKEN) - 40), text.search(BROKEN) + 20).replace(/\s+/g, " ")}"`);
     for (const words of pg.has || []) if (!text.includes(words)) problems.push(`missing "${words}"`);
     for (const words of pg.hasNot || []) if (text.includes(words)) problems.push(`should not say "${words}"`);
     if (pg.noWhatsAppLink && (await page.locator('a[href*="wa.me"]').count())) problems.push("a WhatsApp link on a page that must not open WhatsApp");
-    const shot = path.join(OUT, `${fam.id}-${pg.name}-${width}.png`);
+    const shot = path.join(OUT, `${fam.id}-${pg.name}-${width}${person ? `-${person.key}` : ""}${theme === "dark" ? "-dark" : ""}${fail ? "-down" : ""}.png`);
     if (problems.length || process.env.PAGES_SHOTS) await page.screenshot({ path: shot, fullPage: true });
   } catch (e) {
     problems.push(`did not load: ${String(e.message || e).slice(0, 160)}`);
@@ -207,22 +276,36 @@ function scopeFamily(base = world.families[0], { leak = true, oldEngine = false 
     byKind: Object.fromEntries(items.map((t) => [t.kind, Number(t.result.total.slice(1))])),
     items: items.map((t) => ({ at: t.createdAt, service: t.service, kind: t.kind, goal: t.goal, subjectId: t.subjectId ?? SCOPE_MAA, total: Number(t.result.total.slice(1)) })) });
   const answers = Object.values(base.engine)[0];
-  const forPerson = (tasks, spent) => ({
+  const forPerson = (tasks, spent, mood) => ({
     ...structuredClone(answers),
     overview: { ...structuredClone(answers.overview), tasks },
-    home: { ...structuredClone(answers.home), tasks, needsYou: [] },
+    home: { ...structuredClone(answers.home), tasks, needsYou: [], ...(mood ? { mood: { at, score: 4, source: "chat", summary: mood, word: "cheerful" } } : {}) },
     spending: spend(spent),
   });
   // the old engine answered every person's page with the whole family's orders
   const family = [sonRide, sonOrder, maaOrder];
+  const fid = "5c09e000-0000-4000-8000-0000000000f1";
+  const reminder = (n, who, text, time) => ({ reminderId: `5c09e000-0000-4000-8000-0000000000c${n}`, familyId: fid, recipientUserId: who, text, kind: "multi_time",
+    repeat: "daily", times: [time], daysOfWeek: [], date: null, startDate: null, endDate: null, status: "active", schedule: `Every day at ${time}`, skips: [],
+    next: { day: world.today, time }, timezone: "Asia/Kolkata", aboutKey: null, createdAt: at, createdBy: SCOPE_SON, updatedBy: null, lastFiredAt: null,
+    lastFiredSlotKey: null, stoppedAt: null, stoppedBy: null, stopConditionPhrase: null, windowStartMinutes: null, windowEndMinutes: null });
+  const maaRem = [reminder(1, SCOPE_MAA, "Walk to the temple garden", "07:30"), reminder(2, SCOPE_MAA, "Call the pharmacy about refills", "18:00")];
+  const sonRem = [reminder(3, SCOPE_SON, "Gym session with the trainer", "19:30")];
+  const occ = (r, status, delivery) => ({ reminderId: r.reminderId, text: r.text, time: r.times[0], status, ...(delivery ? { delivery } : {}), schedule: r.schedule, many: false, stopped: false });
+  const routes = {
+    [`/api/families/${fid}/subjects/${SCOPE_MAA}/reminders`]: { reminders: maaRem },
+    [`/api/families/${fid}/subjects/${SCOPE_MAA}/reminders/day`]: { day: world.today, reminders: maaRem, occurrences: [occ(maaRem[0], "sent", "read"), occ(maaRem[1], "sent", "failed")] },
+    [`/api/families/${fid}/subjects/${SCOPE_SON}/reminders`]: { reminders: sonRem },
+    [`/api/families/${fid}/subjects/${SCOPE_SON}/reminders/day`]: { day: world.today, reminders: sonRem, occurrences: [occ(sonRem[0], "scheduled")] },
+  };
   return {
-    id: "person-scope", household: "caregiver + mother", leakOrders: leak, language: "en", familyId: "5c09e000-0000-4000-8000-0000000000f1", shapes: [], places: [],
+    id: "person-scope", household: "caregiver + mother", leakOrders: leak, language: "en", familyId: fid, shapes: [], places: [], routes, failing: new Set(),
     people: [
       { id: SCOPE_MAA, backendRole: "CARE_RECIPIENT", careRecipient: true, first: "Kamla", surname: "Devi", name: "Kamla Devi", key: "maa", relation: "Mother", city: "Pune", phone: "+919000000201" },
       { id: SCOPE_SON, backendRole: "PRIMARY_CAREGIVER", careRecipient: false, first: "Ravi", surname: "Kumar", name: "Ravi Kumar", key: "self", relation: "self", city: "Pune", phone: "+919000000202" },
     ],
     engine: {
-      [SCOPE_MAA]: forPerson(oldEngine ? family : leak ? [maaOrder, sonOrder] : [maaOrder], oldEngine ? family : [maaOrder]),
+      [SCOPE_MAA]: forPerson(oldEngine ? family : leak ? [maaOrder, sonOrder] : [maaOrder], oldEngine ? family : [maaOrder], "Sang bhajans with the neighbours"),
       [SCOPE_SON]: forPerson(oldEngine ? family : [sonRide, sonOrder], oldEngine ? family : [sonOrder, sonRide]),
     },
     orders: [
@@ -249,6 +332,7 @@ async function scopePage(browser, fam, pathAndQuery, { stored } = {}) {
     const m = u.pathname.match(/\/subjects\/([^/]+)\/care-memory\/(overview|home|spending|work|boundaries)$/);
     if (m) asked.push(`${m[2]}:${m[1]}`);
     if (r.request().method() !== "GET") return r.fulfill({ json: { success: true, data: {} } });
+    if ([...fam.failing].some((f) => u.pathname.endsWith(f))) return r.fulfill({ status: 503, json: { success: false, message: ENGINE_DOWN } });
     const data = api(fam, u);
     return data === undefined ? r.fulfill({ status: 404, json: { success: false } }) : r.fulfill({ json: { success: true, data } });
   });
@@ -326,6 +410,87 @@ async function personScope(browser) {
   check(!t.includes("Protein bars for Ravi"), "approvals (Maa): HIS order shows on her page");
   await shot(v.page, "approvals-maa");
   await v.ctx.close();
+
+  // 7. All reminders on her profile, then switched to him: his only, never hers (the list and the open detail kept the
+  //    previous person's reminders, and Stop/Skip went out with her reminder under his name; 2026-10-14)
+  v = await scopePage(browser, fam, `/dashboard/saheli?recipient=${SCOPE_MAA}`);
+  await v.page.getByText("All reminders", { exact: true }).first().click();
+  check(await show(v.page, "Walk to the temple garden"), "all reminders (Maa): her reminder is not listed");
+  t = await text(v.page);
+  check(!t.includes("Gym session with the trainer"), "all reminders (Maa): HIS reminder is listed");
+  await shot(v.page, "reminders-maa");
+  await v.page.getByRole("button", { name: /Switch person/ }).first().click();
+  await v.page.getByRole("option", { name: /Ravi Kumar/ }).first().click();
+  check(await show(v.page, "Gym session with the trainer"), "all reminders (switched to self): his reminder is not listed");
+  t = await text(v.page);
+  check(!t.includes("Walk to the temple garden") && !t.includes("Call the pharmacy about refills"), "all reminders (switched to self): HER reminders are still listed");
+  check(!v.errors.length, `reminders: page error ${v.errors[0]}`);
+  await v.ctx.close();
+  // 7b. switched while the new person's reminders are still on their way: never the previous person's list meanwhile
+  v = await scopePage(browser, fam, `/dashboard/saheli?recipient=${SCOPE_SON}`);
+  await v.page.getByText("All reminders", { exact: true }).first().click();
+  check(await show(v.page, "Gym session with the trainer"), "all reminders (self): his reminder is not listed");
+  await v.page.route(/\/subjects\/5c09e000-0000-4000-8000-00000000a001\/reminders/, async (r) => {
+    await new Promise((ok) => setTimeout(ok, 4000));
+    const data = api(fam, new URL(r.request().url()));
+    await r.fulfill({ json: { success: true, data } }).catch(() => undefined);
+  });
+  await v.page.getByRole("button", { name: /Switch person/ }).first().click();
+  await v.page.getByRole("option", { name: /Kamla Devi/ }).first().click();
+  await v.page.waitForTimeout(1200);
+  t = await text(v.page);
+  check(!t.includes("Gym session with the trainer"), "all reminders (switched to Maa, hers still loading): HIS reminders are listed under her");
+  check(await show(v.page, "Walk to the temple garden"), "all reminders (switched to Maa): hers never arrived");
+  await shot(v.page, "reminders-switch-slow");
+  await v.ctx.close();
+
+  // 8. WhatsApp's ticks on the Day page: a sent reminder that WhatsApp could not deliver never looks delivered
+  v = await scopePage(browser, fam, `/dashboard/saheli?recipient=${SCOPE_MAA}`);
+  check(await show(v.page, "Call the pharmacy about refills"), "ticks: the reminder is not on the Day page");
+  t = await text(v.page);
+  check(/not delivered/i.test(t), "ticks: a sent reminder WhatsApp could not deliver is not marked as not delivered");
+  await shot(v.page, "ticks-maa");
+  await v.ctx.close();
+
+  // 9. Home switched to a person whose day can't load: none of the previous person's day shows under the new name
+  v = await scopePage(browser, fam, `/dashboard?recipient=${SCOPE_MAA}`);
+  check(await show(v.page, "Sang bhajans with the neighbours"), "home (Maa): her mood is not shown");
+  await v.page.route(/\/subjects\/5c09e000-0000-4000-8000-00000000a002\/care-memory\/home$/, (r) => r.fulfill({ status: 503, json: { success: false, message: ENGINE_DOWN } }));
+  await v.page.getByRole("button", { name: /Switch person/ }).first().click();
+  await v.page.getByRole("option", { name: /Ravi Kumar/ }).first().click();
+  await v.page.waitForTimeout(1500);
+  t = await text(v.page);
+  check(!t.includes("Sang bhajans with the neighbours"), "home (switched, his day failed): HER mood shows under his name");
+  check(!t.includes(ENGINE_DOWN), "home (switched, his day failed): the raw error is shown");
+  check(!v.errors.length, `home: page error ${v.errors[0]}`);
+  await shot(v.page, "home-switch-failed");
+  await v.ctx.close();
+  return problems;
+}
+
+// ── The public emergency link (no sign-in): never an ID number, and "no allergies" only when that was said (a paramedic
+// reads "None known" as "safe to give anything"; 2026-10-14)
+async function publicCard(browser) {
+  const problems = [];
+  const fam = structuredClone(world.families[0]);
+  const cared = fam.people.find((x) => x.careRecipient) || fam.people[0];
+  const card = (fam.engine[cared.id] ||= {}).emergency || {};
+  fam.engine[cared.id].emergency = { ...card, allergies: [], none: { ...(card.none || {}), allergy: false }, profile: { ...(card.profile || {}), blood_group: "B+", id_note: "Aadhaar 9999 8888 7777" } };
+  const ctx = await browser.newContext({ viewport: { width: 390, height: 860 }, timezoneId: "Asia/Kolkata", locale: "en-IN" });
+  const page = await ctx.newPage();
+  await page.route(/^https?:\/\/[^/]+\/api\//, (r) => {
+    const data = api(fam, new URL(r.request().url()));
+    return data === undefined ? r.fulfill({ status: 404, json: { success: false } }) : r.fulfill({ json: { success: true, data } });
+  });
+  await page.goto(`${BASE}/e/world-link`, { waitUntil: "networkidle", timeout: 90000 });
+  await page.waitForTimeout(500);
+  const t = await page.evaluate(() => document.body.innerText || "");
+  if (!t.includes("B+")) problems.push("public card: did not render the card");
+  if (t.includes("9999 8888 7777")) problems.push("public card: shows an ID number");
+  if (/None known/i.test(t.split(/allerg/i)[1]?.slice(0, 60) || "")) problems.push("public card: says no allergies when nobody said so");
+  if (await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1)) problems.push("public card: scrolls sideways at 390px");
+  if (process.env.PAGES_SHOTS) await page.screenshot({ path: path.join(OUT, "public-card-390.png"), fullPage: true });
+  await ctx.close();
   return problems;
 }
 
@@ -519,12 +684,20 @@ function fallbackFamilyPage(p) {
 (async () => {
   if (process.env.PAGES_NO_RUN) return;
   fs.mkdirSync(OUT, { recursive: true });
-  const fams = world.families.slice(0, FAMILIES);
+  const fams = worlds.flatMap((w, i) => (i === 0 ? w.families.slice(0, FAMILIES) : w.families).map((f) => (w.now ? { ...f, now: w.now, everyPerson: true } : f)));
   const jobs = [];
   // a page that reads an engine view the family's fixture doesn't have yet is left out for that family
   const hasView = (fam, route) => Object.values(fam.engine || {}).some((a) => a && route in a);
-  for (const fam of fams) for (const pg of PAGES) for (const w of WIDTHS) if (!pg.engine || hasView(fam, pg.engine)) jobs.push({ fam, pg, w });
-  console.log(`${jobs.length} page loads: ${fams.length} families x ${PAGES.length} pages x ${WIDTHS.length} widths, ${PARALLEL} at a time`);
+  // PAGES_PEOPLE=all: every page for every person of the family (each care recipient and each self-care caregiver)
+  const peopleOf = (fam) => (process.env.PAGES_PEOPLE === "all" || fam.everyPerson ? fam.people.filter((x) => x.careRecipient || (fam.engine && fam.engine[x.id])) : [null]);
+  for (const fam of fams) for (const person of peopleOf(fam)) for (const pg of PAGES) {
+    if (pg.engine && !hasView(fam, pg.engine)) continue;
+    const combos = fam.now && !process.env.PAGES_THEMES ? SHAPE_WIDTHS : WIDTHS.flatMap((w) => THEMES.map((t) => [w, t]));
+    for (const [w, theme] of combos) jobs.push({ fam, pg, w, person, theme });
+  }
+  // the engine down: every data call fails for one family of each world, every page at 1440 (PAGES_DOWN=0 skips)
+  if (process.env.PAGES_DOWN !== "0") for (const fam of worlds.map((w, i) => fams.find((f) => (i === 0 ? !f.now : f.now)))) if (fam) for (const pg of PAGES) if (!pg.public && (!pg.engine || hasView(fam, pg.engine))) jobs.push({ fam, pg, w: 1440, person: null, theme: "light", fail: true });
+  console.log(`${jobs.length} page loads: ${fams.length} families (${worldFiles.map((f) => path.basename(f)).join(", ")}) x ${PAGES.length} pages, ${PARALLEL} at a time`);
   const browser = await chromium.launch();
   const failures = [];
   const missingAll = new Map();
@@ -532,15 +705,16 @@ function fallbackFamilyPage(p) {
   const t0 = Date.now();
   async function worker() {
     while (jobs.length) {
-      const { fam, pg, w } = jobs.shift();
+      const { fam, pg, w, person, theme, fail } = jobs.shift();
       // the browser in India, the server in UTC (as on Cloud Run): a time rendered on both sides must not differ
-      const ctx = await browser.newContext({ viewport: { width: w, height: 1000 }, timezoneId: "Asia/Kolkata", locale: "en-IN" });
+      const ctx = await browser.newContext({ viewport: { width: w, height: 1000 }, timezoneId: "Asia/Kolkata", locale: "en-IN", colorScheme: theme === "dark" ? "dark" : "light" });
       await ctx.addCookies([{ name: "kavach_session", value: "world", url: BASE }]);
-      const res = await visit(ctx, fam, pg, w);
+      await ctx.addInitScript((t) => window.localStorage.setItem("kavach-theme", t), theme);
+      const res = await visit(ctx, fam, pg, w, person, theme, fail);
       await ctx.close();
       done++;
       for (const m of res.missing) missingAll.set(m, (missingAll.get(m) || 0) + 1);
-      if (res.problems.length) failures.push(`${fam.id} (${fam.household}, ${fam.language}) ${pg.name} @${w}: ${[...new Set(res.problems)].slice(0, 3).join(" | ")}`);
+      if (res.problems.length) failures.push(`${fam.id} (${fam.household}, ${fam.language})${person ? ` [${person.key}]` : ""} ${pg.name} @${w}${theme === "dark" ? " dark" : ""}${fail ? " engine down" : ""}: ${[...new Set(res.problems)].slice(0, 3).join(" | ")}`);
       if (done % 50 === 0) console.log(`  ${done} loaded, ${failures.length} with problems, ${Math.round((Date.now() - t0) / 1000)}s`);
     }
   }
@@ -554,6 +728,11 @@ function fallbackFamilyPage(p) {
     const learned = (await Promise.all(WIDTHS.map((w) => learnedCard(browser, w)))).flat();
     console.log(learned.length ? `learned card: ${learned.length} problems` : "learned card: the person page reads Saheli's care record (facts, proposals, usuals, notes)");
     failures.push(...learned);
+  }
+  if (!process.env.PAGES_ONLY || process.env.PAGES_ONLY.split(",").includes("public-card")) {
+    const pc = await publicCard(browser);
+    console.log(pc.length ? `public card: ${pc.length} problems` : "public card: no ID number, allergies only as told, fits a phone");
+    failures.push(...pc);
   }
   if (!process.env.PAGES_ONLY || process.env.PAGES_ONLY.split(",").includes("onboarding-done")) {
     const end = (await Promise.all(WIDTHS.map((w) => onboardingDone(browser, w)))).flat();
