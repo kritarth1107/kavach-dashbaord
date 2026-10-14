@@ -26,7 +26,7 @@ export type EngineEntry = Omit<GenEntry, "photoRef" | "note" | "portionEaten" | 
   note: string | null;
   consumed: "yes" | "part" | null;
   portionEaten: string | null;
-  flags: { tags?: string[]; allergy?: string[]; deviation?: string[]; rough?: boolean };
+  flags: { tags?: string[]; allergy?: string[]; deviation?: string[]; rough?: boolean; facts?: string[] };
 };
 
 export type EngineMeal = Omit<GenMeal, "entries"> & { entries: EngineEntry[] };
@@ -177,6 +177,8 @@ export type DiaryItem = {
   overStrict: boolean;
   /** A drink (it carries water): its portion reads in ml. */
   drink: boolean;
+  /** Facts from the food's own per-100 g numbers: fried, high fat, high sodium. */
+  facts: string[];
 };
 
 export type DiaryMeal = {
@@ -304,6 +306,7 @@ function item(e: EngineEntry): DiaryItem {
     allergy: Boolean(e.flags?.allergy?.length),
     overStrict: Boolean(e.flags?.deviation?.length),
     drink: Boolean((e.nutrients as Nutrients)?.water_ml || e.flags?.tags?.includes("water")),
+    facts: (e.flags?.facts || []).filter((f): f is string => f === "fried" || f === "high fat" || f === "high sodium"),
   };
 }
 
@@ -359,7 +362,7 @@ function summaryDay(r: EngineDayRow, glassMl: number, today: string): DiaryDay {
       note: null,
       items: m.names.map((name, i) => ({
         id: `${r.day}:${slot}:${i}`, mealId: `${r.day}:${slot}`, meal: slot, eatenAt: m.at, name, nameSaid: null, quantity: null, unit: null, portion: null,
-        kcal: 0, protein: 0, nutrients: {}, confidence: "said", source: "", consumed: null, allergy: false, overStrict: false, drink: false,
+        kcal: 0, protein: 0, nutrients: {}, confidence: "said", source: "", consumed: null, allergy: false, overStrict: false, drink: false, facts: [],
       })),
       totals: { kcal: m.kcal, protein: m.protein_g },
       editable: false,

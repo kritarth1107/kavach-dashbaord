@@ -395,6 +395,7 @@ function ItemLine({ it }: { it: DiaryItem }) {
           {it.name}
           {it.portion && <span className="text-[var(--c-ink-2)]"> · {it.portion}</span>}
           {it.consumed === "part" && <span className="text-[var(--c-ink-2)]"> · ate part</span>}
+          {it.facts.length > 0 && <span className="text-[var(--c-ink-2)]"> · {it.facts.join(", ")}</span>}
           {it.allergy && <span className="text-[var(--c-danger-ink)]"> · on the allergy list</span>}
           {it.nameSaid && <span className="hidden text-[12px] text-[var(--c-ink-2)] sm:inline"> &ldquo;{it.nameSaid}&rdquo;</span>}
         </p>
