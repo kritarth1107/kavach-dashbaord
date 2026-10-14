@@ -25,8 +25,25 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci --no-audit --no-fund
-      - run: npm run test:records
-      - run: npm run test:memory
+      - name: Typecheck and lint
+        run: |
+          npx next typegen
+          npx tsc --noEmit -p .
+          npx eslint . --max-warnings=0
+          npm run test:records
+          npm run test:memory
+          npm run test:nutrition
+      - name: Every page for synthetic world families
+        env:
+          AUTH_SECRET: ci-page-test-only
+          AUTH_URL: http://localhost:3123
+          AUTH_TRUST_HOST: "true"
+        run: |
+          npx playwright install --with-deps chromium
+          npx next build
+          (TZ=UTC npx next start -p 3123 > /tmp/next.log 2>&1 &)
+          for i in $(seq 1 45); do curl -sf -o /dev/null http://localhost:3123/auth/login && break; sleep 2; done
+          PAGES_BASE=http://localhost:3123 PAGES_FAMILIES=12 PAGES_PARALLEL=6 node scripts/test-pages.mjs
 
   deploy:
     needs: test
@@ -47,13 +64,16 @@ jobs:
           aws ecr get-login-password --region "$AWS_REGION" | docker login --username AWS --password-stdin "${ECR%/*}"
           docker build --build-arg NEXT_PUBLIC_API_URL=https://api.brainbehindkavach.me -t "$IMAGE" .
           docker push "$IMAGE"
-      - name: Roll the live service (image only)
+      - name: Roll the live service
         env:
           IMAGE: ${{ env.ECR }}:${{ github.sha }}
         run: |
           aws ecs describe-task-definition --task-definition "$FAMILY" --query taskDefinition \
-            | jq --arg IMG "$IMAGE" --arg NAME "kavach-dashboard" '
-                .containerDefinitions |= map(if ((.image | split("/") | last | split(":")[0]) == $NAME) then .image = $IMG else . end)
+            | jq --arg IMG "$IMAGE" --arg NAME "kavach-dashboard" --arg API "https://api.brainbehindkavach.me" '
+                .containerDefinitions |= map(if ((.image | split("/") | last | split(":")[0]) == $NAME) then
+                  .image = $IMG
+                  | .environment = ((.environment // []) | map(select(.name != "NEXT_PUBLIC_API_URL")) + [{name: "NEXT_PUBLIC_API_URL", value: $API}])
+                else . end)
                 | del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy)' \
             > /tmp/td.json
           REV=$(aws ecs register-task-definition --cli-input-json file:///tmp/td.json --query taskDefinition.revision --output text)

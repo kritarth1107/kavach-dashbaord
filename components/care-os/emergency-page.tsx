@@ -526,16 +526,7 @@ export function EmergencyPage() {
             <PanelTitle title="Nearest help" right={<span className="text-[12px] text-[var(--c-ink-2)]">{hospital ? "their hospital" : ""}</span>} />
             {hospital ? (
               <>
-                <div className="mt-3 h-[170px] overflow-hidden rounded-[18px] bg-[var(--c-frame)]">
-                  <iframe
-                    title={`Map: ${hospital.name}`}
-                    src={`https://www.google.com/maps?q=${encodeURIComponent(mapQuery)}&output=embed`}
-                    className="h-full w-full border-0"
-                    loading="lazy"
-                    referrerPolicy="no-referrer-when-downgrade"
-                  />
-                </div>
-                <p className="mt-2.5 truncate px-1 text-[12.5px]">
+                <p className="mt-3 truncate px-1 text-[12.5px]">
                   <b className="font-medium">{hospital.name}</b>
                   <span className="text-[var(--c-ink-2)]">{hospital.address ? ` · ${hospital.address}` : ""}</span>
                 </p>
@@ -548,7 +539,7 @@ export function EmergencyPage() {
                     <span className="inline-flex h-9 items-center justify-center rounded-full border border-dashed border-[var(--c-line)] text-[11.5px] text-[var(--c-ink-3)]">No phone saved</span>
                   )}
                   <a
-                    href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(mapQuery)}${data?.home ? `&origin=${encodeURIComponent(data.home)}` : ""}`}
+                    href={`https://www.openstreetmap.org/search?query=${encodeURIComponent(mapQuery)}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex h-9 items-center justify-center gap-1.5 rounded-full bg-[var(--c-solid)] text-[12.5px] font-medium text-[var(--c-on-solid)]"

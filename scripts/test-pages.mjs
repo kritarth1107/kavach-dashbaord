@@ -246,6 +246,11 @@ async function visit(ctx, fam, pg, width, person, theme = "light", fail = false)
     if (BROKEN.test(text)) problems.push(`broken value on screen: "${text.slice(Math.max(0, text.search(BROKEN) - 40), text.search(BROKEN) + 20).replace(/\s+/g, " ")}"`);
     for (const words of pg.has || []) if (!text.includes(words)) problems.push(`missing "${words}"`);
     for (const words of pg.hasNot || []) if (text.includes(words)) problems.push(`should not say "${words}"`);
+    // no Google on a care page (maps embed, fonts, scripts). Sign-in may still offer a Google account.
+    if (pg.name !== "sign-in") {
+      const googleLoads = await page.locator("iframe[src*='google.'], a[href*='google.'], img[src*='google.'], script[src*='google.']").count();
+      if (googleLoads) problems.push("loads Google");
+    }
     if (pg.noWhatsAppLink && (await page.locator('a[href*="wa.me"]').count())) problems.push("a WhatsApp link on a page that must not open WhatsApp");
     const shot = path.join(OUT, `${fam.id}-${pg.name}-${width}${person ? `-${person.key}` : ""}${theme === "dark" ? "-dark" : ""}${fail ? "-down" : ""}.png`);
     if (problems.length || process.env.PAGES_SHOTS) await page.screenshot({ path: shot, fullPage: true });
