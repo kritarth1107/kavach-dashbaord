@@ -1,0 +1,63 @@
+name: Deploy dashboard to AWS
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-dashboard-aws
+  cancel-in-progress: false
+
+env:
+  AWS_REGION: ap-south-1
+  ECR: 743887469650.dkr.ecr.ap-south-1.amazonaws.com/kavach-dashboard
+  FAMILY: kavach-dashboard
+  SERVICE: dashboard
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm run test:records
+      - run: npm run test:memory
+
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::743887469650:role/gh-deploy-kavach-dashbaord
+          aws-region: ap-south-1
+      - name: Build and push
+        env:
+          IMAGE: ${{ env.ECR }}:${{ github.sha }}
+        run: |
+          aws ecr get-login-password --region "$AWS_REGION" | docker login --username AWS --password-stdin "${ECR%/*}"
+          docker build --build-arg NEXT_PUBLIC_API_URL=https://api.brainbehindkavach.me -t "$IMAGE" .
+          docker push "$IMAGE"
+      - name: Roll the live service (image only)
+        env:
+          IMAGE: ${{ env.ECR }}:${{ github.sha }}
+        run: |
+          aws ecs describe-task-definition --task-definition "$FAMILY" --query taskDefinition \
+            | jq --arg IMG "$IMAGE" --arg NAME "kavach-dashboard" '
+                .containerDefinitions |= map(if ((.image | split("/") | last | split(":")[0]) == $NAME) then .image = $IMG else . end)
+                | del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy)' \
+            > /tmp/td.json
+          REV=$(aws ecs register-task-definition --cli-input-json file:///tmp/td.json --query taskDefinition.revision --output text)
+          aws ecs update-service --cluster kavach --service "$SERVICE" --task-definition "$FAMILY:$REV" >/dev/null
+          aws ecs wait services-stable --cluster kavach --service "$SERVICE"
+      - name: Smoke test
+        run: curl -fsS -o /dev/null -w '%{http_code}\n' https://app.kavach.care/auth/login | grep -E '200|307'
