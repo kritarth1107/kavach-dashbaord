@@ -26,9 +26,8 @@ const readWorld = (file) => JSON.parse((file.endsWith(".gz") ? zlib.gunzipSync(f
 const worldFiles = (process.env.PAGES_WORLD || ["world-ui.json.gz", "world-shapes.json.gz"].map((f) => path.join(here, "fixtures", f)).join(",")).split(",");
 const worlds = worldFiles.map(readWorld);
 // the first world drives the scripted checks; families of a world with `now` (production's shapes) see the browser clock
-// at that moment and are opened for every person they have, each at 1440 light and 390 dark
+// at that moment and are opened for every person they have, at 1440 and 390, light and dark
 const world = worlds[0];
-const SHAPE_WIDTHS = [[1440, "light"], [390, "dark"]];
 
 // invite links (invite-only sign-up): one usable, one already used
 const JOIN_ACTIVE = "7K2M9QXA4TBC8D1EFGHJ5NPRSV";
@@ -151,6 +150,19 @@ function known(fam, url) {
     if (route === "voice") return { mode: "auto", means: "" };
     if (route === "nutrition/shares") return { shares: [] };
     if (route === "nutrition/foods") return { foods: [] };
+    if (route === "nutrition" && !(route in answers)) {
+      const day = world.today;
+      return {
+        subjectId: cm[1], day, days: 1,
+        tracking: { tracking: "full", ask: "adaptive", counters: [], daily_summary_to: [], sizes: {} },
+        targets: [], rules: [],
+        today: { day, meals: [], totals: {}, progress: [], water: { ml: 0, glasses: 0, glassMl: 250, targetMl: null } },
+        history: [], counters: [], week: [],
+        month: { calendar: [], trends: { kcal: [], protein_g: [], sugar_g: [], sodium_mg: [] } },
+        nutrients: [], streaks: { allMeals: 0, proteinMet: 0 }, pantry: [], waiting: [], pendingQuestions: [], noticed: [],
+        units: [], mealSlots: ["breakfast", "lunch", "snack", "dinner"],
+      };
+    }
     if (route in answers) return answers[route];
     return undefined;
   }
@@ -197,6 +209,24 @@ const RAW_ERROR = /kawach-ai-engine|port \d{4}|Cannot reach the (AI engine|API s
 // data that never belongs on a screen: a missing value, a broken number or date
 const BROKEN = /\bundefined\b|\bNaN\b|Invalid Date|\bnull\b(?! ?\w)|\bInfinity\b/;
 const FAMILY_ROUTES = /^\/api\/(auth\/me|users\/me|families\/switcher|families|families\/[^/]+|families\/[^/]+\/members)$/;
+
+/** The left-rail item this path owns. null: the shell is up but this page has no rail item (settings and the like). undefined: no shell. Keep in step with navFor in components/care-os/frame.tsx. */
+function railLabel(route) {
+  const p = String(route).split("?")[0];
+  if (!p.startsWith("/dashboard")) return undefined;
+  if (p === "/dashboard") return "Home";
+  if (p.startsWith("/dashboard/emergency")) return "Emergency card";
+  if (p.startsWith("/dashboard/saheli/care")) return "Medicines & care";
+  if (p.startsWith("/dashboard/saheli/tasks") || p.startsWith("/dashboard/approvals")) return "Orders & rides";
+  if (p.startsWith("/dashboard/saheli/memory")) return "What Saheli knows";
+  if (p.startsWith("/dashboard/wellbeing")) return "Wellbeing";
+  if (p.startsWith("/dashboard/nutrition")) return "Food diary";
+  if (p.startsWith("/dashboard/saheli") || p.startsWith("/dashboard/activity") || p.startsWith("/dashboard/alerts")) return "Today";
+  if (p.startsWith("/dashboard/record") || p.startsWith("/dashboard/reports") || p.startsWith("/dashboard/report") || p.startsWith("/dashboard/care-team") || /health-record/.test(p)) return "Health records";
+  if (p.startsWith("/dashboard/family") || p.startsWith("/dashboard/addresses") || p.startsWith("/dashboard/spending")) return "Family";
+  if (p.startsWith("/dashboard/invitations")) return "Invitations";
+  return null;
+}
 
 async function visit(ctx, fam, pg, width, person, theme = "light", fail = false) {
   const page = await ctx.newPage();
@@ -252,6 +282,13 @@ async function visit(ctx, fam, pg, width, person, theme = "light", fail = false)
       if (googleLoads) problems.push("loads Google");
     }
     if (pg.noWhatsAppLink && (await page.locator('a[href*="wa.me"]').count())) problems.push("a WhatsApp link on a page that must not open WhatsApp");
+    const railWant = railLabel(route);
+    if (railWant !== undefined) {
+      const labels = await page.locator("aside nav[aria-label='Main'] a[aria-current='page']").evaluateAll((els) => els.map((e) => e.getAttribute("aria-label")));
+      if (railWant === null) {
+        if (labels.length) problems.push(`rail highlighted ${labels.join(", ")} on a page with no rail item`);
+      } else if (labels.length !== 1 || labels[0] !== railWant) problems.push(`rail active ${labels.join(", ") || "none"}, expected ${railWant}`);
+    }
     const shot = path.join(OUT, `${fam.id}-${pg.name}-${width}${person ? `-${person.key}` : ""}${theme === "dark" ? "-dark" : ""}${fail ? "-down" : ""}.png`);
     if (problems.length || process.env.PAGES_SHOTS) await page.screenshot({ path: shot, fullPage: true });
   } catch (e) {
@@ -811,8 +848,11 @@ export async function onboardingFood(browser, width = 1440) {
   // PAGES_PEOPLE=all: every page for every person of the family (each care recipient and each self-care caregiver)
   const peopleOf = (fam) => (process.env.PAGES_PEOPLE === "all" || fam.everyPerson ? fam.people.filter((x) => x.careRecipient || (fam.engine && fam.engine[x.id])) : [null]);
   for (const fam of fams) for (const person of peopleOf(fam)) for (const pg of PAGES) {
-    if (pg.engine && !hasView(fam, pg.engine)) continue;
-    const combos = fam.now && !process.env.PAGES_THEMES ? SHAPE_WIDTHS : WIDTHS.flatMap((w) => THEMES.map((t) => [w, t]));
+    if (pg.engine && pg.engine !== "nutrition" && !hasView(fam, pg.engine)) continue;
+    // every page at 1440 and 390, light and dark, unless PAGES_THEMES / PAGES_WIDTHS narrows it
+    const combos = process.env.PAGES_THEMES || process.env.PAGES_WIDTHS
+      ? WIDTHS.flatMap((w) => THEMES.map((t) => [w, t]))
+      : [[1440, "light"], [1440, "dark"], [390, "light"], [390, "dark"]];
     for (const [w, theme] of combos) jobs.push({ fam, pg, w, person, theme });
   }
   // the engine down: every data call fails for one family of each world, every page at 1440 (PAGES_DOWN=0 skips)

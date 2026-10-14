@@ -29,13 +29,15 @@ import { cn } from "@/lib/utils";
 import { PersonPicker } from "./person-picker";
 import { Avatar } from "./ui";
 
-export type NavKey = "home" | "today" | "care" | "health" | "orders" | "saheli" | "memory" | "emergency" | "family" | "invitations" | "settings";
+export type NavKey = "home" | "today" | "care" | "health" | "wellbeing" | "food" | "orders" | "saheli" | "memory" | "emergency" | "family" | "invitations" | "settings";
 
 const RAIL: Array<{ key: NavKey; label: string; href: string; icon?: PhosphorIcon; text?: string }> = [
   { key: "home", label: "Home", href: "/dashboard", icon: House },
   { key: "today", label: "Today", href: "/dashboard/saheli", icon: CalendarDots },
   { key: "care", label: "Medicines & care", href: "/dashboard/saheli/care", text: "Rx" },
   { key: "health", label: "Health records", href: "/dashboard/record", icon: FirstAidKit },
+  { key: "wellbeing", label: "Wellbeing", href: "/dashboard/wellbeing", icon: Heart },
+  { key: "food", label: "Food diary", href: "/dashboard/nutrition", icon: ForkKnife },
   { key: "orders", label: "Orders & rides", href: "/dashboard/saheli/tasks", icon: ShoppingBag },
   { key: "memory", label: "What Saheli knows", href: "/dashboard/saheli/memory", icon: Brain },
   { key: "emergency", label: "Emergency card", href: "/dashboard/emergency", icon: Siren },
@@ -44,10 +46,10 @@ const RAIL: Array<{ key: NavKey; label: string; href: string; icon?: PhosphorIco
 ];
 
 /** Shortcuts beside the person picker, about whoever is selected. */
-const QUICK: Array<{ label: string; href: string; icon: PhosphorIcon }> = [
-  { label: "Wellbeing", href: "/dashboard/wellbeing", icon: Heart },
-  { label: "Medicines and refills", href: "/dashboard/saheli/care", icon: Pill },
-  { label: "Emergency card", href: "/dashboard/emergency", icon: Siren },
+const QUICK: Array<{ key: NavKey; label: string; href: string; icon: PhosphorIcon }> = [
+  { key: "wellbeing", label: "Wellbeing", href: "/dashboard/wellbeing", icon: Heart },
+  { key: "care", label: "Medicines and refills", href: "/dashboard/saheli/care", icon: Pill },
+  { key: "emergency", label: "Emergency card", href: "/dashboard/emergency", icon: Siren },
 ];
 
 /** Bottom tab bar on phones: the five places a caregiver opens most. The rest live in the menu drawer. */
@@ -119,13 +121,13 @@ export function CareShell({
     <div className="care-os h-dvh w-full overflow-hidden">
       <div className="flex h-full w-full overflow-hidden bg-[var(--c-frame)]">
         <aside className="hidden w-[84px] shrink-0 flex-col items-center justify-between border-r border-[var(--c-line)] py-6 md:flex">
-          <div className="flex flex-col items-center gap-1">
+          <div className="flex min-h-0 w-full flex-1 flex-col items-center gap-1 overflow-y-auto">
             <Link href="/dashboard" className="flex flex-col items-center gap-1">
               <KMark />
               <span className="text-[11px] font-medium">Kavach</span>
             </Link>
             <nav aria-label="Main" className="mt-8 flex flex-col items-center gap-3">
-              {RAIL.map((n) => {
+              {RAIL.filter((n) => n.key !== "food" || foodDiary).map((n) => {
                 const on = n.key === active;
                 return (
                   <Link
@@ -153,6 +155,7 @@ export function CareShell({
             <Link
               href="/dashboard/settings"
               aria-label={`Your profile and settings (${me.name})`}
+              aria-current={active === "settings" ? "page" : undefined}
               title={me.name}
               className="rounded-full ring-2 ring-[var(--c-frame)] ring-offset-0 outline outline-[1.5px] outline-offset-[2px] outline-[var(--c-line)] transition-[outline-color] hover:outline-[var(--c-accent)]"
             >
@@ -188,24 +191,35 @@ export function CareShell({
                     href="/dashboard/nutrition"
                     title="Food diary"
                     aria-label="Food diary"
-                    className="flex h-9 shrink-0 items-center gap-1.5 rounded-full px-2 text-[var(--c-ink)] hover:bg-[var(--c-card)] hover:text-[var(--c-accent-text)]"
+                    aria-current={active === "food" ? "page" : undefined}
+                    className={cn(
+                      "flex h-9 shrink-0 items-center gap-1.5 rounded-full px-2",
+                      active === "food" ? "bg-[var(--c-accent)] text-[var(--c-accent-ink)]" : "text-[var(--c-ink)] hover:bg-[var(--c-card)] hover:text-[var(--c-accent-text)]",
+                    )}
                   >
                     <ForkKnife size={18} weight="fill" />
                     <span className="text-[13px] font-medium">Food diary</span>
                   </Link>
                 )}
-                <span className="hidden items-center gap-1 px-1 text-[var(--c-ink)] sm:flex">
-                  {QUICK.map((q) => (
-                    <Link
-                      key={q.href}
-                      href={q.href}
-                      title={q.label}
-                      aria-label={q.label}
-                      className="flex h-8 w-8 items-center justify-center rounded-full transition-colors hover:bg-[var(--c-card)] hover:text-[var(--c-accent-text)]"
-                    >
-                      <q.icon size={18} weight="fill" />
-                    </Link>
-                  ))}
+                <span className="hidden items-center gap-1 px-1 sm:flex">
+                  {QUICK.map((q) => {
+                    const on = q.key === active;
+                    return (
+                      <Link
+                        key={q.href}
+                        href={q.href}
+                        title={q.label}
+                        aria-label={q.label}
+                        aria-current={on ? "page" : undefined}
+                        className={cn(
+                          "flex h-8 w-8 items-center justify-center rounded-full transition-colors",
+                          on ? "bg-[var(--c-accent)] text-[var(--c-accent-ink)]" : "text-[var(--c-ink)] hover:bg-[var(--c-card)] hover:text-[var(--c-accent-text)]",
+                        )}
+                      >
+                        <q.icon size={18} weight={on ? "fill" : "regular"} />
+                      </Link>
+                    );
+                  })}
                 </span>
               </div>
             </div>

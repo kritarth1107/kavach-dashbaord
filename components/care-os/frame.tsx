@@ -55,14 +55,14 @@ function navFor(pathname: string): NavKey {
   if (pathname.startsWith("/dashboard/saheli/care")) return "care";
   if (pathname.startsWith("/dashboard/saheli/tasks") || pathname.startsWith("/dashboard/approvals")) return "orders";
   if (pathname.startsWith("/dashboard/saheli/memory")) return "memory";
+  if (pathname.startsWith("/dashboard/wellbeing")) return "wellbeing";
+  if (pathname.startsWith("/dashboard/nutrition")) return "food";
   if (pathname.startsWith("/dashboard/saheli") || pathname.startsWith("/dashboard/activity") || pathname.startsWith("/dashboard/alerts")) return "today";
   if (
     pathname.startsWith("/dashboard/record") ||
     pathname.startsWith("/dashboard/reports") ||
     pathname.startsWith("/dashboard/report") ||
     pathname.startsWith("/dashboard/care-team") ||
-    pathname.startsWith("/dashboard/wellbeing") ||
-    pathname.startsWith("/dashboard/nutrition") ||
     /health-record/.test(pathname)
   )
     return "health";
@@ -203,12 +203,15 @@ function Drawer({ open, onClose }: { open: boolean; onClose: () => void }) {
             <section key={g.group} className={cn("mt-5", g.phoneOnly && "md:hidden")}>
               <p className="px-3 pb-2 text-[11px] font-medium uppercase tracking-[0.06em] text-[var(--c-ink-3)]">{g.group}</p>
               {g.items.filter((m) => !m.feature || features?.[m.feature]).map((m) => {
-                const on = pathname === m.href;
+                const matches = pathname === m.href || pathname.startsWith(`${m.href}/`);
+                const longer = matches && MENU.some((group) => group.items.some((other) => other.href.length > m.href.length && (pathname === other.href || pathname.startsWith(`${other.href}/`)) && (!other.feature || features?.[other.feature])));
+                const on = matches && !longer;
                 return (
                   <Link
                     key={m.href}
                     href={m.href}
                     onClick={onClose}
+                    aria-current={on ? "page" : undefined}
                     className={cn("flex items-center gap-3 rounded-[16px] px-3 py-2.5 text-[14px]", on ? "bg-[var(--c-card)] font-medium" : "hover:bg-[var(--c-card)]")}
                   >
                     <span className={cn("flex h-9 w-9 items-center justify-center rounded-full border", on ? "border-transparent bg-[var(--c-accent)] text-[var(--c-accent-ink)]" : "border-[var(--c-line)]")}>
