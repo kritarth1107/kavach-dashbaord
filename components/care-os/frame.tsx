@@ -93,7 +93,7 @@ const MENU: Array<{ group: string; phoneOnly?: boolean; items: Array<{ href: str
       { href: "/dashboard/emergency", label: "Emergency card", icon: Siren },
       { href: "/dashboard/care-team", label: "Care team & appointments", icon: Stethoscope },
       { href: "/dashboard/report", label: "Care report for the doctor", icon: ChartBar },
-      { href: "/dashboard/nutrition", label: "Food & nutrition", icon: ForkKnife, feature: "nutritionPage" },
+      { href: "/dashboard/nutrition", label: "Food diary", icon: ForkKnife, feature: "nutritionPage" },
       { href: "/dashboard/wellbeing", label: "Wellbeing", icon: Heart },
       { href: "/dashboard/notifications", label: "Notifications", icon: Bell },
       { href: "/dashboard/approvals", label: "Approvals", icon: CheckCircle },
@@ -260,7 +260,8 @@ function DrawerThemeSwitch() {
 function Inner({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { people, selectedId, select, me, unread, loading } = usePerson();
-  const { familyAccessAlert, dismissFamilyAccessAlert, setupUnfinished } = useFamily();
+  const { familyAccessAlert, dismissFamilyAccessAlert, setupUnfinished, activeFamilyId } = useFamily();
+  const features = useFeatures(activeFamilyId);
   const [menu, setMenu] = useState(false);
   const closeMenu = useCallback(() => setMenu(false), []);
   const isRecipientView = /^\/dashboard\/family\/[^/]+$/.test(pathname);
@@ -310,6 +311,7 @@ function Inner({ children }: { children: React.ReactNode }) {
       me={{ name: me.name || "there", avatar: me.avatar }}
       alerts={unread}
       onMenu={() => setMenu(true)}
+      foodDiary={features?.nutritionPage === true}
     >
       {body}
       <Drawer open={menu} onClose={closeMenu} />

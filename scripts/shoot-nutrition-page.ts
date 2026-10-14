@@ -26,7 +26,7 @@ const PEOPLE = [
 const ENGINE: Record<string, unknown> = JSON.parse(zlib.gunzipSync(fs.readFileSync(path.join(__dirname, "fixtures", "nutrition-engine.json.gz"))).toString());
 type Who = "elder" | "self";
 
-type Shot = { name: string; who: Who; width: number; dark?: boolean; view?: "day" | "week" | "month"; day?: string; time?: string; empty?: boolean; menu?: boolean; link?: boolean };
+type Shot = { name: string; who: Who; width: number; dark?: boolean; view?: "day" | "week" | "month"; day?: string; time?: string; empty?: boolean; menu?: boolean; link?: boolean; where?: "header" | "drawer" | "picker" };
 const ALL: Shot[] = [
   { name: "01-day-elder-desktop-light", who: "elder", width: 1440 },
   { name: "02-day-elder-desktop-dark", who: "elder", width: 1440, dark: true },
@@ -40,6 +40,12 @@ const ALL: Shot[] = [
   { name: "10-empty-day-elder-mobile-light", who: "elder", width: 390, time: "07:20", empty: true },
   { name: "11-doctor-link-elder-desktop-light", who: "elder", width: 1440, link: true },
   { name: "12-doctor-link-elder-mobile-light", who: "elder", width: 390, link: true },
+  { name: "13-where-self-desktop", who: "self", width: 1440, where: "header" },
+  { name: "14-where-self-mobile", who: "self", width: 390, where: "header" },
+  { name: "15-where-drawer-desktop", who: "elder", width: 1440, where: "drawer" },
+  { name: "16-where-drawer-mobile", who: "elder", width: 390, where: "drawer" },
+  { name: "17-where-self-picker-desktop", who: "self", width: 1440, where: "picker" },
+  { name: "18-where-self-picker-mobile", who: "self", width: 390, where: "picker" },
 ];
 const SHOTS = ALL.filter((s) => !process.env.NUTRITION_ONLY || process.env.NUTRITION_ONLY.split(",").some((k) => s.name.includes(k)));
 
@@ -123,6 +129,22 @@ async function shoot(browser: Awaited<ReturnType<typeof chromium.launch>>, s: Sh
   // the dev server's own badge is not part of the page
   await page.addStyleTag({ content: "nextjs-portal { display: none !important; }" });
   await page.waitForTimeout(700);
+  if (s.where === "drawer") {
+    await page.getByRole("button", { name: "Menu" }).click();
+    await page.getByRole("dialog", { name: "Menu" }).getByRole("link", { name: "Food diary" }).waitFor();
+  }
+  if (s.where === "picker") {
+    await page.getByRole("button", { name: "Self care. Switch person" }).click();
+    await page.getByRole("listbox").getByText("Self care", { exact: true }).waitFor();
+  }
+  if (s.where) {
+    await page.getByRole("link", { name: "Food diary" }).first().waitFor();
+    const file = path.join(OUT, `food-diary-${s.name}.png`);
+    await page.screenshot({ path: file });
+    await ctx.close();
+    for (const p of unanswered) errors.push(`unanswered ${p}`);
+    return { file, errors };
+  }
   if (s.menu) {
     await page.getByRole("button", { name: /Change lunch/ }).first().click();
     await page.waitForTimeout(200);

@@ -151,7 +151,7 @@ export function NutritionPage() {
     <div className="space-y-4 [--n-mark:var(--c-solid)] dark:[--n-mark:#3d9a83]">
       <PageHeading
         light={possessive(selected)}
-        dark="Food & nutrition"
+        dark="Food diary"
         sub={
           self
             ? "What you ate, as you told Saheli. The numbers sit in the margin, with how sure each one is."

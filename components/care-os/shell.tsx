@@ -7,6 +7,7 @@ import {
   CalendarDots,
   CheckCircle,
   FirstAidKit,
+  ForkKnife,
   Heart,
   House,
   List,
@@ -95,6 +96,7 @@ export function CareShell({
   me,
   alerts = 0,
   onMenu,
+  foodDiary = false,
   children,
 }: {
   active: NavKey;
@@ -105,6 +107,8 @@ export function CareShell({
   me: { name: string; avatar?: string | null };
   alerts?: number;
   onMenu?: () => void;
+  /** Beside the person picker, including Self care. Hidden until the Food diary switch is on. */
+  foodDiary?: boolean;
   children: React.ReactNode;
 }) {
   const now = useClock();
@@ -179,6 +183,17 @@ export function CareShell({
               </div>
               <div className="flex min-w-0 items-center gap-1 rounded-full sm:border sm:border-[var(--c-line)] sm:p-1 sm:pr-2">
                 <PersonPicker people={people} loading={loadingPeople} selectedId={selectedId} onSelect={onSelectPerson} />
+                {foodDiary && (
+                  <Link
+                    href="/dashboard/nutrition"
+                    title="Food diary"
+                    aria-label="Food diary"
+                    className="flex h-9 shrink-0 items-center gap-1.5 rounded-full px-2 text-[var(--c-ink)] hover:bg-[var(--c-card)] hover:text-[var(--c-accent-text)]"
+                  >
+                    <ForkKnife size={18} weight="fill" />
+                    <span className="text-[13px] font-medium">Food diary</span>
+                  </Link>
+                )}
                 <span className="hidden items-center gap-1 px-1 text-[var(--c-ink)] sm:flex">
                   {QUICK.map((q) => (
                     <Link
