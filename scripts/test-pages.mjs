@@ -707,7 +707,7 @@ function fallbackFamilyPage(p) {
     while (jobs.length) {
       const { fam, pg, w, person, theme, fail } = jobs.shift();
       // the browser in India, the server in UTC (as on Cloud Run): a time rendered on both sides must not differ
-      const ctx = await browser.newContext({ viewport: { width: w, height: 1000 }, timezoneId: "Asia/Kolkata", locale: "en-IN", colorScheme: theme === "dark" ? "dark" : "light" });
+      const ctx = await browser.newContext({ viewport: { width: w, height: Number(process.env.PAGES_HEIGHT || 1000) }, timezoneId: "Asia/Kolkata", locale: "en-IN", colorScheme: theme === "dark" ? "dark" : "light" });
       await ctx.addCookies([{ name: "kavach_session", value: "world", url: BASE }]);
       await ctx.addInitScript((t) => window.localStorage.setItem("kavach-theme", t), theme);
       const res = await visit(ctx, fam, pg, w, person, theme, fail);
