@@ -504,18 +504,20 @@ const ONBOARDING_PERSON = {
   medicines: [{ name: "Telma 40", dose: "1 tablet", times: ["08:00"], food: "after_food" }],
   day: { wake: "06:00", breakfast: "08:00", lunch: "13:00", tea: "17:00", dinner: "20:00", sleep: "22:00", activities: [] }, likes: ["bhajans"],
 };
-const onboardingState = () => {
-  const done = ["you_name", "care_for", "help_with", "emergency", "you_whatsapp", "anything_else",
-    ...["p_name", "p_call", "p_home", "p_age", "p_language", "p_reads", "p_day", "p_day_times", "p_likes", "p_conditions", "p_checks", "p_allergies",
-      "p_medicines", "p_meds_confirm", "p_problems", "p_whatsapp", "p_codes"].map((k) => `${k}:0`)];
-  const answers = { you: { name: "Priya Mehta", callMe: "Priya", phone: "+919000000202" }, careFor: "mother", persons: [ONBOARDING_PERSON],
+const PERSON_SLOTS = ["p_name", "p_call", "p_home", "p_age", "p_language", "p_reads", "p_day", "p_day_times", "p_diet", "p_likes", "p_conditions", "p_checks",
+  "p_allergies", "p_medicines", "p_meds_confirm", "p_problems", "p_whatsapp", "p_codes"];
+/** A saved onboarding chat: every question answered except `open` (asked next when the page loads), for `answers`. */
+const onboardingState = ({ open = [], answers, top = ["you_name", "care_for", "help_with", "self_help", "emergency", "you_whatsapp", "anything_else"] } = {}) => {
+  const done = [...top, ...PERSON_SLOTS.map((k) => `${k}:0`)].filter((k) => !open.includes(k));
+  answers ??= { you: { name: "Priya Mehta", callMe: "Priya", phone: "+919000000202" }, careFor: "mother", persons: [ONBOARDING_PERSON],
     helpWith: ["medicines", "checkins"], followups: [] };
   const chat = [
     { id: "m1", from: "saheli", text: "Namaste! I'm **Saheli** 🙏 I look after parents on WhatsApp — medicines, check-ins, a little company every day." },
-    { id: "m2", from: "saheli", text: "Here's everything I've noted. Shall I set it all up?" },
+    { id: "m2", from: "saheli", text: open.length ? "Welcome back! Let's pick up where we left off." : "Here's everything I've noted. Shall I set it all up?" },
   ];
   const at = new Date().toISOString();
-  return { required: true, status: "pending", name: "Priya Mehta", draft: { answers, step: "summary", chat, flow: { done, extra: [], nurse: "none", asked: "summary" } },
+  const asked = open.length ? "earlier" : "summary";
+  return { required: true, status: "pending", name: answers.you.name, draft: { answers, step: asked, chat, flow: { done, extra: [], nurse: "none", asked } },
     verified: { self: { phone: "+919000000202", at }, "person:0": { phone: "+919000000201", at } }, myPhone: "+919000000202", saheliNumber: SAHELI_NUMBER };
 };
 const ONBOARDING_RESULT = {
@@ -681,6 +683,119 @@ function fallbackFamilyPage(p) {
   return {};
 }
 
+// ── Food in the web onboarding (nutrition plan §N13; founder §N18 Q1: everyone's food is tracked by default and anyone
+// can turn it off). The diet question is five taps and a skip, with one line saying Saheli keeps track of what they eat
+// and how to turn it off (never an opt-in question); the choice goes to the backend with the answers. Self-care offers
+// "Food & nutrition" among the areas. Invented people only.
+const SELF_PERSON = {
+  relation: "Self", name: "Neha Joshi", addressAs: "Neha", gender: "female", age: 34, city: "Pune", livesWith: "family", language: "en", dialect: null,
+  reads: "text", phone: "+919000000202", conditions: [], problems: [], allergies: { none: true, items: [] }, medicines: [], noMedicines: true,
+  day: { wake: "06:30", breakfast: "08:30", lunch: "13:00", tea: "17:00", dinner: "20:30", sleep: "23:00", activities: [] }, likes: [],
+};
+const selfAnswers = (helpWith) => ({ you: { name: "Neha Joshi", phone: "+919000000202" }, careFor: "self", persons: [SELF_PERSON], helpWith, followups: [] });
+
+async function onboardingPage(browser, width, state) {
+  const ctx = await browser.newContext({ viewport: { width, height: width < 600 ? 860 : 1000 }, timezoneId: "Asia/Kolkata", locale: "en-IN" });
+  await ctx.addCookies([{ name: "kavach_session", value: "world", url: BASE }]);
+  const page = await ctx.newPage();
+  const errors = [];
+  const sent = { drafts: [], complete: null };
+  page.on("pageerror", (e) => errors.push(`page error: ${e.message.slice(0, 160)}`));
+  page.on("console", (m) => m.type() === "error" && !NOISE.test(m.text()) && errors.push(`console error: ${m.text().slice(0, 160)}`));
+  await page.route(/^https?:\/\/[^/]+\/api\//, (r) => {
+    const u = new URL(r.request().url());
+    if (u.pathname === "/api/client-error") return r.fulfill({ status: 204 });
+    if (u.pathname === "/api/auth/session") return r.fulfill({ json: { user: { name: state.name, email: "onboarding@world.kavach.test" }, expires: "2099-01-01T00:00:00.000Z" } });
+    if (u.pathname.startsWith("/api/auth/")) return r.fulfill({ json: {} });
+    if (u.pathname === "/api/onboarding") return r.fulfill({ json: { success: true, data: state } });
+    if (u.pathname === "/api/onboarding/draft") {
+      sent.drafts.push(r.request().postDataJSON());
+      return r.fulfill({ json: { success: true, data: { saved: true } } });
+    }
+    if (u.pathname === "/api/onboarding/complete") {
+      sent.complete = r.request().postDataJSON();
+      return r.fulfill({ json: { success: true, data: ONBOARDING_RESULT } });
+    }
+    return r.fulfill({ json: { success: true, data: {} } });
+  });
+  await page.goto(`${BASE}/onboarding`, { waitUntil: "networkidle", timeout: 90000 });
+  return { ctx, page, errors, sent };
+}
+
+export async function onboardingFood(browser, width = 1440) {
+  const problems = [];
+  const check = (cond, what) => !cond && problems.push(`onboarding-food @${width}: ${what}`);
+  const text = (page) => page.evaluate(() => document.body.innerText || "");
+  const finish = async (v) => {
+    const go = v.page.getByRole("button", { name: /Set everything up/ });
+    await go.waitFor({ timeout: 20000 });
+    const t = await text(v.page);
+    await go.click();
+    await v.page.getByRole("link", { name: /Send hi to Saheli on WhatsApp/ }).waitFor({ timeout: 20000 }).catch(() => undefined);
+    return t;
+  };
+  const run = async (name, state, steps) => {
+    let v;
+    try {
+      v = await onboardingPage(browser, width, state);
+      await steps(v);
+    } catch (e) {
+      problems.push(`onboarding-food @${width}: ${name}: ${String(e.message || e).slice(0, 160)}`);
+    }
+    for (const e of v?.errors || []) problems.push(`onboarding-food @${width}: ${name}: ${e}`);
+    if (v && (problems.length || process.env.PAGES_SHOTS)) await v.page.screenshot({ path: path.join(OUT, `onboarding-food-${name}-${width}.png`), fullPage: true }).catch(() => undefined);
+    await v?.ctx.close();
+  };
+
+  // 1. A caregiver, for her mother: the line about food tracking, then the diet as taps; "Vegetarian" goes to the backend
+  await run("caregiver", onboardingState({ open: ["p_diet:0"] }), async (v) => {
+    const veg = v.page.getByRole("button", { name: /^Vegetarian/ });
+    await veg.waitFor({ timeout: 20000 });
+    let t = await text(v.page);
+    check(t.includes("I keep track of what Maa eats (what, how much, nutrition), so you can ask me about it any time."), "no line saying Saheli keeps track of what Maa eats");
+    check(t.includes("You can turn it off whenever you like, just tell me."), "no line on how to turn food tracking off");
+    // the Food & nutrition page is behind its switch: the chat never points at it
+    check(!/on (your|the) dashboard/i.test(t.split("What kind of food")[0].slice(-400)), "the tracking line points at a dashboard page that may be off");
+    check(t.includes("What kind of food does Maa eat?"), "no diet question");
+    for (const o of ["Vegetarian", "Eggetarian", "Non-vegetarian", "Vegan", "Jain", "Skip"]) {
+      check(await v.page.getByRole("button", { name: new RegExp(`^${o}`) }).count() === 1, `no "${o}" choice`);
+    }
+    check(!/keep track of (food|meals)\?|want (me|saheli) to (keep track|track)/i.test(t), "food tracking is asked as an opt-in question");
+    await veg.click();
+    t = await finish(v);
+    check(t.includes("Vegetarian · I'll keep track of meals"), "the summary does not show the diet");
+    check(v.sent.complete?.answers?.persons?.[0]?.diet === "veg", `the answers sent to the backend carry diet ${JSON.stringify(v.sent.complete?.answers?.persons?.[0]?.diet)}`);
+  });
+
+  // 2. Self care: "Food & nutrition" is one of the areas, and choosing it is saved with the answers
+  await run("self-areas", onboardingState({ open: ["self_help", ...PERSON_SLOTS.map((k) => `${k}:0`)], answers: { ...selfAnswers([]), persons: [{ ...SELF_PERSON, city: undefined, diet: undefined }] } }), async (v) => {
+    const food = v.page.getByRole("button", { name: /Food & nutrition/ });
+    await food.waitFor({ timeout: 20000 });
+    await food.click();
+    await v.page.getByRole("button", { name: /^Done/ }).click();
+    await v.page.getByText("Which city or town do you live in?").waitFor({ timeout: 20000 });
+    await v.page.waitForTimeout(1200); // the draft is saved shortly after each answer
+    const last = v.sent.drafts.at(-1);
+    check(!!last?.answers?.helpWith?.includes("food"), `the self-care areas saved are ${JSON.stringify(last?.answers?.helpWith)}`);
+  });
+
+  // 3. Self care, diet skipped: her own wording, why it is asked, and nothing made up for the diet
+  await run("self-skip", onboardingState({ open: ["p_diet:0"], answers: selfAnswers(["food", "company"]) }), async (v) => {
+    const skip = v.page.getByRole("button", { name: /^Skip$/ });
+    await skip.waitFor({ timeout: 20000 });
+    const t = await text(v.page);
+    check(t.includes("I keep track of what you eat (what, how much, nutrition), so you can ask me about it any time."), "no self-care line about food tracking");
+    check(t.includes("What kind of food do you eat?"), "no self-care diet question");
+    check(t.includes("Asked because you picked food & nutrition"), "no reason shown for the diet question");
+    await skip.click();
+    await finish(v);
+    const p = v.sent.complete?.answers?.persons?.[0];
+    check(!!p && p.diet === undefined, `a skipped diet was sent as ${JSON.stringify(p?.diet)}`);
+    check(!!v.sent.complete?.answers?.helpWith?.includes("food"), "the self-care area food was not sent");
+  });
+  return problems;
+}
+
 (async () => {
   if (process.env.PAGES_NO_RUN) return;
   fs.mkdirSync(OUT, { recursive: true });
@@ -738,6 +853,11 @@ function fallbackFamilyPage(p) {
     const end = (await Promise.all(WIDTHS.map((w) => onboardingDone(browser, w)))).flat();
     console.log(end.length ? `onboarding done: ${end.length} problems` : "onboarding done: the Send hi to Saheli button ends the web setup");
     failures.push(...end);
+  }
+  if (!process.env.PAGES_ONLY || process.env.PAGES_ONLY.split(",").includes("onboarding-food")) {
+    const food = (await Promise.all(WIDTHS.map((w) => onboardingFood(browser, w)))).flat();
+    console.log(food.length ? `onboarding food: ${food.length} problems` : "onboarding food: diet taps with the tracking line, Food & nutrition for self care, both sent with the answers");
+    failures.push(...food);
   }
   await browser.close();
   console.log(`${done} pages in ${Math.round((Date.now() - t0) / 1000)}s`);

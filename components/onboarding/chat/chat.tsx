@@ -33,7 +33,7 @@ const you = (text: string, kind?: Msg["kind"]): Msg => ({ id: msgId(), from: "yo
 
 const CARD_OF: Record<string, CardKey> = {
   p_name: "who", p_call: "who", p_home: "who", p_age: "who", p_language: "speaks", p_reads: "speaks", p_conditions: "health", p_checks: "health",
-  p_allergies: "health", p_medicines: "meds", p_meds_confirm: "meds", p_day: "day", p_day_times: "day",
+  p_allergies: "health", p_medicines: "meds", p_meds_confirm: "meds", p_day: "day", p_day_times: "day", p_diet: "who",
 };
 
 function blank(myPhone?: string | null): Answers {

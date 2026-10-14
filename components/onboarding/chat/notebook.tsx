@@ -3,7 +3,7 @@
 /** Saheli's notebook: everything she has understood so far, filling in as the chat goes. */
 import { CheckCircle, Heartbeat, Pill, SunHorizon, Translate, User } from "@phosphor-icons/react";
 import { cn } from "@/lib/utils";
-import { pronoun, type Answers, type Person } from "../data";
+import { DIETS, pronoun, type Answers, type Person } from "../data";
 import { callOf, isSelf } from "./engine";
 import { greetingFor, option, scriptFor } from "./region";
 import { LABEL } from "./widgets";
@@ -61,7 +61,8 @@ export function Notebook({ answers: a, index, onIndex, fresh, compact }: { answe
   }
   const name = self ? (a.you.name || "you") : p.name;
   const meds = p.medicines.filter((m) => m.name);
-  const tags = [p.relation !== "Self" ? p.relation : "", p.age ? `${p.age}` : "", p.city?.split(",")[0] ?? "", p.livesWith === "alone" ? "Lives alone" : p.livesWith === "me" ? "Lives with you" : p.livesWith === "spouse" ? "With partner" : p.livesWith === "family" ? "With family" : ""].filter(Boolean);
+  const tags = [p.relation !== "Self" ? p.relation : "", p.age ? `${p.age}` : "", p.city?.split(",")[0] ?? "", p.livesWith === "alone" ? "Lives alone" : p.livesWith === "me" ? "Lives with you" : p.livesWith === "spouse" ? "With partner" : p.livesWith === "family" ? "With family" : "",
+    DIETS.find((d) => d.id === p.diet)?.label ?? ""].filter(Boolean);
   const health = [...p.conditions.map((c) => c.replace(/ \(.*\)$/, "")), p.conditionsOther].filter((x): x is string => !!x);
   const extra = [p.sugarCheck === "daily" ? "Sugar check daily" : p.sugarCheck === "sometimes" ? "Checks sugar sometimes" : "", p.bpMachine ? "BP machine at home" : "", p.allergies.none ? "No allergies" : "", ...p.allergies.items.map((x) => `Allergic: ${x}`)].filter(Boolean);
   return (

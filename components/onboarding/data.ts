@@ -32,7 +32,10 @@ export type Person = {
   likes: string[];
   likesOther?: string;
   avoidTopics?: string;
+  /** What they eat (a care fact `diet:<id>` on the backend). Optional: a skip leaves it out. */
+  diet?: Diet;
 };
+export type Diet = "veg" | "egg" | "nonveg" | "vegan" | "jain";
 export type Answers = {
   you: { name: string; callMe?: string; phone?: string };
   careFor?: "mother" | "father" | "both_parents" | "grandmother" | "grandfather" | "spouse" | "self" | "other";
@@ -137,6 +140,14 @@ export const PROBLEMS = ["Knee pain", "Back pain", "Poor sleep", "Feels lonely",
 export const ALLERGIES = ["Penicillin", "Sulfa drugs", "Aspirin", "Ibuprofen / painkillers", "Peanuts", "Milk / dairy", "Gluten", "Eggs", "Seafood", "Dust / pollen"];
 export const ACTIVITIES = ["Morning walk", "Puja / prayer", "Yoga", "Newspaper", "TV serials", "Afternoon nap", "Temple visit", "Evening walk", "Gardening", "Calls with family", "Cooking", "Bhajans"];
 export const LIKES = ["Grandchildren", "Old Hindi songs", "Bhajans", "Cooking & recipes", "Cricket", "Old movies", "Gardening", "News", "Religion & festivals", "Their village / hometown", "Health tips", "Stories from the past"];
+/** Diet types (button choices; the backend saves the id as a `diet` care fact). Neutral descriptions only. */
+export const DIETS: Array<{ id: Diet; label: string; hint: string }> = [
+  { id: "veg", label: "Vegetarian", hint: "No meat, fish or eggs" },
+  { id: "egg", label: "Eggetarian", hint: "Vegetarian, plus eggs" },
+  { id: "nonveg", label: "Non-vegetarian", hint: "Meat, fish and eggs" },
+  { id: "vegan", label: "Vegan", hint: "No meat, fish, eggs or dairy" },
+  { id: "jain", label: "Jain", hint: "No onion, garlic or root vegetables" },
+];
 export const HELP_WITH = [
   { id: "reminders", label: "Medicine reminders", hint: "On time, every day, in their language" },
   { id: "checkins", label: "Daily check-ins", hint: "Morning and evening: how are you, did you eat?" },

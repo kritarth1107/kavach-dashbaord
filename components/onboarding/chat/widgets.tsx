@@ -2,7 +2,7 @@
 
 /** The tap-able parts of the onboarding chat: they sit under Saheli's question, and typing or talking always works too. */
 import {
-  ArrowRight, CalendarHeart, Camera, ChatCircle, Check, CheckCircle, CircleNotch, DotsThree, Drop, FirstAidKit, Heart, MagnifyingGlass, MapPin,
+  ArrowRight, CalendarHeart, Camera, ChatCircle, Check, CheckCircle, CircleNotch, DotsThree, Drop, FirstAidKit, ForkKnife, Heart, MagnifyingGlass, MapPin,
   Moon, PencilSimple, Pill, Plus, Smiley, SneakerMove, User, Users,
 } from "@phosphor-icons/react";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -13,7 +13,7 @@ import { greetingFor, option, regionTop, searchOptions, type LangOption } from "
 import type { Option, SummaryRow } from "./engine";
 
 const ICONS: Record<string, typeof User> = {
-  user: User, users: Users, heart: Heart, dots: DotsThree, pill: Pill, moon: Moon, smiley: Smiley, drop: Drop, sneaker: SneakerMove, calendar: CalendarHeart, firstaid: FirstAidKit, chat: ChatCircle,
+  user: User, users: Users, heart: Heart, dots: DotsThree, pill: Pill, moon: Moon, smiley: Smiley, drop: Drop, sneaker: SneakerMove, calendar: CalendarHeart, firstaid: FirstAidKit, chat: ChatCircle, food: ForkKnife,
 };
 
 export const LABEL = "mb-2.5 flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-[0.07em] text-[var(--c-ink-3)]";

@@ -4,7 +4,7 @@
  * self-care areas → their own follow-ups), and Saheli's own follow-up questions slot in where they came up. Free
  * answers (typed or spoken) are read by the backend; this file only plans and words the conversation.
  */
-import { ALLERGIES, CALL_NAMES, CONDITIONS, GENDER_OF, HELP_WITH, LIKES, PROBLEMS, RELATION_OF, pronoun, type Answers, type Med, type Person } from "../data";
+import { ALLERGIES, CALL_NAMES, CONDITIONS, DIETS, GENDER_OF, HELP_WITH, LIKES, PROBLEMS, RELATION_OF, pronoun, type Answers, type Med, type Person } from "../data";
 import { greetingFor, option, regionTop, scriptFor } from "./region";
 
 export type Chapter = "You" | "Who" | "Their day" | "Health" | "Connect";
@@ -89,6 +89,7 @@ export const SELF_AREAS: Option[] = [
   { id: "sleep", label: "Sleep better", icon: "moon" },
   { id: "mood", label: "Stress & mood", icon: "smiley" },
   { id: "water", label: "Drink more water", icon: "drop" },
+  { id: "food", label: "Food & nutrition", icon: "food" },
   { id: "walks", label: "Walks & exercise", icon: "sneaker" },
   { id: "cycle", label: "Periods & cycle", icon: "calendar" },
   { id: "appointments", label: "Doctor visits & reports", icon: "firstaid" },
@@ -107,7 +108,7 @@ const SELF_FOLLOWUP: Record<string, { q: string; options: string[]; why: string 
 
 const CHAPTER_OF: Record<string, Chapter> = {
   you_name: "You", care_for: "You", self_help: "Who", self_f: "Who", p_name: "Who", p_call: "Who", p_home: "Who", p_age: "Who", p_language: "Who", p_reads: "Who",
-  p_day: "Their day", p_day_times: "Their day", p_likes: "Their day",
+  p_day: "Their day", p_day_times: "Their day", p_diet: "Their day", p_likes: "Their day",
   p_conditions: "Health", p_checks: "Health", p_allergies: "Health", p_medicines: "Health", p_meds_confirm: "Health", p_problems: "Health",
 };
 const slot = (base: string, person?: number, optional?: boolean): Slot => ({
@@ -126,7 +127,7 @@ export function plan(c: Ctx): Slot[] {
   a.persons.forEach((p, i) => {
     if (!self) out.push(slot("p_name", i), slot("p_call", i));
     out.push(slot("p_home", i), slot("p_age", i, true), slot("p_language", i), slot("p_reads", i));
-    out.push(slot("p_day", i), slot("p_day_times", i));
+    out.push(slot("p_day", i), slot("p_day_times", i), slot("p_diet", i, true));
     if (!self) out.push(slot("p_likes", i, true));
     out.push(slot("p_conditions", i));
     if (hasDiabetes(p) || hasBp(p)) out.push(slot("p_checks", i));
@@ -170,6 +171,7 @@ export function isDone(s: Slot, c: Ctx): boolean {
     case "p_reads": return !!p?.reads;
     case "p_day": return !!(p?.day.wake && p?.day.sleep);
     case "p_day_times": return !!(p?.day.wake && p?.day.sleep);
+    case "p_diet": return !!p?.diet;
     case "p_likes": return !!(p?.likes.length || p?.likesOther);
     case "p_conditions": return !!(p?.conditions.length || p?.conditionsOther);
     case "p_checks": return !!p && (!hasDiabetes(p) || !!p.sugarCheck) && (!hasBp(p) || p.bpMachine !== undefined);
@@ -293,6 +295,18 @@ export function ask(s: Slot, c: Ctx): Turn {
     case "p_day_times":
       return t(self ? "Roughly when do you wake up, eat and go to sleep? Meal times help me time your medicines." : `Roughly when does ${call} wake up, eat and go to sleep? Meal times help me time ${pr.their} medicines.`,
         { type: "times", person: i }, "Or type the times…", "wake-up, meal and sleep times");
+    case "p_diet": {
+      // Food is tracked for everyone by default and anyone can turn it off (founder, nutrition plan §N18 Q1): Saheli says
+      // so once, with the first person, and never asks it as a yes/no.
+      const who = listText(a.persons.map((x) => callOf(x)));
+      const note = self
+        ? "I keep track of what you eat (what, how much, nutrition), so you can ask me about it any time. You can turn it off whenever you like, just tell me."
+        : `I keep track of what ${who} eat${a.persons.length > 1 ? "" : "s"} (what, how much, nutrition), so you can ask me about it any time. You can turn it off whenever you like, just tell me.`;
+      const q = self ? "What kind of food do you eat?" : `What kind of food does ${call} eat?`;
+      return t(i === 0 ? [note, q] : q, { type: "chips", options: DIETS.map((d) => ({ id: d.id, label: d.label, hint: d.hint })), skip: "Skip" },
+        "Or tell me in your own words…", "what they eat: vegetarian, eggetarian, non-vegetarian, vegan or Jain",
+        self && a.helpWith.includes("food") ? "Asked because you picked food & nutrition" : undefined);
+    }
     case "p_likes":
       return t(`What does ${call} enjoy talking about? I'll bring these up when we chat.`,
         { type: "chips", options: LIKES.map((l) => ({ id: l, label: l })), multi: true, selected: p.likes, skip: "Skip" }, "Or tell me — and anything I should never bring up…", "what they enjoy talking about, and topics to avoid");
@@ -414,6 +428,8 @@ export function applyChips(s: Slot, ids: string[], c: Ctx): Applied {
       return { a: setP(a, i, { reads: ids[0] as Person["reads"] }), flow: done(flow, s.key), you, ack: ids[0] === "text" ? undefined : `Voice notes it is${p.language ? `, in ${option(p.dialect || p.language)?.name ?? "their language"}` : ""} 🎙️` };
     case "p_day":
       return { a, flow: done(flow, s.key), you: "I'll pick the times" };
+    case "p_diet":
+      return { a: setP(a, i, { diet: DIETS.find((d) => d.id === ids[0])?.id }), flow: done(flow, s.key), you };
     case "p_likes":
       if (ids[0] === "__skip") return { a, flow: done(flow, s.key), you: "Skip" };
       return { a: setP(a, i, { likes: ids }), flow: done(flow, s.key), you };
@@ -520,7 +536,7 @@ export function applyUnderstood(s: Slot, u: Understood, text: string, c: Ctx): {
       delete q.addressAs;
     }
     const next: Person = { ...p };
-    for (const k of ["name", "callThem", "addressAs", "age", "city", "state", "livesWith", "reads", "sugarCheck", "bpMachine", "avoidTopics"] as const) {
+    for (const k of ["name", "callThem", "addressAs", "age", "city", "state", "livesWith", "reads", "sugarCheck", "bpMachine", "avoidTopics", "diet"] as const) {
       if (q[k] !== undefined) (next as Record<string, unknown>)[k] = q[k];
     }
     if (q.gender && !p.gender) next.gender = q.gender;
@@ -625,6 +641,7 @@ export function summaryRows(c: Ctx, i: number): SummaryRow[] {
     { label: "Allergies", value: p.allergies.none ? "None" : p.allergies.items.join(", ") || "—", edit: `p_allergies:${i}` },
     { label: "Medicines", value: meds.length ? `${meds.length} medicine${meds.length > 1 ? "s" : ""}, ${doses} reminder${doses === 1 ? "" : "s"} a day` : p.noMedicines ? "None regularly" : "—", edit: meds.length ? `p_meds_confirm:${i}` : `p_medicines:${i}` },
     { label: self ? "Your day" : `${pronoun(p).their.charAt(0).toUpperCase()}${pronoun(p).their.slice(1)} day`, value: [d.wake && `up ${d.wake}`, d.breakfast, d.lunch, d.dinner, d.sleep && `sleeps ${d.sleep}`].filter(Boolean).join(" · ") || "—", edit: `p_day_times:${i}` },
+    { label: "Food", value: [DIETS.find((x) => x.id === p.diet)?.label, "I'll keep track of meals"].filter(Boolean).join(" · "), edit: `p_diet:${i}` },
     { label: "WhatsApp", value: p.phone ? `${p.phone}${c.verified[self ? "self" : `person:${i}`] ? " · connected" : " · not connected yet"}` : "—", edit: `p_whatsapp:${i}` },
   ];
   if (!self) rows.push({ label: "I'll check in", value: checks ? `Morning and evening${d.sleep ? `, never after ${d.sleep}` : ""}` : "Only for reminders", edit: "help_with" });
