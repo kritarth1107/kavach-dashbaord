@@ -34,7 +34,7 @@ const KINDS: Array<{ id: Kind; label: string }> = [
 
 type Form = { name: string; phone: string; speciality: string; address: string; relation: string; emergency: boolean; role: string; date: string; time: string; place: string; purpose: string };
 const BLANK: Form = { name: "", phone: "", speciality: "", address: "", relation: "", emergency: false, role: "", date: "", time: "", place: "", purpose: "" };
-type Editing = { kind: Kind; form: Form; existing: boolean };
+type Editing = { kind: Kind; form: Form; existing: boolean; key?: string };
 
 const dayKey = (d: Date) => d.toLocaleDateString("en-CA", { timeZone: IST });
 function daysBetween(from: Date, to: Date) {
@@ -94,6 +94,9 @@ function buildFact(kind: Kind, f: Form, who: string) {
       };
   }
 }
+
+/** "home:cook" → "cook": the engine finds a record entry by its domain and this name (a helper's shown name can differ). */
+const keyName = (key: string) => key.slice(key.indexOf(":") + 1);
 
 function valid(kind: Kind, f: Form) {
   if (!f.name.trim()) return false;
@@ -226,9 +229,9 @@ export function CareTeamPage() {
   const next = data?.upcoming.find((a) => a.when);
   const nextIn = next?.when ? daysBetween(now, istDate(next.when)) : null;
 
-  const open = (kind: Kind, form: Partial<Form> = {}, existing = false) => {
+  const open = (kind: Kind, form: Partial<Form> = {}, existing = false, key?: string) => {
     setFormErr("");
-    setEditing({ kind, form: { ...BLANK, emergency: kind === "contact", ...form }, existing });
+    setEditing({ kind, form: { ...BLANK, emergency: kind === "contact", ...form }, existing, key });
   };
 
   async function save() {
@@ -236,7 +239,9 @@ export function CareTeamPage() {
     setSaving(true);
     setFormErr("");
     try {
-      await saveFact(familyId, selectedId, buildFact(editing.kind, editing.form, who));
+      const fact = buildFact(editing.kind, editing.form, who);
+      // an edit changes the same record entry (its key), even when the name on it changed
+      await saveFact(familyId, selectedId, editing.key ? { ...fact, name: keyName(editing.key) } : fact);
       setEditing(null);
       team.reload();
     } catch (e) {
@@ -471,8 +476,8 @@ export function CareTeamPage() {
                 phone={(h) => h.phone}
                 busy={busy}
                 onAdd={() => open("helper")}
-                onEdit={(h) => open("helper", { name: h.name, phone: h.phone ?? "", role: h.text }, true)}
-                onRemove={(h) => void remove("home", h.name, h.name)}
+                onEdit={(h) => open("helper", { name: h.name, phone: h.phone ?? "", role: h.role ?? h.text }, true, h.key)}
+                onRemove={(h) => void remove(h.domain ?? "home", h.key ? keyName(h.key) : h.name, h.name)}
               />
             </div>
           </div>

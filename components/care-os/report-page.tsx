@@ -26,7 +26,8 @@ const KIND_LABEL: Record<string, { label: string; unit?: string }> = {
   muscle_mass: { label: "Muscle mass", unit: "kg" },
   bmi: { label: "BMI" },
   steps: { label: "Steps" },
-  temperature: { label: "Temperature", unit: "°F" },
+  // no default unit: °C and °F are both common, so only the reading's own unit is shown
+  temperature: { label: "Temperature" },
   spo2: { label: "Oxygen (SpO₂)", unit: "%" },
   pulse: { label: "Pulse", unit: "bpm" },
   other: { label: "Other readings" },
@@ -36,6 +37,14 @@ const human = (k: string) => {
   const s = k.replace(/_/g, " ").trim();
   return s ? s[0].toUpperCase() + s.slice(1) : "Other";
 };
+/** The unit for a group of readings: the engine's own when they all share one, else the usual one for the kind. */
+function groupUnit(kind: string | null, rows: CareReport["vitals"]): { unit: string | null; perRow: boolean } {
+  const sent = rows.some((v) => v.unit !== undefined);
+  if (!sent) return { unit: (kind && KIND_LABEL[kind]?.unit) || null, perRow: false };
+  const units = new Set(rows.map((v) => v.unit).filter((u): u is string => !!u));
+  return units.size === 1 ? { unit: [...units][0], perRow: false } : { unit: null, perRow: units.size > 1 };
+}
+
 const kindLabel = (k: string | null) => (k ? (KIND_LABEL[k]?.label ?? human(k)) : "Other readings");
 
 const ORDER_STATUS: Record<string, string> = {
@@ -84,11 +93,17 @@ const dayState = (d: Day) => (d.expected > 0 && d.taken >= d.expected ? "taken" 
 const DAY_BAR = { taken: "bg-[var(--c-solid)]", some: "bg-[var(--c-accent)]", none: "bg-[var(--c-ink-3)]" };
 
 /**
- * The engine counts all of today's doses as expected, even ones not due yet. Count only the doses whose time
- * has passed when the report was made (times are IST "HH:MM"), so the bars and the headline agree.
+ * An older engine counted all of today's doses as expected, even ones not due yet; the one that sends `unmarked`
+ * counts only doses already due. For the older answer, count only the doses whose time had passed when the report
+ * was made (times are IST "HH:MM"), so the bars and the headline agree.
  */
 function adherenceSoFar(r: CareReport) {
   const a = r.adherence;
+  if (a.byDay.some((d) => d.unmarked !== undefined)) {
+    const expected = a.byDay.reduce((n, d) => n + d.expected, 0);
+    const taken = a.byDay.reduce((n, d) => n + d.taken, 0);
+    return { days: a.byDay, expected, taken, percent: expected ? Math.round((100 * taken) / expected) : null, notLogged: a.byDay.filter((d) => d.expected > 0 && dayState(d) === "none").length };
+  }
   const times = a.byMedicine.flatMap((m) => m.times);
   const now = new Date(r.generatedAt).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hourCycle: "h23", timeZone: "Asia/Kolkata" });
   const known = times.length > 0 && times.every((t) => /^\d{2}:\d{2}$/.test(t));
@@ -112,7 +127,7 @@ function DayBars({ days }: { days: Day[] }) {
             <div
               key={d.day}
               className="relative flex h-full flex-1 justify-center"
-              title={`${ymd(d.day)}: ${!d.expected ? "nothing due" : state === "none" ? "not logged" : `${d.taken} of ${d.expected} taken`}`}
+              title={`${ymd(d.day)}: ${!d.expected ? "nothing due" : state === "none" ? "not logged" : `${d.taken} of ${d.expected} taken${d.unmarked ? `, ${d.unmarked} not marked` : ""}`}`}
             >
               <div className="absolute inset-x-0 bottom-0 mx-auto h-full w-full max-w-[26px] rounded-full bg-[var(--c-frame)]" />
               <div className={cn("absolute bottom-0 mx-auto w-full max-w-[26px] rounded-full", DAY_BAR[state])} style={{ height: `${Math.max(d.expected ? 8 : 0, pct * 100)}%` }} />
@@ -208,7 +223,8 @@ function ReportBody({ r, fullName, print }: { r: CareReport; fullName: string; p
                 <th className={cn(TH, "hidden sm:table-cell")}>Times</th>
                 <th className={cn(TH, "text-right")}>Taken</th>
                 <th className={cn(TH, "text-right")}>Due</th>
-                <th className={cn(TH, "pr-0 text-right")}>Missed</th>
+                <th className={cn(TH, "text-right")}>Missed</th>
+                <th className={cn(TH, "pr-0 text-right")}>Not marked</th>
               </tr>
             </thead>
             <tbody>
@@ -221,7 +237,9 @@ function ReportBody({ r, fullName, print }: { r: CareReport; fullName: string; p
                   <td className={cn(TD, "hidden tabular-nums text-[var(--c-ink-2)] sm:table-cell")}>{m.times.join(", ") || "—"}</td>
                   <td className={cn(TD, "text-right tabular-nums")}>{m.taken}</td>
                   <td className={cn(TD, "text-right tabular-nums")}>{m.expected}</td>
-                  <td className={cn(TD, "pr-0 text-right tabular-nums", m.missed > 0 && "font-semibold text-[var(--c-accent-soft-ink)]")}>{m.missed}</td>
+                  <td className={cn(TD, "text-right tabular-nums", m.missed > 0 && "font-semibold text-[var(--c-accent-soft-ink)]")}>{m.missed}</td>
+                  {/* due, but nobody said taken or missed: an older engine doesn't send it */}
+                  <td className={cn(TD, "pr-0 text-right tabular-nums text-[var(--c-ink-2)]")}>{m.unmarked ?? Math.max(0, m.expected - m.taken - m.missed)}</td>
                 </tr>
               ))}
             </tbody>
@@ -236,11 +254,13 @@ function ReportBody({ r, fullName, print }: { r: CareReport; fullName: string; p
             <Empty>No readings logged in this period.</Empty>
           ) : (
             <div className="mt-3 grid gap-3 sm:grid-cols-2">
-              {kinds.map((g) => (
+              {kinds.map((g) => {
+                const u = groupUnit(g.kind, g.rows);
+                return (
                 <div key={g.kind ?? ""} className="kv-avoid rounded-[18px] bg-[var(--c-frame)] p-4">
                   <p className="text-[13px] font-medium">
                     {kindLabel(g.kind)}
-                    {g.kind && KIND_LABEL[g.kind]?.unit && <span className="font-normal text-[var(--c-ink-3)]"> · {KIND_LABEL[g.kind].unit}</span>}
+                    {u.unit && <span className="font-normal text-[var(--c-ink-3)]"> · {u.unit}</span>}
                   </p>
                   <table className="mt-1 w-full">
                     <tbody>
@@ -249,6 +269,7 @@ function ReportBody({ r, fullName, print }: { r: CareReport; fullName: string; p
                           <td className={cn(TD, "w-[46%] text-[12px] text-[var(--c-ink-2)]")}>{fmtAt(v.at)}</td>
                           <td className={cn(TD, "font-medium tabular-nums")}>
                             {v.value ?? "—"}
+                            {u.perRow && v.unit && <span className="font-normal text-[var(--c-ink-3)]"> {v.unit}</span>}
                             {Boolean(v.redFlag) && <Tag className="ml-1.5">Red flag</Tag>}
                           </td>
                           <td className={cn(TD, "pr-0 text-right text-[12px] text-[var(--c-ink-2)]")}>{v.note}</td>
@@ -257,7 +278,8 @@ function ReportBody({ r, fullName, print }: { r: CareReport; fullName: string; p
                     </tbody>
                   </table>
                 </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </Panel>

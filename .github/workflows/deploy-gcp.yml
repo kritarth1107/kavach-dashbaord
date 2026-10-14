@@ -50,7 +50,7 @@ jobs:
           npx next build
           (TZ=UTC npx next start -p 3123 > /tmp/next.log 2>&1 &)
           for i in $(seq 1 45); do curl -sf -o /dev/null http://localhost:3123/auth/login && break; sleep 2; done
-          PAGES_BASE=http://localhost:3123 PAGES_FAMILIES=12 PAGES_PARALLEL=4 node scripts/test-pages.mjs
+          PAGES_BASE=http://localhost:3123 PAGES_FAMILIES=12 PAGES_PARALLEL=6 node scripts/test-pages.mjs
 
       - uses: actions/upload-artifact@v4
         if: failure()

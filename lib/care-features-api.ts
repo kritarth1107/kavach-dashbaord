@@ -100,7 +100,7 @@ export type CareTeam = {
   contacts: EmergencyCard["contacts"];
   /** The people who help at home (cook, maid, driver…). The engine leaves out the address and living set-up, which the
    *  home record also keeps (before 2026-10-14 it sent them too, and Remove deleted the address). */
-  helpers: Array<{ key?: string; name: string; text: string; phone: string | null }>;
+  helpers: Array<{ key?: string; domain?: string; role?: string | null; name: string; text: string; phone: string | null }>;
   upcoming: Appointment[];
   past: Appointment[];
 };
@@ -123,10 +123,12 @@ export type CareReport = {
     percent: number | null;
     taken: number;
     expected: number;
-    byDay: Array<{ day: string; expected: number; taken: number; missed: number }>;
-    byMedicine: Array<{ name: string; dose: string | null; times: string[]; expected: number; taken: number; missed: number }>;
+    /** unmarked: doses due that were neither taken nor missed (engine 2026-10-14; today counts only doses already due). */
+    byDay: Array<{ day: string; expected: number; taken: number; missed: number; unmarked?: number }>;
+    byMedicine: Array<{ name: string; dose: string | null; times: string[]; expected: number; taken: number; missed: number; unmarked?: number }>;
   };
-  vitals: Array<{ at: string; kind: string | null; value: string | null; note: string | null; redFlag: unknown }>;
+  /** unit: the person's own, else the usual one for that reading (none for temperature: °C and °F are both common). */
+  vitals: Array<{ at: string; kind: string | null; value: string | null; unit?: string | null; note: string | null; redFlag: unknown }>;
   symptoms: Array<{ at: string; text: string; level: string }>;
   mood: Array<{ at: string; text: string }>;
   alerts: Array<{ at: string; text: string; whatsapp: boolean }>;
