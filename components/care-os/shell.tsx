@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import {
   Bell,
   Brain,
@@ -113,6 +114,8 @@ export function CareShell({
   foodDiary?: boolean;
   children: React.ReactNode;
 }) {
+  const pathname = usePathname();
+  const learnedOn = pathname.startsWith("/dashboard/saheli/learned");
   const now = useClock();
   const time = now ? now.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Asia/Kolkata" }) : "";
   const date = now ? now.toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short", timeZone: "Asia/Kolkata" }) : "";
@@ -184,7 +187,7 @@ export function CareShell({
                   </Link>
                 ))}
               </div>
-              <div className="flex min-w-0 items-center gap-1 rounded-full sm:border sm:border-[var(--c-line)] sm:p-1 sm:pr-2">
+              <div className="flex min-w-0 flex-wrap items-center gap-1 rounded-full sm:border sm:border-[var(--c-line)] sm:p-1 sm:pr-2">
                 <PersonPicker people={people} loading={loadingPeople} selectedId={selectedId} onSelect={onSelectPerson} />
                 {foodDiary && (
                   <Link
@@ -201,6 +204,18 @@ export function CareShell({
                     <span className="text-[13px] font-medium">Food diary</span>
                   </Link>
                 )}
+                <Link
+                  href="/dashboard/saheli/learned"
+                  title="What she learned"
+                  aria-label="What she learned"
+                  aria-current={learnedOn ? "page" : undefined}
+                  className={cn(
+                    "flex h-9 shrink-0 items-center rounded-full px-2.5 text-[13px] font-medium",
+                    learnedOn ? "bg-[var(--c-accent)] text-[var(--c-accent-ink)]" : "text-[var(--c-ink)] hover:bg-[var(--c-card)] hover:text-[var(--c-accent-text)]",
+                  )}
+                >
+                  What she learned
+                </Link>
                 <span className="hidden items-center gap-1 px-1 sm:flex">
                   {QUICK.map((q) => {
                     const on = q.key === active;

@@ -54,6 +54,7 @@ function navFor(pathname: string): NavKey {
   if (pathname.startsWith("/dashboard/emergency")) return "emergency";
   if (pathname.startsWith("/dashboard/saheli/care")) return "care";
   if (pathname.startsWith("/dashboard/saheli/tasks") || pathname.startsWith("/dashboard/approvals")) return "orders";
+  if (pathname.startsWith("/dashboard/saheli/learned")) return "memory";
   if (pathname.startsWith("/dashboard/saheli/memory")) return "memory";
   if (pathname.startsWith("/dashboard/wellbeing")) return "wellbeing";
   if (pathname.startsWith("/dashboard/nutrition")) return "food";
@@ -95,6 +96,7 @@ const MENU: Array<{ group: string; phoneOnly?: boolean; items: Array<{ href: str
       { href: "/dashboard/report", label: "Care report for the doctor", icon: ChartBar },
       { href: "/dashboard/nutrition", label: "Food diary", icon: ForkKnife, feature: "nutritionPage" },
       { href: "/dashboard/wellbeing", label: "Wellbeing", icon: Heart },
+      { href: "/dashboard/saheli/learned", label: "What she learned", icon: Brain },
       { href: "/dashboard/notifications", label: "Notifications", icon: Bell },
       { href: "/dashboard/approvals", label: "Approvals", icon: CheckCircle },
       { href: "/dashboard/limits", label: "Limits & approvals", icon: ShieldCheck },

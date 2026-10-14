@@ -40,6 +40,7 @@ const PAGES = [
   { name: "records", path: "/dashboard/record" },
   { name: "orders", path: "/dashboard/saheli/tasks" },
   { name: "story", path: "/dashboard/saheli/memory" },
+  { name: "learned", path: "/dashboard/saheli/learned" },
   { name: "emergency", path: "/dashboard/emergency" },
   { name: "family", path: "/dashboard/family" },
   { name: "care-team", path: "/dashboard/care-team" },
@@ -150,6 +151,12 @@ function known(fam, url) {
     if (route === "voice") return { mode: "auto", means: "" };
     if (route === "nutrition/shares") return { shares: [] };
     if (route === "nutrition/foods") return { foods: [] };
+    if (route === "history") {
+      const key = url.searchParams.get("key") || "";
+      const facts = ((answers.overview || {}).facts || []).filter((f) => f.key === key);
+      return { key, versions: facts };
+    }
+    if (route === "memory-history" || route.startsWith("memory-history/")) return { changes: [] };
     if (route === "nutrition" && !(route in answers)) {
       const day = world.today;
       return {
@@ -218,7 +225,7 @@ function railLabel(route) {
   if (p.startsWith("/dashboard/emergency")) return "Emergency card";
   if (p.startsWith("/dashboard/saheli/care")) return "Medicines & care";
   if (p.startsWith("/dashboard/saheli/tasks") || p.startsWith("/dashboard/approvals")) return "Orders & rides";
-  if (p.startsWith("/dashboard/saheli/memory")) return "What Saheli knows";
+  if (p.startsWith("/dashboard/saheli/learned") || p.startsWith("/dashboard/saheli/memory")) return "What Saheli knows";
   if (p.startsWith("/dashboard/wellbeing")) return "Wellbeing";
   if (p.startsWith("/dashboard/nutrition")) return "Food diary";
   if (p.startsWith("/dashboard/saheli") || p.startsWith("/dashboard/activity") || p.startsWith("/dashboard/alerts")) return "Today";
@@ -718,6 +725,112 @@ export async function learnedCard(browser, width = 1440, shotPath = null) {
 }
 
 /** The family person page's other cards (briefing, schedule, labs): empty answers are enough here. */
+// What Saheli learned: real learned:* and preference facts for the selected person, an unknown key still
+// renders, undo stops (60-day cooling, not the never-use list), and a correction restores the earlier version.
+const LEARNED_MAA = "1ea41000-0000-4000-8000-00000000b001";
+const LEARNED_SELF = "1ea41000-0000-4000-8000-00000000b002";
+const learnedFact = (id, domain, key, text, status, extra) => ({
+  id, domain, key, name: key.split(":")[1] || key, value: {}, text, status, source: "learned", statedBy: null, confirmedBy: null,
+  confidence: 1, validFrom: `${world.today}T08:00:00+05:30`, validTo: null, recordedAt: `${world.today}T08:00:00+05:30`, note: null, links: [],
+  subjectId: LEARNED_MAA, ...extra,
+});
+export async function learnedView(browser, width = 1440) {
+  const base = world.families[0];
+  const blank = structuredClone(Object.values(base.engine)[0]);
+  const meals = learnedFact("1ea41000-0000-4000-8000-0000000000a1", "learned", "learned:nudges_meals_times", "Usually has breakfast at 08:30; Saheli asks after that.", "active", { value: { breakfast: "08:30" } });
+  const foods = learnedFact("1ea41000-0000-4000-8000-0000000000a2", "learned", "learned:nudges_meals_portions", "Usual breakfast is idli, 2 pieces.", "active", {
+    value: { items: { idli: { quantity: 2, unit: "pieces" } } },
+  });
+  const unknown = learnedFact("1ea41000-0000-4000-8000-0000000000a3", "learned", "learned:brand_new_signal", "She replies more on Sundays.", "active", { value: { kind: "unlisted" } });
+  const leaked = learnedFact("1ea41000-0000-4000-8000-0000000000a4", "learned", "learned:nudges_water_times", "Arun drinks water at 11:00.", "active", { subjectId: LEARNED_SELF });
+  const like = learnedFact("1ea41000-0000-4000-8000-0000000000a5", "preference", "preference:old_hindi_songs", "Likes old Hindi songs in the evening.", "active", { source: "caregiver_said" });
+  const earlierFoods = { ...foods, id: "1ea41000-0000-4000-8000-0000000000a6", text: "Usual breakfast is idli, 3 pieces.", status: "superseded", value: { items: { idli: { quantity: 3, unit: "pieces" } } }, recordedAt: "2026-10-04T08:00:00+05:30" };
+  const maa = { ...blank, overview: { ...blank.overview, facts: [meals, foods, unknown, leaked, like], pending: [], notes: [] } };
+  const self = { ...blank, overview: { ...blank.overview, facts: [], pending: [], notes: [] } };
+  const history = {
+    "learned:nudges_meals_portions": [foods, earlierFoods],
+  };
+  const changes = [{ id: 42, kind: "fact", target: "learned:nudges_meals_portions", body: earlierFoods.text, canRestore: true, op: "write", title: "learned" }];
+  const fam = {
+    ...base, familyId: "1ea41000-0000-4000-8000-00000000fb01", leakOrders: false, orders: [],
+    engine: { [LEARNED_MAA]: maa, [LEARNED_SELF]: self },
+    people: [
+      { id: LEARNED_MAA, backendRole: "CARE_RECIPIENT", careRecipient: true, first: "Meera", surname: "Shah", name: "Meera Shah", key: "maa", relation: "Mother", city: "Pune", phone: "+919000000401" },
+      { id: LEARNED_SELF, backendRole: "PRIMARY_CAREGIVER", careRecipient: false, first: "Arun", surname: "Shah", name: "Arun Shah", key: "self", relation: "self", city: "Pune", phone: "+919000000402" },
+    ],
+  };
+  const ctx = await browser.newContext({ viewport: { width, height: width < 600 ? 860 : 1000 }, timezoneId: "Asia/Kolkata", locale: "en-IN" });
+  await ctx.addCookies([{ name: "kavach_session", value: "world", url: BASE }]);
+  const page = await ctx.newPage();
+  const errors = [];
+  const writes = [];
+  const asked = [];
+  page.on("pageerror", (e) => errors.push(`page error: ${e.message.slice(0, 180)}`));
+  page.on("console", (m) => m.type() === "error" && !NOISE.test(m.text()) && errors.push(`console error: ${m.text().slice(0, 180)}`));
+  const fid = fam.familyId;
+  await page.route(/^https?:\/\/[^/]+\/api\//, (r) => {
+    const u = new URL(r.request().url());
+    if (u.pathname === "/api/client-error") return r.fulfill({ status: 204 });
+    if (u.pathname === "/api/auth/session") return r.fulfill({ json: { user: { name: "Arun Shah", email: "arun@world.kavach.test" }, expires: "2099-01-01T00:00:00.000Z" } });
+    if (u.pathname.startsWith("/api/auth/") && u.pathname !== "/api/auth/me") return r.fulfill({ json: {} });
+    const who = u.pathname.match(/\/subjects\/([^/]+)\//);
+    if (who) asked.push(who[1]);
+    if (r.request().method() !== "GET") {
+      writes.push({ path: u.pathname.replaceAll(fid, ":f"), body: r.request().postDataJSON?.() ?? null });
+      return r.fulfill({ json: { success: true, data: { result: "stopped" } } });
+    }
+    if (/\/care-memory\/history$/.test(u.pathname)) {
+      const key = u.searchParams.get("key") || "";
+      return r.fulfill({ json: { success: true, data: { key, versions: history[key] || [] } } });
+    }
+    if (/\/care-memory\/memory-history$/.test(u.pathname)) return r.fulfill({ json: { success: true, data: { changes } } });
+    const known = api(fam, u);
+    return r.fulfill({ json: { success: true, data: known ?? {} } });
+  });
+  const problems = [];
+  const check = (cond, what) => !cond && problems.push(`learned @${width}: ${what}`);
+  try {
+    await page.goto(`${BASE}/dashboard/saheli/learned?recipient=${LEARNED_MAA}`, { waitUntil: "networkidle", timeout: 90000 });
+    await page.getByRole("heading", { name: "What Saheli learned" }).waitFor({ timeout: 20000 });
+    const text = await page.evaluate(() => document.body.innerText || "");
+    check(text.includes("Usually has breakfast at 08:30"), "meal time is missing");
+    check(text.includes("Usual breakfast is idli, 2 pieces"), "usual food is missing");
+    check(text.includes("idli · 2 pieces"), "portion from the fact value is missing");
+    check(text.includes("She replies more on Sundays"), "an unknown learned key did not render");
+    check(text.includes("Likes old Hindi songs"), "preference is missing");
+    check(text.includes("Usual breakfast is idli, 3 pieces"), "earlier version is missing");
+    check(text.includes("Undo puts the earlier version back"), "correction restore line is missing");
+    check(!text.includes("Arun drinks water at 11:00"), "another person's fact is on her page");
+    check(!asked.includes(LEARNED_SELF), "her page read his care record");
+    const chip = page.getByRole("link", { name: "What she learned" });
+    check((await chip.getAttribute("aria-current")) === "page", "the What she learned chip is not current");
+    const ink = await chip.evaluate((el) => getComputedStyle(el).color);
+    check(ink.replace(/\s/g, "") !== "rgb(255,255,255)", `marigold chip text is white (${ink})`);
+    const rail = await page.locator("aside nav[aria-label='Main'] a[aria-current='page']").evaluateAll((els) => els.map((e) => e.getAttribute("aria-label")));
+    check(rail.length === 1 && rail[0] === "What Saheli knows", `rail active ${rail.join(", ") || "none"}`);
+    if (process.env.PAGES_SHOTS) await page.screenshot({ path: path.join(OUT, `learned-filled-${width}.png`), fullPage: true });
+    await page.getByRole("button", { name: "Undo Usually has breakfast at 08:30; Saheli asks after that." }).click();
+    await page.getByRole("button", { name: "Restore the earlier version: Usual breakfast is idli, 3 pieces." }).click();
+    await page.waitForTimeout(400);
+    const stop = writes.find((w) => w.path.endsWith("/facts/stop"));
+    check(!!stop && stop.body?.domain === "learned" && stop.body?.name === "nudges_meals_times" && stop.body?.wrong !== true, "undo did not stop the learned fact without the never-use flag");
+    const restore = writes.find((w) => /\/memory-history\/42$/.test(w.path));
+    check(!!restore && restore.body?.mode === "restore", "correction undo did not restore the earlier version");
+    await page.goto(`${BASE}/dashboard/saheli/learned?recipient=${LEARNED_SELF}`, { waitUntil: "networkidle", timeout: 90000 });
+    await page.getByRole("heading", { name: "Nothing learned yet" }).waitFor({ timeout: 20000 });
+    const empty = await page.evaluate(() => document.body.innerText || "");
+    check(!empty.includes("idli"), "his empty page shows her food");
+    check(!empty.includes("Sundays"), "his empty page shows her unknown fact");
+    if (process.env.PAGES_SHOTS) await page.screenshot({ path: path.join(OUT, `learned-empty-${width}.png`), fullPage: true });
+    check(!errors.length, errors[0] || "");
+  } catch (e) {
+    problems.push(`learned @${width}: did not load: ${String(e.message || e).slice(0, 180)}`);
+  }
+  for (const e of errors) if (!problems.some((p) => p.includes(e))) problems.push(`learned @${width}: ${e}`);
+  await ctx.close();
+  return problems;
+}
+
 function fallbackFamilyPage(p) {
   if (/\/briefing$/.test(p)) return { recipientName: "Kamla", lastHeardAt: null, lastHeardLine: null, lastCheckInAt: null, todayItems: [], unconfirmedItems: [],
     scheduleStatuses: [], completedCount: 0, missedCount: 0, upcomingCount: 0, elapsedCount: 0, adherencePercent: null, dateKey: world.today };
@@ -883,6 +996,11 @@ export async function onboardingFood(browser, width = 1440) {
     const scope = await personScope(browser);
     console.log(scope.length ? `person scope: ${scope.length} problems` : "person scope: every page showed only the selected person's");
     for (const pr of scope) failures.push(`person-scope: ${pr}`);
+  }
+  if (!process.env.PAGES_ONLY || process.env.PAGES_ONLY.split(",").includes("learned")) {
+    const view = (await Promise.all(WIDTHS.map((w) => learnedView(browser, w)))).flat();
+    console.log(view.length ? `learned view: ${view.length} problems` : "learned view: one person, empty, undo, unknown key");
+    failures.push(...view);
   }
   if (!process.env.PAGES_ONLY || process.env.PAGES_ONLY.split(",").includes("learned-card")) {
     const learned = (await Promise.all(WIDTHS.map((w) => learnedCard(browser, w)))).flat();
