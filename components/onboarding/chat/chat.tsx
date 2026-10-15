@@ -19,7 +19,7 @@ import { onboardingApi, type SetupResult } from "../api";
 import { slotTimes, type Answers, type Person } from "../data";
 import {
   CHAPTERS, OPENING, applyChips, applyUnderstood, ask, callOf, chapterIndex, confirmMeds, emptyFlow, fallbackUnderstood, isSelf, languageAck,
-  markDone, msgId, nextSlot, patchPerson, seedFlow, skip, summaryRows, toPhone, upcoming, type Ctx, type Flow, type Msg, type Slot,
+  markDone, msgId, nextSlot, patchPerson, resumeFlow, seedFlow, skip, summaryRows, toPhone, upcoming, type Ctx, type Flow, type Msg, type Slot,
 } from "./engine";
 import { Notebook, type CardKey } from "./notebook";
 import { greetingFor, option, type LangOption } from "./region";
@@ -117,7 +117,10 @@ export function OnboardingChat() {
           f = emptyFlow();
           c = [saheli(OPENING)];
         }
-        const nc: Ctx = { a, flow: f, verified: vf, myPhone: st.myPhone, accountName: st.name };
+        const nc0: Ctx = { a, flow: f, verified: vf, myPhone: st.myPhone, accountName: st.name };
+        // An edit that was already answered (verified phone, picked chip) must not hide Finish on the next visit.
+        f = resumeFlow(nc0);
+        const nc: Ctx = { ...nc0, flow: f };
         const nx = nextSlot(nc);
         if (nx && nx.base !== "followups" && f.asked !== nx.key) {
           const q = ask(nx, nc);

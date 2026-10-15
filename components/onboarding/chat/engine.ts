@@ -469,6 +469,22 @@ export function applyChips(s: Slot, ids: string[], c: Ctx): Applied {
 /** Optional questions can be skipped; this is their skip. */
 export const skip = (s: Slot, flow: Flow): Flow => done(flow, s.key);
 export const markDone = done;
+
+/**
+ * A draft reopened while a summary edit is still flagged, but that step is already answered (the phone was verified,
+ * the chip was picked, the text was sent). Drop the flag so Finish is the next step. An edit that is not answered yet
+ * stays open. Called only when a draft is loaded, so tapping Edit on the summary can still reopen a filled step.
+ */
+export function resumeFlow(c: Ctx): Flow {
+  const key = c.flow.editing;
+  if (!key) return c.flow;
+  const open: Flow = { ...c.flow, editing: null };
+  const slot = plan({ ...c, flow: open }).find((s) => s.key === key);
+  if (!slot) return open;
+  const probe: Ctx = { ...c, flow: { ...open, done: open.done.filter((k) => k !== key) } };
+  if (!isDone(slot, probe)) return c.flow;
+  return done(c.flow, key);
+}
 export const patchPerson = setP;
 
 /** Medicines confirmed on the card. */

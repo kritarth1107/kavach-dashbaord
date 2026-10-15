@@ -159,6 +159,7 @@ export function PhoneWidget({ target, who, initial, otherPhone, verified, saheli
       <PhoneField label={target === "self" ? "Your WhatsApp number" : `${who}'s WhatsApp number`} value={phone} onChange={onPhone} />
       {clash && <p className="mt-2 text-[13px] text-[var(--c-danger)]">That&apos;s the other person&apos;s number. Each person needs their own WhatsApp.</p>}
       {ok && <div className="mt-3"><VerifyWhatsApp target={target} phone={phone} who={who} verified={verified} saheliNumber={saheliNumber} onVerified={onVerified} /></div>}
+      {ok && verified && <button type="button" onClick={onVerified} className={cn(PRIMARY, "mt-3")}>This number is right</button>}
       <div className="mt-3 flex flex-wrap gap-3 text-[13px]">
         {ok && !verified && <button type="button" onClick={onContinue} className="text-[var(--c-ink-2)] underline-offset-4 hover:text-[var(--c-ink)] hover:underline">Continue without verifying</button>}
         {optional && onSkip && <button type="button" onClick={onSkip} className="text-[var(--c-ink-2)] underline-offset-4 hover:text-[var(--c-ink)] hover:underline">Not now</button>}

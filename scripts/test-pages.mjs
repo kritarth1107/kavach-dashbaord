@@ -1106,6 +1106,82 @@ export async function conversationsView(browser, width = 1440) {
   return problems;
 }
 
+/** A summary edit that was already answered must open on Finish, and answering one returns there. Synthetic names only. */
+function stuckOnboarding(kind) {
+  if (kind === "self") {
+    const at = new Date().toISOString();
+    const answers = {
+      you: { name: "Asha Verma", callMe: "Asha", phone: "+919000000301" }, careFor: "self", helpWith: [], followups: [],
+      persons: [{ relation: "Self", name: "Asha Verma", callThem: "Asha", addressAs: "Asha", city: "Pune", age: 42, language: "en", reads: "text",
+        phone: "+919000000301", conditions: [], problems: [], allergies: { none: true, items: [] }, medicines: [], noMedicines: true,
+        day: { wake: "07:00", breakfast: "08:30", lunch: "13:00", tea: "17:00", dinner: "20:00", sleep: "22:30", activities: [] }, likes: [] }],
+    };
+    const done = ["you_name", "care_for", "self_help", "p_home:0", "p_age:0", "p_language:0", "p_reads:0", "p_day:0", "p_day_times:0", "p_diet:0", "p_conditions:0", "p_allergies:0", "p_medicines:0", "anything_else"];
+    return { required: true, status: "pending", name: "Asha Verma", myPhone: "+919000000301", saheliNumber: SAHELI_NUMBER,
+      verified: { self: { phone: "+919000000301", at } },
+      draft: { answers, step: "p_whatsapp:0", chat: [{ id: "m1", from: "saheli", text: "Namaste! I'm **Saheli**." }],
+        flow: { done, extra: [], nurse: "none", asked: "p_whatsapp:0", editing: "p_whatsapp:0" } } };
+  }
+  const data = onboardingState();
+  data.draft.flow.editing = "p_whatsapp:0";
+  data.draft.flow.done = data.draft.flow.done.filter((k) => k !== "p_whatsapp:0");
+  data.draft.flow.asked = "p_whatsapp:0";
+  data.draft.step = "p_whatsapp:0";
+  return data;
+}
+
+export async function onboardingEdit(browser, width = 1440) {
+  const ctx = await browser.newContext({ viewport: { width, height: width < 600 ? 860 : 1000 }, timezoneId: "Asia/Kolkata", locale: "en-IN" });
+  await ctx.addCookies([{ name: "kavach_session", value: "world", url: BASE }]);
+  const page = await ctx.newPage();
+  const errors = [];
+  let mode = "stuck-care";
+  page.on("pageerror", (e) => errors.push(`page error: ${e.message.slice(0, 160)}`));
+  page.on("console", (m) => m.type() === "error" && !NOISE.test(m.text()) && errors.push(`console error: ${m.text().slice(0, 160)}`));
+  await page.route(/^https?:\/\/[^/]+\/api\//, (r) => {
+    const u = new URL(r.request().url());
+    if (u.pathname === "/api/client-error") return r.fulfill({ status: 204 });
+    if (u.pathname === "/api/auth/session") return r.fulfill({ json: { user: { name: "Arun Shah", email: "arun@world.kavach.test" }, expires: "2099-01-01T00:00:00.000Z" } });
+    if (u.pathname.startsWith("/api/auth/")) return r.fulfill({ json: {} });
+    if (u.pathname === "/api/onboarding/verify/confirm") return r.fulfill({ json: { success: true, data: { verified: true } } });
+    if (u.pathname === "/api/onboarding/verify/start") return r.fulfill({ json: { success: true, data: { sent: true } } });
+    if (u.pathname === "/api/onboarding") {
+      const data = mode === "stuck-self" ? stuckOnboarding("self") : mode === "summary" ? onboardingState() : stuckOnboarding("care");
+      return r.fulfill({ json: { success: true, data } });
+    }
+    return r.fulfill({ json: { success: true, data: {} } });
+  });
+  const problems = [];
+  const check = (cond, what) => !cond && problems.push(`onboarding-edit @${width}: ${what}`);
+  const finish = () => page.getByRole("button", { name: /Set everything up/ });
+  try {
+    await page.goto(`${BASE}/onboarding`, { waitUntil: "networkidle", timeout: 90000 });
+    await finish().waitFor({ timeout: 20000 });
+    check(await finish().isVisible(), "a stuck caregiver draft did not open on the summary");
+    mode = "summary";
+    await page.goto(`${BASE}/onboarding`, { waitUntil: "networkidle", timeout: 90000 });
+    await page.getByRole("button", { name: "Change Food" }).click();
+    await page.getByRole("button", { name: "Jain" }).click();
+    await finish().waitFor({ timeout: 20000 });
+    check(await finish().isVisible(), "picking a chip from the summary did not return to it");
+    await page.getByRole("button", { name: "Change WhatsApp" }).click();
+    await page.getByRole("button", { name: "This number is right" }).click();
+    await finish().waitFor({ timeout: 20000 });
+    check(await finish().isVisible(), "keeping the verified number did not return to the summary");
+    mode = "stuck-self";
+    await page.goto(`${BASE}/onboarding`, { waitUntil: "networkidle", timeout: 90000 });
+    await finish().waitFor({ timeout: 20000 });
+    const body = await page.evaluate(() => document.body.innerText || "");
+    check(body.includes("about you"), "a stuck self-care draft did not open on her summary");
+    check(await finish().isVisible(), "a stuck self-care draft has no Finish");
+  } catch (e) {
+    problems.push(`onboarding-edit @${width}: did not load: ${String(e.message || e).slice(0, 180)}`);
+  }
+  for (const e of errors) problems.push(`onboarding-edit @${width}: ${e}`);
+  await ctx.close();
+  return problems;
+}
+
 (async () => {
   if (process.env.PAGES_NO_RUN) return;
   fs.mkdirSync(OUT, { recursive: true });
@@ -1171,6 +1247,11 @@ export async function conversationsView(browser, width = 1440) {
     const pc = await publicCard(browser);
     console.log(pc.length ? `public card: ${pc.length} problems` : "public card: no ID number, allergies only as told, fits a phone");
     failures.push(...pc);
+  }
+  if (!process.env.PAGES_ONLY || process.env.PAGES_ONLY.split(",").includes("onboarding-edit")) {
+    const edit = (await Promise.all(WIDTHS.map((w) => onboardingEdit(browser, w)))).flat();
+    console.log(edit.length ? `onboarding edit: ${edit.length} problems` : "onboarding edit: a finished edit returns to the summary, and a stuck draft opens there");
+    failures.push(...edit);
   }
   if (!process.env.PAGES_ONLY || process.env.PAGES_ONLY.split(",").includes("onboarding-done")) {
     const end = (await Promise.all(WIDTHS.map((w) => onboardingDone(browser, w)))).flat();
