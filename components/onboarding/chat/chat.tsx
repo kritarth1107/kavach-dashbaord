@@ -18,8 +18,8 @@ import { cn } from "@/lib/utils";
 import { onboardingApi, type SetupResult } from "../api";
 import { slotTimes, type Answers, type Person } from "../data";
 import {
-  CHAPTERS, OPENING, applyChips, applyUnderstood, ask, callOf, chapterIndex, confirmMeds, emptyFlow, fallbackUnderstood, isSelf, languageAck,
-  markDone, msgId, nextSlot, patchPerson, resumeFlow, seedFlow, skip, summaryRows, toPhone, upcoming, type Ctx, type Flow, type Msg, type Slot,
+  CHAPTERS, OPENING, applyChips, applyUnderstood, ask, callOf, chapterIndex, confirmMeds, emptyFlow, fallbackUnderstood, isSelf, isSentenceName, languageAck,
+  markDone, msgId, nextSlot, patchPerson, plainPersonName, resumeFlow, seedFlow, skip, summaryRows, toPhone, upcoming, type Ctx, type Flow, type Msg, type Slot,
 } from "./engine";
 import { Notebook, type CardKey } from "./notebook";
 import { greetingFor, option, type LangOption } from "./region";
@@ -54,6 +54,15 @@ function Rich({ text }: { text: string }) {
   return <>{parts.map((p, k) => (k % 2 ? <b key={k} className="font-medium">{p}</b> : <span key={k}>{p}</span>))}</>;
 }
 
+/** One line when setup fails, with the next tap. A long "Couldn't add …" sentence is not repeated. */
+function setupFailure(message: string): string {
+  const clean = message.replace(/\s*Let's try that again\.?$/i, "").trim();
+  // "Couldn't add" plus the sentence they typed is the loop. Say what to do, once.
+  const quotesASentence = /Couldn't add\s+\S+(?:\s+\S+){3,}/i.test(clean);
+  if (!clean || clean.length > 90 || quotesASentence) return "That didn't finish. Check the summary, then tap Set everything up to try again.";
+  return `${clean} Tap Set everything up to try again.`;
+}
+
 const Avatar = ({ show }: { show: boolean }) =>
   show ? <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--c-accent)] text-[15px] font-medium text-[var(--c-accent-ink)]">स</span> : <span className="w-8 shrink-0" />;
 
@@ -84,6 +93,7 @@ export function OnboardingChat() {
   const fileRef = useRef<HTMLInputElement>(null);
   const recorder = useRef<MediaRecorder | null>(null);
   const nurseAsked = useRef(false);
+  const finishing = useRef(false);
 
   const ctx: Ctx = useMemo(() => ({ a: answers, flow, verified, myPhone, accountName }), [answers, flow, verified, myPhone, accountName]);
   const current = useMemo(() => (loaded && phase === "chat" ? nextSlot(ctx) : undefined), [ctx, loaded, phase]);
@@ -103,7 +113,23 @@ export function OnboardingChat() {
         }
         const base = blank(st.myPhone);
         const d = st.draft?.answers as Partial<Answers> | undefined;
-        const a = d ? fromDraft(d, base) : base;
+        let a = d ? fromDraft(d, base) : base;
+        // A name box that holds a sentence is read by the understand step before the summary shows it.
+        for (let i = 0; i < a.persons.length; i++) {
+          const said = a.persons[i]?.name || "";
+          if (!isSentenceName(said)) continue;
+          try {
+            const u = await onboardingApi.understand({
+              slot: "p_name", question: "What's their name — and what do you call them at home?", text: said,
+              who: { relation: a.persons[i].relation, self: isSelf(a) },
+              day: a.persons[i].day as Record<string, unknown>, recent: [], upcoming: [], followupsLeft: 0,
+            });
+            const slot: Slot = { key: `p_name:${i}`, base: "p_name", person: i, chapter: "Who" };
+            a = applyUnderstood(slot, u, said, { a, flow: emptyFlow(), verified: {} }).a;
+          } catch {
+            // Setup still reads the sentence. The summary keeps it until that succeeds.
+          }
+        }
         const vf = Object.fromEntries(Object.keys(st.verified || {}).map((k) => [k, true]));
         let f: Flow;
         let c: Msg[];
@@ -297,11 +323,13 @@ export function OnboardingChat() {
       let acks: Array<string | undefined> = u.answered ? [u.ack] : [u.reply || "Let me come back to that."];
       if (u.answered && s.base === "p_language" && a.persons[i]?.language && a.persons[i].language !== p?.language) acks = [languageAck(a.persons[i], self)];
       if (u.answered && s.base === "summary") acks = [u.ack || "Done — I've updated that."];
-      await proceed(a, f, acks, { delay: 0, reAsk: !u.answered, from: s });
+      const nameOpen = s.base === "p_name" && isSentenceName(t) && !plainPersonName(a.persons[s.person ?? 0]?.name || "");
+      if (nameOpen) acks = ["I need just their name, and what you call them at home."];
+      await proceed(a, f, acks, { delay: 0, reAsk: !u.answered || nameOpen, from: s });
     } catch (e) {
       const fb = fallbackUnderstood(s, t, ctx);
       if (fb) await proceed(fb.a, fb.flow, [], { delay: 0, from: s });
-      else await proceed(answers, flow, [(e as Error).message || "Sorry, I didn't catch that — could you tap an answer below?"], { delay: 0, reAsk: true });
+      else await proceed(answers, flow, [s.base === "p_name" && isSentenceName(t) ? "I need just their name, and what you call them at home." : ((e as Error).message || "Sorry, I didn't catch that — could you tap an answer below?")], { delay: 0, reAsk: true });
     }
   };
 
@@ -344,9 +372,13 @@ export function OnboardingChat() {
   };
 
   const finish = async () => {
+    if (finishing.current) return;
+    finishing.current = true;
     setPhase("setup");
     const names = answers.persons.map((p) => callOf(p, self)).join(" and ");
-    setChat((c) => [...c, you("Set everything up"), saheli(self ? "On it! Setting things up for you…" : `On it! Setting things up for ${names}…`), { id: msgId(), from: "saheli", text: "", kind: "progress" }]);
+    const lead = self ? "On it! Setting things up for you…" : `On it! Setting things up for ${names}…`;
+    const dropFailure = (m: Msg) => m.kind !== "progress" && !m.text.endsWith("Tap Set everything up to try again.") && !/Let's try that again/.test(m.text);
+    setChat((c) => [...c.filter(dropFailure), you("Set everything up"), saheli(lead), { id: msgId(), from: "saheli", text: "", kind: "progress" }]);
     try {
       const r = await onboardingApi.complete(answers);
       setResult(r);
@@ -380,8 +412,11 @@ export function OnboardingChat() {
         router.replace("/dashboard");
         return;
       }
-      setChat((c) => [...c.filter((m) => m.kind !== "progress"), saheli(`${err.message} Let's try that again.`)]);
+      const line = setupFailure(err.message);
+      setChat((c) => [...c.filter((m) => dropFailure(m) && m.text !== "Set everything up" && m.text !== lead && m.text !== line), saheli(line)]);
       setPhase("chat");
+    } finally {
+      finishing.current = false;
     }
   };
 

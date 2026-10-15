@@ -45,6 +45,22 @@ const PARENT_WORDS = /^(maa|ma|mummy|mumma|mom|amma|aai|ammi|baa|bebe|biji|papa|
 /** What Saheli calls them: "Maa" → "Maa ji"; a name stays a name. */
 export const suggestAddress = (callThem: string) => (PARENT_WORDS.test(callThem.trim()) ? `${callThem.trim()} ji` : callThem.trim());
 
+/** A name box sometimes holds a sentence. A plain name is at most four words and 40 characters. */
+export function isSentenceName(raw: string): boolean {
+  const t = raw.trim().replace(/\s+/g, " ");
+  if (!t) return false;
+  const words = t.split(" ").filter(Boolean);
+  return words.length > 4 || t.length > 40;
+}
+
+/** The name itself, or "" when it is still a sentence or was not in what they typed. */
+export function plainPersonName(raw: string, from?: string): string {
+  const t = raw.trim().replace(/\s+/g, " ");
+  if (!t || isSentenceName(t)) return "";
+  if (from && !t.split(" ").every((w) => from.toLowerCase().includes(w.toLowerCase()))) return "";
+  return t;
+}
+
 export function callOf(p?: Person, self?: boolean): string {
   if (!p) return "them";
   if (self) return "you";
@@ -553,8 +569,21 @@ export function applyUnderstood(s: Slot, u: Understood, text: string, c: Ctx): {
     }
     const next: Person = { ...p };
     for (const k of ["name", "callThem", "addressAs", "age", "city", "state", "livesWith", "reads", "sugarCheck", "bpMachine", "avoidTopics", "diet"] as const) {
-      if (q[k] !== undefined) (next as Record<string, unknown>)[k] = q[k];
+      if (q[k] === undefined) continue;
+      if (k === "name") {
+        const plain = plainPersonName(String(q.name), s.base === "p_name" ? text : undefined);
+        if (plain) next.name = plain;
+        continue;
+      }
+      if (k === "callThem" && s.base === "p_name") {
+        const plain = plainPersonName(String(q.callThem), text);
+        if (plain) next.callThem = plain;
+        continue;
+      }
+      (next as Record<string, unknown>)[k] = q[k];
     }
+    if (s.base === "p_name" && !plainPersonName(next.name) && plainPersonName(text)) next.name = plainPersonName(text);
+    if (s.base === "p_name" && next.callThem && (!next.addressAs || isSentenceName(next.addressAs))) next.addressAs = suggestAddress(next.callThem);
     if (q.gender && !p.gender) next.gender = q.gender;
     if (q.language) { next.language = q.language; next.dialect = q.dialect ?? null; }
     if (q.conditions) next.conditions = union(p.conditions, q.conditions);
@@ -611,7 +640,11 @@ export function fallbackUnderstood(s: Slot, text: string, c: Ctx): { a: Answers;
   const a = c.a;
   switch (s.base) {
     case "you_name": return { a: { ...a, you: { ...a.you, name: t.slice(0, 80) } }, flow: done(c.flow, s.key) };
-    case "p_name": return { a: setP(a, i, { name: t.slice(0, 80) }), flow: c.flow };
+    case "p_name": {
+      const name = plainPersonName(t);
+      if (!name) return null;
+      return { a: setP(a, i, { name }), flow: c.flow };
+    }
     case "p_call": return { a: setP(a, i, { addressAs: t.slice(0, 60), callThem: a.persons[i].callThem || t.slice(0, 40) }), flow: done(c.flow, s.key) };
     case "p_home": return { a: setP(a, i, { city: t.slice(0, 80) }), flow: c.flow };
     case "p_day": return { a: setP(a, i, { day: { ...a.persons[i].day, notes: t.slice(0, 500) } }), flow: done(c.flow, s.key) };

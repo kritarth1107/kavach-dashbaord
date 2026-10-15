@@ -3,7 +3,7 @@
  *   npx tsx scripts/test-onboarding-edit.ts
  */
 import { emptyPerson, type Answers } from "../components/onboarding/data";
-import { applyChips, markDone, nextSlot, plan, resumeFlow, type Ctx, type Flow } from "../components/onboarding/chat/engine";
+import { applyChips, applyUnderstood, fallbackUnderstood, isSentenceName, markDone, nextSlot, plan, plainPersonName, resumeFlow, type Ctx, type Flow, type Slot } from "../components/onboarding/chat/engine";
 
 const day = { wake: "06:30", breakfast: "08:30", lunch: "13:00", tea: "17:00", dinner: "20:30", sleep: "22:00", activities: [] as string[] };
 
@@ -76,6 +76,20 @@ for (const care of ["mother", "self"] as const) {
   const unanswered = { ...editing, verified: {} };
   check(resumeFlow(unanswered).editing === key, `${care}: an unverified edit stays open`);
 }
+
+const said = "Her name is Kamla Devi, I call her Amma and her other name is Sushila.";
+const nameSlot: Slot = { key: "p_name:0", base: "p_name", person: 0, chapter: "Who" };
+const named = applyUnderstood(nameSlot, {
+  answered: true, ack: "Kamla Devi.", reply: "",
+  updates: { person: { name: "Kamla Devi", callThem: "Amma" }, note: "Kamla Devi is also called Sushila." },
+}, said, { ...ready("mother"), a: { ...ready("mother").a, persons: [{ ...ready("mother").a.persons[0], name: said, callThem: undefined, addressAs: undefined }] } });
+check(named.a.persons[0].name === "Kamla Devi", "a sentence was stored as the name");
+check(named.a.persons[0].callThem === "Amma", "the call name was not split out");
+check(named.a.persons[0].addressAs === "Amma ji", "the summary call was not Amma ji");
+check(!isSentenceName(named.a.persons[0].name), "the name is still a sentence");
+check(named.a.anythingElse?.includes("Sushila") === true, "the other name was not kept separately");
+check(fallbackUnderstood(nameSlot, said, ready("mother")) === null, "a failed understand stored the sentence");
+check(plainPersonName("Kamla Devi", said) === "Kamla Devi", "a plain name inside the sentence was dropped");
 
 if (problems.length) {
   for (const p of problems) console.error("FAIL", p);

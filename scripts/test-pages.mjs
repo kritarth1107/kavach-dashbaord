@@ -1252,6 +1252,67 @@ export async function nutritionLate(browser, width = 1440) {
   return problems;
 }
 
+/** A saved name that is a sentence is read by the understand step, then Finish can succeed. Synthetic only. */
+const NAME_SENTENCE = "Her name is Kamla Devi, I call her Amma and her other name is Sushila.";
+export async function onboardingName(browser, width = 1440) {
+  const data = onboardingState();
+  data.draft.answers.persons = [{ ...data.draft.answers.persons[0], name: NAME_SENTENCE, callThem: undefined, addressAs: undefined }];
+  const understood = { answered: true, ack: "Kamla Devi.", reply: "", updates: { person: { name: "Kamla Devi", callThem: "Amma" }, note: "Kamla Devi is also called Sushila." } };
+  let tries = 0;
+  const posted = [];
+  const ctx = await browser.newContext({ viewport: { width, height: width < 600 ? 860 : 1000 }, timezoneId: "Asia/Kolkata", locale: "en-IN" });
+  await ctx.addCookies([{ name: "kavach_session", value: "world", url: BASE }]);
+  const page = await ctx.newPage();
+  const errors = [];
+  page.on("pageerror", (e) => errors.push(`page error: ${e.message.slice(0, 160)}`));
+  page.on("console", (m) => m.type() === "error" && !NOISE.test(m.text()) && !/status of 400/.test(m.text()) && errors.push(`console error: ${m.text().slice(0, 160)}`));
+  await page.route(/^https?:\/\/[^/]+\/api\//, (r) => {
+    const u = new URL(r.request().url());
+    if (u.pathname === "/api/client-error") return r.fulfill({ status: 204 });
+    if (u.pathname === "/api/auth/session") return r.fulfill({ json: { user: { name: "Priya Mehta", email: "priya@world.kavach.test" }, expires: "2099-01-01T00:00:00.000Z" } });
+    if (u.pathname.startsWith("/api/auth/")) return r.fulfill({ json: {} });
+    if (u.pathname === "/api/onboarding/understand") return r.fulfill({ json: { success: true, data: understood } });
+    if (u.pathname === "/api/onboarding/complete") {
+      tries += 1;
+      posted.push(r.request().postDataJSON());
+      if (tries < 3) return r.fulfill({ status: 400, json: { message: `Couldn't add ${NAME_SENTENCE}` } });
+      return r.fulfill({ json: { success: true, data: { ...ONBOARDING_RESULT, persons: [{ ...ONBOARDING_RESULT.persons[0], name: "Kamla Devi", addressAs: "Amma ji" }] } } });
+    }
+    if (u.pathname === "/api/onboarding") return r.fulfill({ json: { success: true, data } });
+    return r.fulfill({ json: { success: true, data: {} } });
+  });
+  const problems = [];
+  const check = (cond, what) => !cond && problems.push(`onboarding-name @${width}: ${what}`);
+  try {
+    await page.goto(`${BASE}/onboarding`, { waitUntil: "networkidle", timeout: 90000 });
+    await page.getByRole("button", { name: /Set everything up/ }).waitFor({ timeout: 20000 });
+    const shown = await page.evaluate(() => document.body.innerText || "");
+    check(shown.includes("Kamla Devi"), "the summary did not show the name");
+    check(shown.includes("Amma ji"), "the summary did not show what Saheli calls her");
+    check(!shown.includes(NAME_SENTENCE), "the summary shows the whole sentence");
+    await page.getByRole("button", { name: /Set everything up/ }).click();
+    await page.getByText("Tap Set everything up to try again.").waitFor({ timeout: 20000 });
+    const chatText = () => page.evaluate(() => [...document.querySelectorAll("[class*='rounded-[22px]']")].map((el) => el.textContent || "").join("\n"));
+    const fails = () => page.getByText("That didn't finish. Check the summary, then tap Set everything up to try again.").count();
+    const once = await fails();
+    check(once > 0, "the setup error did not show");
+    check(!(await chatText()).includes("Couldn't add"), "the failed name was repeated in the chat");
+    await page.getByRole("button", { name: /Set everything up/ }).click();
+    await page.getByText("Tap Set everything up to try again.").waitFor({ timeout: 20000 });
+    check(await fails() === once, "a second tap stacked the error");
+    await page.getByRole("button", { name: /Set everything up/ }).click();
+    await page.getByRole("link", { name: /Send hi to Saheli on WhatsApp/ }).waitFor({ timeout: 20000 });
+    const person = posted[0]?.answers?.persons?.[0];
+    check(person?.name === "Kamla Devi" && person?.callThem === "Amma", `Finish sent ${JSON.stringify({ name: person?.name, callThem: person?.callThem })}`);
+    check(posted.every((p) => p?.answers?.persons?.[0]?.name === "Kamla Devi"), "a later tap sent the sentence");
+  } catch (e) {
+    problems.push(`onboarding-name @${width}: did not load: ${String(e.message || e).slice(0, 180)}`);
+  }
+  for (const e of errors) problems.push(`onboarding-name @${width}: ${e}`);
+  await ctx.close();
+  return problems;
+}
+
 (async () => {
   if (process.env.PAGES_NO_RUN) return;
   fs.mkdirSync(OUT, { recursive: true });
@@ -1322,6 +1383,11 @@ export async function nutritionLate(browser, width = 1440) {
     const pc = await publicCard(browser);
     console.log(pc.length ? `public card: ${pc.length} problems` : "public card: no ID number, allergies only as told, fits a phone");
     failures.push(...pc);
+  }
+  if (!process.env.PAGES_ONLY || process.env.PAGES_ONLY.split(",").includes("onboarding-name")) {
+    const named = (await Promise.all(WIDTHS.map((w) => onboardingName(browser, w)))).flat();
+    console.log(named.length ? `onboarding name: ${named.length} problems` : "onboarding name: a sentence becomes a name, and a failed setup is said once");
+    failures.push(...named);
   }
   if (!process.env.PAGES_ONLY || process.env.PAGES_ONLY.split(",").includes("onboarding-edit")) {
     const edit = (await Promise.all(WIDTHS.map((w) => onboardingEdit(browser, w)))).flat();
