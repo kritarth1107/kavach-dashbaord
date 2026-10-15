@@ -5,7 +5,7 @@
  *   npx tsx scripts/test-nutrition-data.ts
  */
 import assert from "node:assert/strict";
-import { toDiary, type EngineEntry, type NutritionView } from "../components/care-os/nutrition-data";
+import { MAIN_MEALS, asSlot, shownSlots, toDiary, type EngineEntry, type NutritionView } from "../components/care-os/nutrition-data";
 
 let passed = 0;
 const ok = (name: string, fn: () => void) => {
@@ -190,6 +190,28 @@ ok("averages, highlighted rows, counters, pantry, questions and noticed lines pa
   assert.equal(d.pantry[0].name, "Acme protein bar");
   assert.equal(d.questions[0].jobId, "j1");
   assert.deepEqual(d.noticed.map((n) => n.watch), [false, true]);
+});
+
+ok("late night is its own meal and is not one of the three", () => {
+  const v = view();
+  v.today.meals = [{
+    meal: "late_night", label: "Late night", kcal: 200, protein_g: 10, skipped: false, notLogged: false,
+    entries: [entry({ id: "e9", mealId: "m9", meal: "late_night", eatenAt: `${DAY}T02:36:00+05:30` })],
+  }];
+  const d = toDiary(v, { today: DAY });
+  assert.deepEqual(d.days[0].meals.map((m) => m.meal), ["late_night"]);
+  assert.equal(d.days[0].meals[0].at, `${DAY}T02:36:00+05:30`);
+  assert.deepEqual(MAIN_MEALS.filter((m) => d.days[0].meals.some((x) => x.meal === m)), []);
+  assert.equal(d.days[0].missing.some((m) => m.meal === "late_night"), false);
+  const history = view().week.map((r) => (r.day === "2026-10-12" ? { ...r, meals: [{ meal: "late_night", at: "2026-10-12T02:36:00+05:30", names: ["boiled egg"], kcal: 200, protein_g: 18 }], skipped: [] } : r));
+  const week = toDiary(view({ days: 7, history }), { today: DAY });
+  const day = week.days.find((x) => x.day === "2026-10-12")!;
+  assert.deepEqual(day.meals.map((m) => m.meal), ["late_night"]);
+  assert.deepEqual(day.missing.map((m) => m.meal), ["breakfast", "lunch", "dinner"]);
+  assert.deepEqual(shownSlots(day.meals), ["breakfast", "lunch", "snack", "dinner", "late_night"]);
+  assert.deepEqual(shownSlots([]), ["breakfast", "lunch", "snack", "dinner"]);
+  assert.equal(asSlot("brunch"), "other");
+  assert.equal(asSlot("after_dinner"), "after_dinner");
 });
 
 ok("tracking off, an unknown confidence, a missing name: nothing breaks", () => {

@@ -145,8 +145,14 @@ export type Strictness = "strict" | "guide";
 export const MEAL_ORDER: MealSlot[] = ["breakfast", "lunch", "snack", "dinner", "after_dinner", "late_night", "other"];
 /** The meals a day is counted by (the engine's portions.MAIN_MEALS); a snack is shown when there is one. */
 export const MAIN_MEALS: Array<"breakfast" | "lunch" | "dinner"> = ["breakfast", "lunch", "dinner"];
-/** The four places a day has in the diary, the week cards and the calendar dots. */
+/** The four places a day has in the diary and the calendar dots. Late night is not one of them. */
 export const DAY_SLOTS: Array<"breakfast" | "lunch" | "snack" | "dinner"> = ["breakfast", "lunch", "snack", "dinner"];
+/** Week cards: the four, plus after dinner and late night only on a day that has them. */
+export function shownSlots(meals: { meal: MealSlot }[]): MealSlot[] {
+  const have = new Set(meals.map((m) => m.meal));
+  const extra = (["after_dinner", "late_night"] as MealSlot[]).filter((s) => have.has(s));
+  return [...DAY_SLOTS, ...extra];
+}
 const SETTERS: TargetSetter[] = ["caregiver", "self", "doctor", "dietitian", "trainer", "other"];
 const CONFIDENCES: Confidence[] = ["label", "said", "photo", "estimate", "unquantified"];
 

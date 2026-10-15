@@ -11,6 +11,7 @@ import {
   ConfidenceLegend,
   Counter,
   DAY_SLOTS,
+  shownSlots,
   DIARY_COLS,
   DiaryColumnHeads,
   DiaryTotal,
@@ -582,7 +583,7 @@ function WeekPanel({ data, onPick }: { data: Diary; onPick: (day: string) => voi
                 ) : (
                   // phones: one line per meal; wider screens: four cards side by side
                   <div className="grid grid-cols-1 gap-1 sm:grid-cols-2 sm:gap-1.5 lg:grid-cols-4">
-                    {DAY_SLOTS.map((slot) => {
+                    {shownSlots(d.meals).map((slot) => {
                       const meals = d.meals.filter((m) => m.meal === slot);
                       const head = (time: string | null) => (
                         <span className="flex w-[50px] shrink-0 flex-col text-[10.5px] leading-tight text-[var(--c-ink-2)] sm:w-full sm:flex-row sm:items-center sm:justify-between sm:gap-1 sm:text-[11px]">

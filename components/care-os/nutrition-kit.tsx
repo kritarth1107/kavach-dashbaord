@@ -54,7 +54,7 @@ import {
   type WeekDay,
 } from "./nutrition-data";
 
-export { DAY_SLOTS, MAIN_MEALS, MEAL_ORDER, asSlot };
+export { DAY_SLOTS, MAIN_MEALS, MEAL_ORDER, asSlot, shownSlots };
 export type { MealSlot, NutrientKey, Nutrients };
 
 /* ── API (backend care-memory/nutrition/*, caregivers and self-care only) ── */
