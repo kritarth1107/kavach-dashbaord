@@ -746,6 +746,12 @@ export async function learnedView(browser, width = 1440) {
   const base = world.families[0];
   const blank = structuredClone(Object.values(base.engine)[0]);
   const meals = learnedFact("1ea41000-0000-4000-8000-0000000000a1", "learned", "learned:nudges_meals_times", "Usually has breakfast at 08:30; Saheli asks after that.", "active", { value: { breakfast: "08:30" } });
+  // Hours with no sentence of their own: the page writes one. An unknown key with no sentence still shows.
+  const quiet = learnedFact("1ea41000-0000-4000-8000-0000000000b1", "learned", "learned:nudges_ask_hours", "", "active", { value: { avoid_hours: [14], prefer_hour: 19 } });
+  const timing = learnedFact("1ea41000-0000-4000-8000-0000000000b2", "learned", "learned:timing_messages", "", "active", { value: { avoid_hours: [14, 15], prefer_hours: [18, 19] } });
+  const water = learnedFact("1ea41000-0000-4000-8000-0000000000b3", "learned", "learned:nudges_water_times", "", "active", { value: { times: ["11:00", "16:00"] } });
+  const clocks = learnedFact("1ea41000-0000-4000-8000-0000000000b4", "learned", "learned:nudges_meals_clocks", "{", "active", { value: { lunch: "13:30", dinner: "20:30" } });
+  const unnamed = learnedFact("1ea41000-0000-4000-8000-0000000000b5", "learned", "learned:not_a_known_key", "", "active", { value: { raw: { n: 1 } }, name: "" });
   const foods = learnedFact("1ea41000-0000-4000-8000-0000000000a2", "learned", "learned:nudges_meals_portions", "Usual breakfast is idli, 2 pieces.", "active", {
     value: { items: { idli: { quantity: 2, unit: "pieces" } } },
   });
@@ -753,7 +759,7 @@ export async function learnedView(browser, width = 1440) {
   const leaked = learnedFact("1ea41000-0000-4000-8000-0000000000a4", "learned", "learned:nudges_water_times", "Arun drinks water at 11:00.", "active", { subjectId: LEARNED_SELF });
   const like = learnedFact("1ea41000-0000-4000-8000-0000000000a5", "preference", "preference:old_hindi_songs", "Likes old Hindi songs in the evening.", "active", { source: "caregiver_said" });
   const earlierFoods = { ...foods, id: "1ea41000-0000-4000-8000-0000000000a6", text: "Usual breakfast is idli, 3 pieces.", status: "superseded", value: { items: { idli: { quantity: 3, unit: "pieces" } } }, recordedAt: "2026-10-04T08:00:00+05:30" };
-  const maa = { ...blank, overview: { ...blank.overview, facts: [meals, foods, unknown, leaked, like], pending: [], notes: [] } };
+  const maa = { ...blank, overview: { ...blank.overview, facts: [meals, foods, unknown, leaked, like, quiet, timing, water, clocks, unnamed], pending: [], notes: [] } };
   const self = { ...blank, overview: { ...blank.overview, facts: [], pending: [], notes: [] } };
   const history = {
     "learned:nudges_meals_portions": [foods, earlierFoods],
@@ -805,6 +811,14 @@ export async function learnedView(browser, width = 1440) {
     check(text.includes("Usual breakfast is idli, 2 pieces"), "usual food is missing");
     check(text.includes("idli · 2 pieces"), "portion from the fact value is missing");
     check(text.includes("She replies more on Sundays"), "an unknown learned key did not render");
+    check(text.includes("Doesn't answer around 2 pm; Saheli asks around 7 pm instead."), "quiet hours did not become a sentence");
+    check(text.includes("Rarely answers around 2–4 pm; Saheli writes around 6–8 pm instead."), "message timing did not become a sentence");
+    check(text.includes("Usually drinks water around 11 am and 4 pm."), "water times did not become a sentence");
+    check(text.includes("Usually has lunch around 1:30 pm and dinner around 8:30 pm."), "meal times without a sentence did not become one");
+    check(text.includes("Something Saheli learned"), "an unknown key with no sentence has no fallback");
+    check(!text.includes("not_a_known_key") && !text.includes("[object Object]"), "a raw key or object was shown");
+    check(await page.getByRole("button", { name: "Undo Doesn't answer around 2 pm; Saheli asks around 7 pm instead." }).isVisible(), "quiet hours has no Undo");
+    check(await page.getByRole("button", { name: "Undo Usually drinks water around 11 am and 4 pm." }).isVisible(), "water times has no Undo");
     check(text.includes("Likes old Hindi songs"), "preference is missing");
     check(text.includes("Usual breakfast is idli, 3 pieces"), "earlier version is missing");
     check(text.includes("Undo puts the earlier version back"), "correction restore line is missing");
@@ -1182,6 +1196,62 @@ export async function onboardingEdit(browser, width = 1440) {
   return problems;
 }
 
+/** A late-night meal and an unknown slot both render. Synthetic food only. */
+export async function nutritionLate(browser, width = 1440) {
+  const fam = world.families[0];
+  const person = fam.people.find((p) => p.careRecipient) || fam.people[0];
+  const day = world.today;
+  const entry = (meal, name) => ({
+    id: `e-${meal}`, mealId: `m-${meal}`, meal, eatenAt: `${day}T02:10:00+05:30`, name, nameSaid: "",
+    quantity: 1, unit: "glass", grams: 200, kcal: 80, protein_g: 4, nutrients: { energy_kcal: 80, protein_g: 4 },
+    confidence: "said", source: "chat", consumed: null, flags: { tags: [] }, photoRef: null, kind: "food",
+    loggedBy: person.id, day, note: null, foodId: null, portionEaten: null, qty: 1, sourceRef: null, status: "active", version: 1,
+  });
+  const slot = (meal, name) => ({ meal, label: meal, entries: [entry(meal, name)], kcal: 80, protein_g: 4, skipped: false, notLogged: false });
+  const nutrition = {
+    subjectId: person.id, day, days: 1,
+    tracking: { tracking: "full", ask: "adaptive", counters: [], daily_summary_to: [], sizes: {} },
+    targets: [], rules: [],
+    today: { day, meals: [slot("late_night", "warm milk"), slot("brunch", "fruit")], totals: { energy_kcal: 160 }, water: { ml: 0, glasses: 0, glassMl: 250, targetMl: null } },
+    history: [], counters: [], week: [],
+    month: { calendar: [], trends: { kcal: [], protein_g: [], sugar_g: [], sodium_mg: [] } },
+    nutrients: [], streaks: { allMeals: 0, proteinMet: 0 }, pantry: [], waiting: [], pendingQuestions: [], noticed: [],
+    units: [], mealSlots: ["breakfast", "lunch", "snack", "dinner", "after_dinner", "late_night"],
+  };
+  const ctx = await browser.newContext({ viewport: { width, height: width < 600 ? 860 : 1000 }, timezoneId: "Asia/Kolkata", locale: "en-IN" });
+  await ctx.addCookies([{ name: "kavach_session", value: "world", url: BASE }]);
+  const page = await ctx.newPage();
+  const errors = [];
+  page.on("pageerror", (e) => errors.push(`page error: ${e.message.slice(0, 180)}`));
+  page.on("console", (m) => m.type() === "error" && !NOISE.test(m.text()) && errors.push(`console error: ${m.text().slice(0, 180)}`));
+  await page.route(/^https?:\/\/[^/]+\/api\//, (r) => {
+    const u = new URL(r.request().url());
+    if (u.pathname === "/api/client-error") return r.fulfill({ status: 204 });
+    if (u.pathname === "/api/auth/session") return r.fulfill({ json: { user: { name: person.name, email: "leela@world.kavach.test" }, expires: "2099-01-01T00:00:00.000Z" } });
+    if (u.pathname.startsWith("/api/auth/") && u.pathname !== "/api/auth/me") return r.fulfill({ json: {} });
+    const cm = u.pathname.match(/\/care-memory\/(.+)$/);
+    if (cm && cm[1] === "nutrition") return r.fulfill({ json: { success: true, data: nutrition } });
+    const known = api(fam, u);
+    return r.fulfill({ json: { success: true, data: known ?? {} } });
+  });
+  const problems = [];
+  const check = (cond, what) => !cond && problems.push(`nutrition-late @${width}: ${what}`);
+  try {
+    await page.goto(`${BASE}/dashboard/nutrition?recipient=${person.id}`, { waitUntil: "networkidle", timeout: 90000 });
+    await page.getByText("Late night", { exact: true }).first().waitFor({ timeout: 20000 });
+    const text = await page.evaluate(() => document.body.innerText || "");
+    check(text.includes("Late night"), "a late night meal did not show");
+    check(text.includes("warm milk"), "the late night food did not show");
+    check(text.includes("Through the day"), "an unknown meal slot had no fallback");
+    check(!text.includes("brunch"), "an unknown slot was shown as its engine name");
+  } catch (e) {
+    problems.push(`nutrition-late @${width}: did not load: ${String(e.message || e).slice(0, 180)}`);
+  }
+  for (const e of errors) problems.push(`nutrition-late @${width}: ${e}`);
+  await ctx.close();
+  return problems;
+}
+
 (async () => {
   if (process.env.PAGES_NO_RUN) return;
   fs.mkdirSync(OUT, { recursive: true });
@@ -1232,6 +1302,11 @@ export async function onboardingEdit(browser, width = 1440) {
     const view = (await Promise.all(WIDTHS.map((w) => conversationsView(browser, w)))).flat();
     console.log(view.length ? `conversations: ${view.length} problems` : "conversations: one person, empty, closed window, an answer opens it, unknown kinds");
     failures.push(...view);
+  }
+  if (!process.env.PAGES_ONLY || process.env.PAGES_ONLY.split(",").includes("nutrition-late")) {
+    const late = (await Promise.all(WIDTHS.map((w) => nutritionLate(browser, w)))).flat();
+    console.log(late.length ? `nutrition late: ${late.length} problems` : "nutrition late: Late night shows, an unknown slot falls back");
+    failures.push(...late);
   }
   if (!process.env.PAGES_ONLY || process.env.PAGES_ONLY.split(",").includes("learned")) {
     const view = (await Promise.all(WIDTHS.map((w) => learnedView(browser, w)))).flat();

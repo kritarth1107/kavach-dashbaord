@@ -49,13 +49,109 @@ function textOf(v: unknown): string {
   return "";
 }
 
+function valueOf(fact: CareFact): Record<string, unknown> {
+  return fact.value && typeof fact.value === "object" && !Array.isArray(fact.value) ? fact.value : {};
+}
+
+/** 14 or "14:00" or "08:30" as a clock a person would say. */
+function clockPhrase(raw: unknown): string {
+  let h = -1;
+  let min = 0;
+  if (typeof raw === "number" && Number.isInteger(raw)) h = raw;
+  else {
+    const m = /^(\d{1,2}):(\d{2})$/.exec(textOf(raw));
+    if (!m) return "";
+    h = Number(m[1]);
+    min = Number(m[2]);
+  }
+  if (h < 0 || h > 23 || min < 0 || min > 59) return "";
+  const hour = h % 12 || 12;
+  return `${hour}${min ? `:${String(min).padStart(2, "0")}` : ""} ${h >= 12 ? "pm" : "am"}`;
+}
+
+function joinAnd(parts: string[]): string {
+  if (parts.length <= 1) return parts[0] || "";
+  return `${parts.slice(0, -1).join(", ")} and ${parts[parts.length - 1]}`;
+}
+
+/** Consecutive hours read as the window they cover: 14 and 15 is 2–4 pm. One hour stays "2 pm". */
+function hourSpan(hours: number[]): string {
+  const xs = [...new Set(hours.filter((h) => Number.isInteger(h) && h >= 0 && h <= 23))].sort((a, b) => a - b);
+  const groups: number[][] = [];
+  for (const h of xs) {
+    const last = groups[groups.length - 1];
+    if (last && h === last[last.length - 1] + 1) last.push(h);
+    else groups.push([h]);
+  }
+  return joinAnd(
+    groups.map((g) => {
+      if (g.length === 1) return clockPhrase(g[0]);
+      const start = clockPhrase(g[0]);
+      const end = clockPhrase(g[g.length - 1] + 1 === 24 ? 0 : g[g.length - 1] + 1);
+      const sm = start.match(/ (am|pm)$/);
+      const em = end.match(/ (am|pm)$/);
+      if (sm && em && sm[1] === em[1]) return `${start.slice(0, sm.index)}–${end}`;
+      return `${start}–${end}`;
+    }),
+  );
+}
+
+const MEAL_WORD: Record<string, string> = { breakfast: "breakfast", lunch: "lunch", snack: "a snack", dinner: "dinner" };
+
+function mealBits(row: Record<string, unknown>): string[] {
+  return ["breakfast", "lunch", "snack", "dinner"].flatMap((slot) => {
+    const when = clockPhrase(row[slot]);
+    return when ? [`${MEAL_WORD[slot]} around ${when}`] : [];
+  });
+}
+
+function mealSentence(value: Record<string, unknown>): string {
+  const bits = mealBits(value);
+  const weekend = value.weekend;
+  if (weekend && typeof weekend === "object" && !Array.isArray(weekend)) {
+    const extra = mealBits(weekend as Record<string, unknown>).map((s) => s.replace(" around ", " "));
+    if (extra.length) bits.push(`weekends ${joinAnd(extra)}`);
+  }
+  return bits.length ? `Usually has ${joinAnd(bits)}.` : "";
+}
+
+function waterSentence(value: Record<string, unknown>): string {
+  const list = Array.isArray(value.times) ? value.times : Array.isArray(value.weekday) ? value.weekday : [];
+  const times = list.map(clockPhrase).filter(Boolean);
+  return times.length ? `Usually drinks water around ${joinAnd(times)}.` : "";
+}
+
+function quietSentence(key: string, value: Record<string, unknown>): string {
+  const avoid = Array.isArray(value.avoid_hours) ? value.avoid_hours.filter((h): h is number => typeof h === "number") : [];
+  const span = hourSpan(avoid);
+  if (!span) return "";
+  const preferList = Array.isArray(value.prefer_hours) ? value.prefer_hours.filter((h): h is number => typeof h === "number") : [];
+  const prefer = typeof value.prefer_hour === "number" ? hourSpan([value.prefer_hour]) : hourSpan(preferList);
+  const nightly = key === "timing_messages";
+  if (!prefer) return nightly ? `Rarely answers around ${span}.` : `Saheli stays quiet around ${span}.`;
+  return nightly
+    ? `Rarely answers around ${span}; Saheli writes around ${prefer} instead.`
+    : `Doesn't answer around ${span}; Saheli asks around ${prefer} instead.`;
+}
+
+/** A sentence from the stored hours when the engine sent no line of its own. */
+function sentenceFrom(fact: CareFact): string {
+  const value = valueOf(fact);
+  const rest = fact.key.startsWith("learned:") ? fact.key.slice("learned:".length) : fact.key;
+  if (rest === "nudges_ask_hours" || rest === "timing_messages") return quietSentence(rest, value);
+  if (rest === "nudges_meals_times" || rest === "nudges_meals_clocks") return mealSentence(value);
+  if (rest === "nudges_water_times") return waterSentence(value);
+  return "";
+}
+
 function lineOf(fact: CareFact): string {
   const text = textOf(fact.text);
-  if (text) return text;
+  if (text && !text.startsWith("{") && !text.startsWith("[")) return text;
+  const built = sentenceFrom(fact);
+  if (built) return built;
   const pills = portionPills(fact.value);
   if (pills.length) return pills.join(", ");
-  const name = textOf(fact.name).replaceAll("_", " ");
-  return name || "Something Saheli learned";
+  return "Something Saheli learned";
 }
 
 function portionPills(value: Record<string, unknown> | null | undefined): string[] {
