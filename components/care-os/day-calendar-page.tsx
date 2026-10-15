@@ -24,6 +24,7 @@ import { cn } from "@/lib/utils";
 import { callName, possessive, usePerson } from "./person-context";
 import { AllReminders, deliveryText, ReminderDetail, statusWord, undelivered, useAllReminders, useReminderDay } from "./reminders-panel";
 import type { ReminderOccurrence } from "@/lib/reminders-api";
+import { ConversationsToday } from "./conversations-today";
 import { Panel, PanelTitle, PillTabs, SmallButton, Tag } from "./ui";
 
 const IST = "Asia/Kolkata";
@@ -380,6 +381,8 @@ export function DayCalendarPage() {
           </button>
         </div>
       </div>
+
+      {familyId && selectedId && <ConversationsToday familyId={familyId} subjectId={selectedId} day={day} name={personWord} />}
 
       <div className="grid gap-4 xl:grid-cols-[1fr_320px]">
         <Panel className="min-w-0 p-0">

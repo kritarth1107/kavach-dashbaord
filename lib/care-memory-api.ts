@@ -160,6 +160,43 @@ function post<T>(url: string, body: unknown, method: "POST" | "PUT" = "POST") {
   return request<T>(url, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }, 45_000);
 }
 
+export type ConversationRow = {
+  id: string;
+  kind: string;
+  status: string;
+  reason: string;
+  text: string;
+  at: string;
+  repliedAt: string | null;
+  reply: string | null;
+  personId?: string;
+};
+
+export type ConversationLoop = {
+  id: string;
+  kind: string;
+  title: string;
+  wakeAt: string | null;
+  since: string;
+  subjectId?: string;
+};
+
+/** What Saheli started for this person on this day: the nudge ledger, the WhatsApp window, open follow-ups. */
+export type ConversationsDay = {
+  day: string;
+  personId: string;
+  window: { open: boolean; lastInboundAt: string | null; answeredToday: boolean };
+  template: { at: string | null; reason: string; text: string } | null;
+  started: ConversationRow[];
+  loops: ConversationLoop[];
+};
+
+export async function getConversations(familyId: string, subjectUserId: string, day?: string): Promise<ConversationsDay> {
+  const data = await request<ConversationsDay>(`${base(familyId, subjectUserId)}/conversations${day ? `?day=${encodeURIComponent(day)}` : ""}`, {}, 45_000);
+  if (!data) throw new Error("Empty response");
+  return data;
+}
+
 export async function getCareOverview(familyId: string, subjectUserId: string, day?: string): Promise<CareOverview> {
   const data = await request<CareOverview>(`${base(familyId, subjectUserId)}/overview${day ? `?day=${day}` : ""}`, {}, 45_000);
   if (!data) throw new Error("Empty response");

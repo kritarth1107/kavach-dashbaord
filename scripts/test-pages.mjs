@@ -157,6 +157,14 @@ function known(fam, url) {
       return { key, versions: facts };
     }
     if (route === "memory-history" || route.startsWith("memory-history/")) return { changes: [] };
+    if (route === "conversations") {
+      const day = url.searchParams.get("day") || world.today;
+      return {
+        day, personId: cm[1],
+        window: { open: true, lastInboundAt: null, answeredToday: false },
+        template: null, started: [], loops: [],
+      };
+    }
     if (route === "nutrition" && !(route in answers)) {
       const day = world.today;
       return {
@@ -951,6 +959,153 @@ export async function onboardingFood(browser, width = 1440) {
   return problems;
 }
 
+// Saheli's conversations, the first block of Today. An answer on the day opens the window even when the payload
+// still says closed. "Reopen template sent" appears only for a waiting:opener row. Unknown kinds still render.
+const CONV_MAA = "c0ab0000-0000-4000-8000-00000000c001";
+const CONV_SELF = "c0ab0000-0000-4000-8000-00000000c002";
+export async function conversationsView(browser, width = 1440) {
+  const answeredDay = "2026-10-14";
+  const prevOf = (d) => new Date(Date.parse(`${d}T12:00:00+05:30`) - 86_400_000).toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
+  const closedFor = (d) => {
+    const y = prevOf(d);
+    return {
+      day: d, personId: CONV_MAA,
+      window: { open: false, lastInboundAt: `${y}T14:00:00+05:30`, answeredToday: false },
+      template: { at: `${d}T08:00:00+05:30`, reason: "waiting:update", text: "Good morning. How did you sleep?" },
+      started: [
+        { id: "n1", kind: "collect", status: "sent", reason: "waiting:update", text: "Good morning. How did you sleep?", at: `${d}T08:00:00+05:30`, repliedAt: null, reply: null },
+        { id: "n2", kind: "brand_new_kind", status: "failed", reason: "window_closed", text: "The rain might keep you in.", at: `${d}T11:00:00+05:30`, repliedAt: null, reply: null },
+        { id: "n3", kind: "meal", status: "planned", reason: "", text: "What did you have for lunch?", at: `${d}T13:00:00+05:30`, repliedAt: null, reply: null },
+        { id: "n4", kind: "collect", status: "sent", reason: "", text: "Arun's own check-in, not hers.", at: `${d}T07:00:00+05:30`, repliedAt: null, reply: null, personId: CONV_SELF },
+      ],
+      loops: [
+        { id: "l1", kind: "question", title: "Did the evening walk happen yesterday?", wakeAt: null, since: `${y}T18:00:00+05:30` },
+        { id: "l2", kind: "errand", title: "Pick up the prescription", wakeAt: null, since: `${y}T09:00:00+05:30` },
+        { id: "l3", kind: "question", title: "Arun's open loop", wakeAt: null, since: `${y}T09:00:00+05:30`, subjectId: CONV_SELF },
+      ],
+    };
+  };
+  const answered = {
+    day: answeredDay, personId: CONV_MAA,
+    window: { open: false, lastInboundAt: `${answeredDay}T09:20:00+05:30`, answeredToday: false },
+    template: { at: `${answeredDay}T08:00:00+05:30`, reason: "waiting:opener", text: "Good morning" },
+    started: [
+      { id: "b1", kind: "meal", status: "sent", reason: "", text: "What did you have for breakfast?", at: `${answeredDay}T09:12:00+05:30`, repliedAt: `${answeredDay}T09:20:00+05:30`, reply: "Idli and coffee" },
+    ],
+    loops: [],
+  };
+  const empty = {
+    day: answeredDay, personId: CONV_SELF,
+    window: { open: true, lastInboundAt: null, answeredToday: false },
+    template: null, started: [], loops: [],
+  };
+  const base = world.families[0];
+  const blank = structuredClone(Object.values(base.engine)[0]);
+  const fam = {
+    ...base, familyId: "c0ab0000-0000-4000-8000-00000000cf01", leakOrders: false, orders: [],
+    engine: { [CONV_MAA]: blank, [CONV_SELF]: blank },
+    people: [
+      { id: CONV_MAA, backendRole: "CARE_RECIPIENT", careRecipient: true, first: "Leela", surname: "Nair", name: "Leela Nair", key: "maa", relation: "Mother", city: "Pune", phone: "+919000000451" },
+      { id: CONV_SELF, backendRole: "PRIMARY_CAREGIVER", careRecipient: false, first: "Arun", surname: "Nair", name: "Arun Nair", key: "self", relation: "self", city: "Pune", phone: "+919000000452" },
+    ],
+  };
+  const ctx = await browser.newContext({ viewport: { width, height: width < 600 ? 900 : 1100 }, timezoneId: "Asia/Kolkata", locale: "en-IN" });
+  await ctx.addCookies([{ name: "kavach_session", value: "world", url: BASE }]);
+  const page = await ctx.newPage();
+  const errors = [];
+  const asked = [];
+  page.on("pageerror", (e) => errors.push(`page error: ${e.message.slice(0, 180)}`));
+  page.on("console", (m) => m.type() === "error" && !NOISE.test(m.text()) && errors.push(`console error: ${m.text().slice(0, 180)}`));
+  await page.route(/^https?:\/\/[^/]+\/api\//, (r) => {
+    const u = new URL(r.request().url());
+    if (u.pathname === "/api/client-error") return r.fulfill({ status: 204 });
+    if (u.pathname === "/api/auth/session") return r.fulfill({ json: { user: { name: "Arun Nair", email: "arun@world.kavach.test" }, expires: "2099-01-01T00:00:00.000Z" } });
+    if (u.pathname.startsWith("/api/auth/") && u.pathname !== "/api/auth/me") return r.fulfill({ json: {} });
+    const who = u.pathname.match(/\/subjects\/([^/]+)\//);
+    if (who) asked.push(who[1]);
+    if (/\/care-memory\/conversations$/.test(u.pathname)) {
+      const whoId = who?.[1];
+      const d = u.searchParams.get("day") || day;
+      if (whoId === CONV_SELF) return r.fulfill({ json: { success: true, data: { ...empty, day: d } } });
+      if (d === answeredDay) return r.fulfill({ json: { success: true, data: answered } });
+      return r.fulfill({ json: { success: true, data: closedFor(d) } });
+    }
+    const known = api(fam, u);
+    return r.fulfill({ json: { success: true, data: known ?? {} } });
+  });
+  const problems = [];
+  const check = (cond, what) => !cond && problems.push(`conversations @${width}: ${what}`);
+  const text = async () => page.evaluate(() => document.body.innerText || "");
+  try {
+    await page.goto(`${BASE}/dashboard/saheli?recipient=${CONV_MAA}`, { waitUntil: "networkidle", timeout: 90000 });
+    await page.getByTestId("saheli-conversations").waitFor({ timeout: 20000 });
+    await page.getByText("Window closed").waitFor({ timeout: 10000 });
+    let body = await text();
+    check(body.includes("Saheli's conversations"), "heading missing");
+    check(body.includes("About Maa"), "not about the selected person");
+    check(body.includes("hasn't replied since yesterday, 14:00"), "closed window did not use the last reply");
+    check(body.includes("Saheli sent a reopen template at 08:00"), "a waiting:opener row did not say the template was sent");
+    check(body.includes("Reopen template sent"), "row reason missing");
+    check(body.includes("The rain might keep you in."), "an unknown kind did not render");
+    check(body.includes("Not sent · the chat was closed"), "unknown status reason missing");
+    check(body.includes("A meal"), "meal kind label missing");
+    check(body.includes("Pick up the prescription"), "unknown loop kind did not render");
+    check(body.includes("Errand"), "unknown loop kind had no fallback label");
+    check(!body.includes("Arun's own check-in"), "another person's nudge is on her page");
+    check(!body.includes("Arun's open loop"), "another person's follow-up is on her page");
+    check(!asked.includes(CONV_SELF), "her page read his conversations");
+    check(!RAW_ERROR.test(body) && !BROKEN.test(body), "raw or broken value on the closed day");
+    const tag = page.getByTestId("conversations-window");
+    const ink = await tag.evaluate((el) => getComputedStyle(el).color);
+    check(ink.replace(/\s/g, "") !== "rgb(255,255,255)", `closed-window text is white (${ink})`);
+    const rail = await page.locator("aside nav[aria-label='Main'] a[aria-current='page']").evaluateAll((els) => els.map((e) => e.getAttribute("aria-label")));
+    check(rail.length === 1 && rail[0] === "Today", `rail active ${rail.join(", ") || "none"}`);
+    if (process.env.PAGES_SHOTS) await page.screenshot({ path: path.join(OUT, `conversations-closed-${width}.png`), fullPage: true });
+
+    await page.goto(`${BASE}/dashboard/saheli?recipient=${CONV_MAA}&day=${answeredDay}`, { waitUntil: "networkidle", timeout: 90000 });
+    await page.getByText("Window open").waitFor({ timeout: 10000 });
+    body = await text();
+    check(body.includes("Window open"), "an answer that day left the window closed");
+    check(body.includes("Idli and coffee"), "the reply text is missing");
+    check(body.includes("Answered 09:20"), "the answer time is missing");
+    check(!body.includes("hasn't replied"), "a reply that day still said she has not replied");
+    check(!body.includes("Saheli sent a reopen template"), "an open window still said a template was waiting");
+    check(!body.includes("Reopen template sent"), "the waiting line survived an answer");
+    check(!RAW_ERROR.test(body) && !BROKEN.test(body), "raw or broken value on the answered day");
+    if (process.env.PAGES_SHOTS) await page.screenshot({ path: path.join(OUT, `conversations-open-${width}.png`), fullPage: true });
+
+    await page.goto(`${BASE}/dashboard/saheli?recipient=${CONV_SELF}`, { waitUntil: "networkidle", timeout: 90000 });
+    await page.getByText("Nothing started today").waitFor({ timeout: 10000 });
+    body = await text();
+    check(body.includes("Window open"), "empty day did not say the window is open");
+    check(body.includes("WhatsApp is open."), "empty day invented a reply time");
+    check(!body.includes("She wrote this morning"), "empty day invented a morning message");
+    check(!body.includes("Saheli sent a reopen template") && !body.includes("Reopen template sent"), "empty day invented a template");
+    check(body.includes("About you"), "self care was not about you");
+    if (process.env.PAGES_SHOTS) await page.screenshot({ path: path.join(OUT, `conversations-empty-${width}.png`), fullPage: true });
+
+    await page.unroute(/^https?:\/\/[^/]+\/api\//);
+    await page.route(/^https?:\/\/[^/]+\/api\//, (r) => {
+      const u = new URL(r.request().url());
+      if (u.pathname === "/api/client-error") return r.fulfill({ status: 204 });
+      if (u.pathname === "/api/auth/session") return r.fulfill({ json: { user: { name: "Arun Nair", email: "arun@world.kavach.test" }, expires: "2099-01-01T00:00:00.000Z" } });
+      if (/\/care-memory\/conversations$/.test(u.pathname)) return r.fulfill({ status: 503, json: { success: false, message: ENGINE_DOWN } });
+      const known = api(fam, u);
+      return r.fulfill({ json: { success: true, data: known ?? {} } });
+    });
+    await page.goto(`${BASE}/dashboard/saheli?recipient=${CONV_MAA}`, { waitUntil: "networkidle", timeout: 90000 });
+    await page.getByText("Couldn't load Saheli's conversations.").waitFor({ timeout: 10000 });
+    body = await text();
+    check(!RAW_ERROR.test(body), "engine-down text reached the screen");
+    check(!ERROR_SCREEN.test(body), "engine-down became an error screen");
+  } catch (e) {
+    problems.push(`conversations @${width}: did not load: ${String(e.message || e).slice(0, 180)}`);
+  }
+  for (const e of errors) problems.push(`conversations @${width}: ${e}`);
+  await ctx.close();
+  return problems;
+}
+
 (async () => {
   if (process.env.PAGES_NO_RUN) return;
   fs.mkdirSync(OUT, { recursive: true });
@@ -996,6 +1151,11 @@ export async function onboardingFood(browser, width = 1440) {
     const scope = await personScope(browser);
     console.log(scope.length ? `person scope: ${scope.length} problems` : "person scope: every page showed only the selected person's");
     for (const pr of scope) failures.push(`person-scope: ${pr}`);
+  }
+  if (!process.env.PAGES_ONLY || process.env.PAGES_ONLY.split(",").includes("conversations")) {
+    const view = (await Promise.all(WIDTHS.map((w) => conversationsView(browser, w)))).flat();
+    console.log(view.length ? `conversations: ${view.length} problems` : "conversations: one person, empty, closed window, an answer opens it, unknown kinds");
+    failures.push(...view);
   }
   if (!process.env.PAGES_ONLY || process.env.PAGES_ONLY.split(",").includes("learned")) {
     const view = (await Promise.all(WIDTHS.map((w) => learnedView(browser, w)))).flat();
