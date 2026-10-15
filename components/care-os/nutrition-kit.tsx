@@ -99,8 +99,11 @@ export const revokeShare = (f: string, s: string, id: string) => send(`${base(f,
 
 /* ── words and numbers ──────────────────────────────────────────────────── */
 
-export const MEAL_LABEL: Record<MealSlot, string> = { breakfast: "Breakfast", lunch: "Lunch", snack: "Snack", dinner: "Dinner", other: "Through the day" };
-export const MEAL_SHORT: Record<MealSlot, string> = { breakfast: "B", lunch: "L", snack: "S", dinner: "D", other: "·" };
+export const MEAL_LABEL: Record<MealSlot, string> = {
+  breakfast: "Breakfast", lunch: "Lunch", snack: "Snack", dinner: "Dinner",
+  after_dinner: "After dinner", late_night: "Late night", other: "Through the day",
+};
+export const MEAL_SHORT: Record<MealSlot, string> = { breakfast: "B", lunch: "L", snack: "S", dinner: "D", after_dinner: "A", late_night: "N", other: "·" };
 
 export const NUTRIENT: Record<NutrientKey | "water_glasses", { label: string; unit: string; dp: number }> = {
   energy_kcal: { label: "Energy", unit: "kcal", dp: 0 },

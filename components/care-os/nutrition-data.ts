@@ -135,18 +135,18 @@ export type NutrientKey =
   | "water_g"
   | "water_ml";
 export type Nutrients = Partial<Record<NutrientKey, number>>;
-export type MealSlot = "breakfast" | "lunch" | "snack" | "dinner" | "other";
+export type MealSlot = "breakfast" | "lunch" | "snack" | "dinner" | "after_dinner" | "late_night" | "other";
 /** How sure the numbers are (entries.confidence). */
 export type Confidence = "label" | "said" | "photo" | "estimate" | "unquantified";
 /** Anyone in the care circle can set a target; it records who and how strict (founder §N18 Q6). */
 export type TargetSetter = "caregiver" | "self" | "doctor" | "dietitian" | "trainer" | "other";
 export type Strictness = "strict" | "guide";
 
-export const MEAL_ORDER: MealSlot[] = ["breakfast", "lunch", "snack", "dinner", "other"];
+export const MEAL_ORDER: MealSlot[] = ["breakfast", "lunch", "snack", "dinner", "after_dinner", "late_night", "other"];
 /** The meals a day is counted by (the engine's portions.MAIN_MEALS); a snack is shown when there is one. */
-export const MAIN_MEALS: Array<Exclude<MealSlot, "other" | "snack">> = ["breakfast", "lunch", "dinner"];
+export const MAIN_MEALS: Array<"breakfast" | "lunch" | "dinner"> = ["breakfast", "lunch", "dinner"];
 /** The four places a day has in the diary, the week cards and the calendar dots. */
-export const DAY_SLOTS: Array<Exclude<MealSlot, "other">> = ["breakfast", "lunch", "snack", "dinner"];
+export const DAY_SLOTS: Array<"breakfast" | "lunch" | "snack" | "dinner"> = ["breakfast", "lunch", "snack", "dinner"];
 const SETTERS: TargetSetter[] = ["caregiver", "self", "doctor", "dietitian", "trainer", "other"];
 const CONFIDENCES: Confidence[] = ["label", "said", "photo", "estimate", "unquantified"];
 
@@ -194,7 +194,7 @@ export type DiaryMeal = {
   editable: boolean;
 };
 
-export type MissingMeal = { meal: Exclude<MealSlot, "other" | "snack">; pendingId: string | null };
+export type MissingMeal = { meal: "breakfast" | "lunch" | "dinner"; pendingId: string | null };
 
 export type DiaryDay = {
   day: string;

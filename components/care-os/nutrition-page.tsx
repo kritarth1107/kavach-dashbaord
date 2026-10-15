@@ -479,7 +479,7 @@ function DiaryPanel({
     if (!d) return [];
     // in the order of the day: meals at their time, a missing one at its usual place; "through the day" closes the page
     type Row = { kind: "meal"; meal: DiaryMeal; at: string } | { kind: "missing"; m: DiaryDay["missing"][number]; at: string };
-    const place: Record<MealSlot, string> = { breakfast: "08:00", lunch: "13:00", snack: "16:30", dinner: "20:00", other: "99:99" };
+    const place: Record<MealSlot, string> = { breakfast: "08:00", lunch: "13:00", snack: "16:30", dinner: "20:00", after_dinner: "21:30", late_night: "02:00", other: "99:99" };
     const list: Row[] = [
       ...d.meals.map((meal) => ({ kind: "meal" as const, meal, at: meal.meal === "other" ? "99:99" : clockOf(meal.at) })),
       ...d.missing.map((m) => ({ kind: "missing" as const, m, at: place[m.meal] })),
