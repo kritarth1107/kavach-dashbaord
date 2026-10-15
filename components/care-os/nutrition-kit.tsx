@@ -35,6 +35,7 @@ import {
   DAY_SLOTS,
   MAIN_MEALS,
   MEAL_ORDER,
+  shownSlots,
   type CalendarDay,
   type Confidence,
   type Diary,

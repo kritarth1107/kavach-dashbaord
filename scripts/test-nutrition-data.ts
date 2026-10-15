@@ -202,7 +202,7 @@ ok("late night is its own meal and is not one of the three", () => {
   assert.deepEqual(d.days[0].meals.map((m) => m.meal), ["late_night"]);
   assert.equal(d.days[0].meals[0].at, `${DAY}T02:36:00+05:30`);
   assert.deepEqual(MAIN_MEALS.filter((m) => d.days[0].meals.some((x) => x.meal === m)), []);
-  assert.equal(d.days[0].missing.some((m) => m.meal === "late_night"), false);
+  assert.deepEqual(d.days[0].missing.map((m) => m.meal), []);
   const history = view().week.map((r) => (r.day === "2026-10-12" ? { ...r, meals: [{ meal: "late_night", at: "2026-10-12T02:36:00+05:30", names: ["boiled egg"], kcal: 200, protein_g: 18 }], skipped: [] } : r));
   const week = toDiary(view({ days: 7, history }), { today: DAY });
   const day = week.days.find((x) => x.day === "2026-10-12")!;
