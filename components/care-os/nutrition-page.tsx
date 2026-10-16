@@ -530,6 +530,7 @@ function DiaryPanel({
         {empty || !d ? null : (
           <DiaryTotal
             label="Day total"
+            waiting={Boolean(d.numbersPending)}
             kcal={d.totals.energy_kcal}
             protein={d.totals.protein_g}
             aside={`${d.items} ${d.items === 1 ? "item" : "items"} · water ${num(d.water.glasses, d.water.glasses % 1 ? 1 : 0)} ${d.water.glasses === 1 ? "glass" : "glasses"}`}
@@ -618,15 +619,15 @@ function WeekPanel({ data, onPick }: { data: Diary; onPick: (day: string) => voi
                           <span className="line-clamp-2 min-w-0 flex-1 text-[12.5px] leading-snug sm:mt-0.5 sm:flex-none">
                             {items.length ? items.map((it) => it.name).join(", ").replace(/^./, (c) => c.toUpperCase()) : meals[0].note}
                           </span>
-                          <span className="c-num hidden shrink-0 text-[11px] text-[var(--c-ink-2)] sm:mt-auto sm:block sm:pt-1">{items.length ? `${num(kcal)} kcal` : ""}</span>
+                          <span className="c-num hidden shrink-0 text-[11px] text-[var(--c-ink-2)] sm:mt-auto sm:block sm:pt-1">{items.some((it) => it.confidence === "pending") && kcal <= 0 ? "adding…" : items.length ? `${num(kcal)} kcal` : ""}</span>
                         </button>
                       );
                     })}
                   </div>
                 )}
               </div>
-              <div className="c-num flex items-start justify-end border-b border-l border-[var(--c-line)] pr-2.5 pt-3.5 text-[14px] font-medium tabular-nums sm:pr-3.5">{d.items ? num(d.totals.energy_kcal) : "—"}</div>
-              <div className="c-num flex items-start justify-end border-b border-l border-[var(--c-line)] pr-2.5 pt-3.5 text-[14px] font-medium tabular-nums sm:pr-3.5">{d.items ? num(d.totals.protein_g, 1) : "—"}</div>
+              <div className="c-num flex items-start justify-end border-b border-l border-[var(--c-line)] pr-2.5 pt-3.5 text-[14px] font-medium tabular-nums sm:pr-3.5">{d.numbersPending ? "adding…" : d.items ? num(d.totals.energy_kcal) : "—"}</div>
+              <div className="c-num flex items-start justify-end border-b border-l border-[var(--c-line)] pr-2.5 pt-3.5 text-[14px] font-medium tabular-nums sm:pr-3.5">{d.numbersPending ? "adding…" : d.items ? num(d.totals.protein_g, 1) : "—"}</div>
             </div>
           );
         })}

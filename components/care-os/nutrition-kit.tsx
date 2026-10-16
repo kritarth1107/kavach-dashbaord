@@ -182,6 +182,7 @@ const CONF: Record<Confidence, { text: string; hint: string; icon: PhosphorIcon 
   photo: { text: "Photo", hint: "Estimated from the meal photo", icon: Camera },
   estimate: { text: "Estimate", hint: "Saheli's estimate: the amount wasn't clear", icon: null },
   unquantified: { text: "No amount", hint: "Eaten, amount not known", icon: null },
+  pending: { text: "adding…", hint: "Saved. The numbers are still being added", icon: null },
 };
 
 /** How sure an item's numbers are: Label, Said, Photo or Estimate. */
@@ -380,8 +381,8 @@ export function MealEntry({ meal, onAction, menuOpen, onMenu }: { meal: DiaryMea
           {menuOpen && <MealMenu meal={meal} onClose={() => onMenu?.(false)} onAction={onAction} />}
         </div>}
       </div>
-      <div className={cn(NUM_CELL, "text-[14px] font-medium")}>{meal.items.length ? num(meal.totals.kcal) : "—"}</div>
-      <div className={cn(NUM_CELL, "text-[14px] font-medium")}>{meal.items.length ? num(meal.totals.protein, 1) : "—"}</div>
+      <div className={cn(NUM_CELL, "text-[14px] font-medium")}>{mealFigure(meal, "kcal")}</div>
+      <div className={cn(NUM_CELL, "text-[14px] font-medium")}>{mealFigure(meal, "protein")}</div>
       {meal.items.map((it) => (
         <ItemLine key={it.id} it={it} />
       ))}
@@ -405,8 +406,8 @@ function ItemLine({ it }: { it: DiaryItem }) {
         </p>
         <ConfidenceBadge c={it.confidence} className="sm:ml-auto" />
       </div>
-      <div className={cn(NUM_CELL, "text-[var(--c-ink-2)]", it.overStrict && "text-[var(--c-danger-ink)]")}>{it.confidence === "unquantified" ? "—" : num(it.kcal)}</div>
-      <div className={cn(NUM_CELL, "text-[var(--c-ink-2)]")}>{it.confidence === "unquantified" ? "—" : num(it.protein, it.protein ? 1 : 0)}</div>
+      <div className={cn(NUM_CELL, "text-[var(--c-ink-2)]", it.overStrict && "text-[var(--c-danger-ink)]")}>{it.confidence === "pending" ? "adding…" : it.confidence === "unquantified" ? "—" : num(it.kcal)}</div>
+      <div className={cn(NUM_CELL, "text-[var(--c-ink-2)]")}>{it.confidence === "pending" ? "adding…" : it.confidence === "unquantified" ? "—" : num(it.protein, it.protein ? 1 : 0)}</div>
     </>
   );
 }
@@ -495,7 +496,15 @@ export function NotLogged({ m, note, onAdd, onNote }: { m: MissingMeal & { usual
 }
 
 /** The ledger close: one rule above, a double rule below. */
-export function DiaryTotal({ label, kcal, protein, aside }: { label: string; kcal: number | null | undefined; protein: number | null | undefined; aside?: React.ReactNode }) {
+function mealFigure(meal: DiaryMeal, which: "kcal" | "protein") {
+  if (!meal.items.length) return "—";
+  const waiting = meal.items.some((i) => i.confidence === "pending");
+  const known = meal.items.filter((i) => i.confidence !== "pending").reduce((s, i) => s + (which === "kcal" ? i.kcal : i.protein), 0);
+  if (waiting && known <= 0) return "adding…";
+  return which === "kcal" ? num(meal.totals.kcal) : num(meal.totals.protein, 1);
+}
+
+export function DiaryTotal({ label, kcal, protein, aside, waiting }: { label: string; kcal: number | null | undefined; protein: number | null | undefined; aside?: React.ReactNode; waiting?: boolean }) {
   return (
     <div className={DIARY_COLS}>
       <div className={MARGIN_RULE} />
@@ -503,8 +512,8 @@ export function DiaryTotal({ label, kcal, protein, aside }: { label: string; kca
         <span className="min-w-0 truncate text-[12px] text-[var(--c-ink-2)]">{aside}</span>
         <span className="shrink-0 text-[13px] font-medium">{label}</span>
       </div>
-      <div className="c-num flex items-center justify-end border-y border-b-[3px] border-[var(--c-ink)] [border-bottom-style:double] pr-2 text-[14px] font-medium tabular-nums tracking-normal sm:pr-3.5 sm:text-[15px]">{num(kcal)}</div>
-      <div className="c-num flex items-center justify-end border-y border-b-[3px] border-[var(--c-ink)] [border-bottom-style:double] pr-2 text-[14px] font-medium tabular-nums tracking-normal sm:pr-3.5 sm:text-[15px]">{num(protein, 1)}</div>
+      <div className="c-num flex items-center justify-end border-y border-b-[3px] border-[var(--c-ink)] [border-bottom-style:double] pr-2 text-[14px] font-medium tabular-nums tracking-normal sm:pr-3.5 sm:text-[15px]">{waiting ? "adding…" : num(kcal)}</div>
+      <div className="c-num flex items-center justify-end border-y border-b-[3px] border-[var(--c-ink)] [border-bottom-style:double] pr-2 text-[14px] font-medium tabular-nums tracking-normal sm:pr-3.5 sm:text-[15px]">{waiting ? "adding…" : num(protein, 1)}</div>
     </div>
   );
 }
@@ -689,7 +698,7 @@ export function WeekChart({ week, kcal, protein, selected, onPick, height = 104 
           {week.map((w) => {
             const on = w.day === selected;
             const h = w.kcal ? Math.max(4, y(w.kcal)) : 2;
-            const label = `${fmtDayLong(w.day, { weekday: "short", day: "numeric", month: "short" })}: ${w.kcal ? `${num(w.kcal)} kcal, ${num(w.protein)} g protein` : "nothing logged"}`;
+            const label = `${fmtDayLong(w.day, { weekday: "short", day: "numeric", month: "short" })}: ${w.numbersPending ? "adding the numbers" : w.kcal ? `${num(w.kcal)} kcal, ${num(w.protein)} g protein` : "nothing logged"}`;
             return (
               <button key={w.day} type="button" onClick={() => onPick(w.day)} aria-label={label} title={label} aria-pressed={on} className="group relative flex h-full flex-1 items-end justify-center">
                 {on && w.kcal ? (

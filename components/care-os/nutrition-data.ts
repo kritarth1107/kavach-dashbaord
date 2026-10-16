@@ -32,9 +32,10 @@ export type EngineEntry = Omit<GenEntry, "photoRef" | "note" | "portionEaten" | 
 export type EngineMeal = Omit<GenMeal, "entries"> & { entries: EngineEntry[] };
 
 /** A day's line in history / week, with (once the engine sends it) what was eaten in each meal. */
-export type EngineDayRow = Omit<GenDayRow, "met"> & {
+export type EngineDayRow = Omit<GenDayRow, "met" | "meals"> & {
   met: Record<string, boolean>;
-  meals?: Array<{ meal: string; at: string; names: string[]; kcal: number; protein_g: number }>;
+  meals?: Array<{ meal: string; at: string; names: string[]; kcal: number | null; protein_g: number | null; numbersPending?: boolean }>;
+  numbersPending?: boolean;
   skipped?: string[];
 };
 
@@ -72,6 +73,7 @@ export type NutritionView = Omit<
   today: Omit<GenToday, "meals" | "water"> & {
     meals: EngineMeal[];
     water: { ml: number; glasses: number; glassMl: number; targetMl: number | null };
+    numbersPending?: boolean;
   };
   history: EngineDayRow[];
   week: EngineDayRow[];
@@ -137,7 +139,7 @@ export type NutrientKey =
 export type Nutrients = Partial<Record<NutrientKey, number>>;
 export type MealSlot = "breakfast" | "lunch" | "snack" | "dinner" | "after_dinner" | "late_night" | "other";
 /** How sure the numbers are (entries.confidence). */
-export type Confidence = "label" | "said" | "photo" | "estimate" | "unquantified";
+export type Confidence = "label" | "said" | "photo" | "estimate" | "unquantified" | "pending";
 /** Anyone in the care circle can set a target; it records who and how strict (founder §N18 Q6). */
 export type TargetSetter = "caregiver" | "self" | "doctor" | "dietitian" | "trainer" | "other";
 export type Strictness = "strict" | "guide";
@@ -154,7 +156,7 @@ export function shownSlots(meals: { meal: MealSlot }[]): MealSlot[] {
   return [...DAY_SLOTS, ...extra];
 }
 const SETTERS: TargetSetter[] = ["caregiver", "self", "doctor", "dietitian", "trainer", "other"];
-const CONFIDENCES: Confidence[] = ["label", "said", "photo", "estimate", "unquantified"];
+const CONFIDENCES: Confidence[] = ["label", "said", "photo", "estimate", "unquantified", "pending"];
 
 export const asSlot = (m: string | null | undefined): MealSlot => (MEAL_ORDER.includes(m as MealSlot) ? (m as MealSlot) : "other");
 export const asSetter = (s: string | null | undefined): TargetSetter => (SETTERS.includes(s as TargetSetter) ? (s as TargetSetter) : "other");
@@ -211,6 +213,8 @@ export type DiaryDay = {
   items: number;
   /** Meals are known per slot (the selected day, or a summary from the engine); otherwise only the totals. */
   summarised: boolean;
+  /** Saved food whose numbers are not in yet. The day total says "adding…", not 0. */
+  numbersPending?: boolean;
 };
 
 /** A target (care fact nutrition_target). A goal to reach has only min, a limit only max, a range both, kcal "about" both. */
@@ -230,7 +234,7 @@ export type DiaryRule = { key: string; text: string; setBy: TargetSetter; how: S
 export type DiaryCounter = { key: string; label: string; unit: string; today: number; usual: number | null; week: number; usualWeek: number | null };
 
 export type CalendarDay = { day: string; logged: MealSlot[]; complete: number; kcal: number | null; items: number };
-export type WeekDay = { day: string; kcal: number | null; protein: number | null; logged: number };
+export type WeekDay = { day: string; kcal: number | null; protein: number | null; logged: number; numbersPending?: boolean };
 
 export type PantryItem = { id: string; name: string; count: number; unit: string; addedAt: string; bestBefore: string | null; perUnit: { kcal: number; protein_g: number } | null };
 
@@ -368,9 +372,9 @@ function summaryDay(r: EngineDayRow, glassMl: number, today: string): DiaryDay {
       note: null,
       items: m.names.map((name, i) => ({
         id: `${r.day}:${slot}:${i}`, mealId: `${r.day}:${slot}`, meal: slot, eatenAt: m.at, name, nameSaid: null, quantity: null, unit: null, portion: null,
-        kcal: 0, protein: 0, nutrients: {}, confidence: "said", source: "", consumed: null, allergy: false, overStrict: false, drink: false, facts: [],
+        kcal: m.numbersPending ? 0 : (m.kcal ?? 0), protein: m.numbersPending ? 0 : (m.protein_g ?? 0), nutrients: {}, confidence: m.numbersPending ? "pending" : "said", source: "", consumed: null, allergy: false, overStrict: false, drink: false, facts: [],
       })),
-      totals: { kcal: m.kcal, protein: m.protein_g },
+      totals: { kcal: m.numbersPending ? 0 : (m.kcal ?? 0), protein: m.numbersPending ? 0 : (m.protein_g ?? 0) },
       editable: false,
     };
   });
@@ -383,6 +387,7 @@ function summaryDay(r: EngineDayRow, glassMl: number, today: string): DiaryDay {
     water: { glasses: Math.round((n0(r.water_ml) / glassMl) * 10) / 10, glassMl },
     items: r.items,
     summarised: Boolean(r.meals),
+    numbersPending: Boolean(r.numbersPending),
   };
 }
 
@@ -403,6 +408,7 @@ export function toDiary(v: NutritionView, opts: { today?: string; names?: Record
     water: { glasses: v.today.water.glasses, glassMl },
     items: meals.reduce((s, m) => s + m.items.length, 0),
     summarised: true,
+    numbersPending: Boolean(v.today.numbersPending),
   };
   // a delivered meal waiting for an answer is pointed at from the first missing slot of that day
   const firstWaiting = waiting.find((w) => istToday(new Date(w.since)) === v.day);
@@ -431,7 +437,7 @@ export function toDiary(v: NutritionView, opts: { today?: string; names?: Record
     rules: v.rules.map((r) => ({ key: r.key, text: r.rule || r.text, setBy: asSetter(r.setBy), how: r.how === "strict" ? "strict" : "guide", status: r.status === "active" ? "active" : "pending" })),
     days,
     calendar,
-    week: v.week.map((w) => ({ day: w.day, kcal: w.items ? w.kcal : null, protein: w.items ? w.protein_g : null, logged: w.mealsLogged })),
+    week: v.week.map((w) => ({ day: w.day, kcal: w.numbersPending ? null : w.items ? w.kcal : null, protein: w.numbersPending ? null : w.items ? w.protein_g : null, logged: w.mealsLogged, numbersPending: Boolean(w.numbersPending) })),
     averages: { d7: avg("avg7"), d30: avg("avg30"), d7Days: v.week.filter((w) => w.items).length, d30Days: v.month.calendar.filter((c) => c.items).length },
     highlighted: v.nutrients.filter((n) => n.highlight).map((n) => n.key as NutrientKey),
     counters: v.counters.map((c) => ({
