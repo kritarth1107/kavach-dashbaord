@@ -3,7 +3,7 @@
  *   npx tsx scripts/test-onboarding-edit.ts
  */
 import { emptyPerson, type Answers } from "../components/onboarding/data";
-import { applyChips, applyUnderstood, fallbackUnderstood, isSentenceName, markDone, nextSlot, plan, plainPersonName, resumeFlow, type Ctx, type Flow, type Slot } from "../components/onboarding/chat/engine";
+import { applyChips, applyUnderstood, ask, fallbackUnderstood, forSetup, isSentenceName, markDone, nextSlot, plan, plainPersonName, quickNeeds, resumeFlow, type Ctx, type Flow, type Slot } from "../components/onboarding/chat/engine";
 
 const day = { wake: "06:30", breakfast: "08:30", lunch: "13:00", tea: "17:00", dinner: "20:30", sleep: "22:00", activities: [] as string[] };
 
@@ -90,6 +90,37 @@ check(!isSentenceName(named.a.persons[0].name), "the name is still a sentence");
 check(named.a.anythingElse?.includes("Sushila") === true, "the other name was not kept separately");
 check(fallbackUnderstood(nameSlot, said, ready("mother")) === null, "a failed understand stored the sentence");
 check(plainPersonName("Kamla Devi", said) === "Kamla Devi", "a plain name inside the sentence was dropped");
+
+// Skip the rest: only what setup needs is asked, then nothing is left (setup runs).
+{
+  const blankMother = (): Ctx => {
+    const c = ready("mother");
+    const p = { ...emptyPerson("Mother"), name: "", relation: "Mother" };
+    return { a: { ...c.a, persons: [p], you: { name: "Arun Shah" } }, flow: { done: ["you_name", "care_for"], extra: [], quick: true }, verified: {}, myPhone: "+919000000302" };
+  };
+  const q = blankMother();
+  check(plan(q).map((s) => s.base).join(",") === "care_for,p_name,p_whatsapp", `quick plan asks only name and WhatsApp (got ${plan(q).map((s) => s.base).join(",")})`);
+  check(nextSlot(q)?.base === "p_name", "quick mode asks the name next");
+  check(quickNeeds(q).join(" | ") === "your mother's name | your mother's WhatsApp number", `quick needs lists name and number (got ${quickNeeds(q).join(" | ")})`);
+  const named = { ...q, a: { ...q.a, persons: [{ ...q.a.persons[0], name: "Meera Shah", phone: "+919000000201" }] }, flow: { ...q.flow, done: [...q.flow.done, "p_whatsapp:0"] } };
+  check(nextSlot(named) === undefined, "quick mode: nothing left once name and number are in");
+  const setup = forSetup({ ...named, a: { ...named.a, persons: [{ ...named.a.persons[0], medicines: [{ name: " ", times: [] }, { name: "Metformin", times: [] }] }] } });
+  check(setup.persons[0].medicines.length === 1, "unnamed medicines are dropped before setup");
+  const self: Ctx = { a: { you: { name: "" }, careFor: "self", persons: [{ ...emptyPerson("Self"), name: "" }], helpWith: [], followups: [] }, flow: { done: ["care_for"], extra: [], quick: true }, verified: {}, myPhone: "+919000000301", accountName: "Asha Verma" };
+  check(nextSlot(self) === undefined, "quick self-care with a signed-in phone and account name needs nothing more");
+  check(forSetup(self).you.name === "Asha Verma" && forSetup(self).persons[0].name === "Asha Verma", "self-care setup takes the account name");
+}
+
+// "With me" at "where does he live" leaves the city open: the question stays, reworded to ask for the city.
+{
+  const c = ready("mother");
+  const open: Ctx = { ...c, a: { ...c.a, persons: [{ ...c.a.persons[0], city: undefined, livesWith: undefined }] }, flow: { done: c.flow.done.filter((k) => k !== "p_home:0"), extra: [] } };
+  const home = plan(open).find((s) => s.key === "p_home:0")!;
+  const r = applyChips(home, ["me"], open);
+  const after = { ...open, a: r.a, flow: r.flow };
+  check(nextSlot(after)?.key === "p_home:0", "the city is still asked after With me");
+  check(/which city or town/i.test(ask(home, after).bubbles.join(" ")), "the re-ask names the city");
+}
 
 if (problems.length) {
   for (const p of problems) console.error("FAIL", p);

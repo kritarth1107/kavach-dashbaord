@@ -10,7 +10,7 @@
  * onboarding via web. so send saheli hi should appear at end of onboarding"): the finished setup ends on a big "Send hi
  * to Saheli on WhatsApp" button (Saheli's number with "hi" typed in; no code, their number was proven here).
  */
-import { ArrowRight, ArrowUp, CaretDown, Camera, CircleNotch, Microphone, Sparkle, Stop, WhatsappLogo } from "@phosphor-icons/react";
+import { ArrowRight, ArrowUp, CaretDown, CircleNotch, Microphone, Paperclip, Sparkle, Stop, WhatsappLogo } from "@phosphor-icons/react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -18,8 +18,8 @@ import { cn } from "@/lib/utils";
 import { onboardingApi, type SetupResult } from "../api";
 import { slotTimes, type Answers, type Person } from "../data";
 import {
-  CHAPTERS, OPENING, applyChips, applyUnderstood, ask, callOf, chapterIndex, confirmMeds, emptyFlow, fallbackUnderstood, isSelf, isSentenceName, languageAck,
-  markDone, msgId, nextSlot, patchPerson, plainPersonName, resumeFlow, seedFlow, skip, summaryRows, toPhone, upcoming, type Ctx, type Flow, type Msg, type Slot,
+  CHAPTERS, OPENING, applyChips, applyUnderstood, ask, callOf, chapterIndex, confirmMeds, emptyFlow, fallbackUnderstood, forSetup, isSelf, isSentenceName, languageAck,
+  markDone, msgId, nextSlot, patchPerson, plainPersonName, quickNeeds, resumeFlow, seedFlow, skip, summaryRows, toPhone, upcoming, type Ctx, type Flow, type Msg, type Slot,
 } from "./engine";
 import { Notebook, type CardKey } from "./notebook";
 import { greetingFor, option, type LangOption } from "./region";
@@ -88,6 +88,8 @@ export function OnboardingChat() {
   const [nbOpen, setNbOpen] = useState(false);
   const [phoneOverride, setPhoneOverride] = useState(false);
   const [saved, setSaved] = useState(false);
+  // Skipped the rest: setup starts by itself once, as soon as what it needs is in. A failure leaves a retry button.
+  const [autoTried, setAutoTried] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const endRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -198,7 +200,10 @@ export function OnboardingChat() {
     const nx = nextSlot(nc);
     const out: Msg[] = acks.filter((x): x is string => !!x).map((x) => saheli(x));
     let nf = f;
-    if (nx && nx.base !== "followups" && (opts.reAsk || f.asked !== nx.key)) {
+    // An answer that leaves the same question open (a tap on "With me" but no city yet) asks again: its wording follows
+    // what is still missing, so they never face an empty box with only a placeholder.
+    const again = !!opts.from && nx?.key === opts.from.key && nx.base !== "summary";
+    if (nx && nx.base !== "followups" && (opts.reAsk || again || f.asked !== nx.key)) {
       const q = ask(nx, nc);
       out.push(...q.bubbles.map((b, k) => saheli(b, k === q.bubbles.length - 1 ? q.why : undefined)));
       nf = { ...f, asked: nx.key };
@@ -266,8 +271,9 @@ export function OnboardingChat() {
     const at = Math.min(i, Math.max(0, answers.persons.length - 1));
     const p = answers.persons[at];
     if (!p) return;
-    const m = you("📷 Prescription photo", "photo");
-    setPhotos((x) => ({ ...x, [m.id]: URL.createObjectURL(f) }));
+    const pdf = f.type === "application/pdf";
+    const m = pdf ? you(`📎 ${f.name}`) : you("📷 Prescription photo", "photo");
+    if (!pdf) setPhotos((x) => ({ ...x, [m.id]: URL.createObjectURL(f) }));
     setChat((c) => [...c, m]);
     setBusy(true);
     try {
@@ -365,10 +371,17 @@ export function OnboardingChat() {
     }
   };
 
-  const later = async () => {
-    await onboardingApi.save(answers, flow.asked || "chat", chat.filter((m) => m.kind !== "progress"), flow).catch(() => undefined);
-    await onboardingApi.skip().catch(() => undefined);
-    router.replace("/dashboard");
+  /** Skip the rest: only what setup needs is still asked, then everything is set up and Saheli learns the rest on WhatsApp. */
+  const skipRest = () => {
+    if (busy || phase !== "chat") return;
+    const f: Flow = { ...flow, quick: true, editing: null };
+    setAutoTried(false);
+    const needs = [...new Set(quickNeeds({ ...ctx, flow: f }))];
+    const list = needs.length <= 1 ? needs.join("") : `${needs.slice(0, -1).join(", ")} and ${needs[needs.length - 1]}`;
+    const line = needs.length
+      ? `No problem, I'll learn the rest on WhatsApp. I just need ${list} so I can reach you there.`
+      : "No problem, I'll learn the rest on WhatsApp.";
+    void proceed(answers, f, [line], { you: you("Skip the rest") });
   };
 
   const finish = async () => {
@@ -380,7 +393,7 @@ export function OnboardingChat() {
     const dropFailure = (m: Msg) => m.kind !== "progress" && !m.text.endsWith("Tap Set everything up to try again.") && !/Let's try that again/.test(m.text);
     setChat((c) => [...c.filter(dropFailure), you("Set everything up"), saheli(lead), { id: msgId(), from: "saheli", text: "", kind: "progress" }]);
     try {
-      const r = await onboardingApi.complete(answers);
+      const r = await onboardingApi.complete(forSetup(ctx));
       setResult(r);
       const out: Msg[] = [];
       for (const p of r.persons) {
@@ -422,6 +435,16 @@ export function OnboardingChat() {
 
   /* ── the widget under Saheli's question ── */
   const widget = (() => {
+    if (!current && flow.quick && !busy && phase === "chat") {
+      if (!autoTried) return <RunOnce run={() => { setAutoTried(true); void finish(); }} />;
+      return (
+        <div className="flex flex-wrap gap-2">
+          <button type="button" onClick={() => void finish()} className="inline-flex h-12 items-center gap-2 rounded-full bg-[var(--c-accent)] px-6 text-[14.5px] font-medium text-[var(--c-accent-ink)]">Set everything up <ArrowRight size={16} /></button>
+          <button type="button" onClick={() => void proceed(answers, { ...flow, quick: false }, [], { you: you("Answer the rest") })}
+            className="inline-flex h-12 items-center rounded-full border border-[var(--c-line)] bg-[var(--c-frame)] px-5 text-[14px]">Answer the rest instead</button>
+        </div>
+      );
+    }
     if (!current || !turn || busy || phase !== "chat") return null;
     const w = turn.widget;
     const target = self ? "self" : `person:${i}`;
@@ -507,8 +530,8 @@ export function OnboardingChat() {
                 </span>
               ))}
             </nav>
-            {phase !== "done" && (
-              <span className="shrink-0 text-[12.5px] text-[var(--c-ink-3)]">{saved ? "Saved · " : ""}<button type="button" onClick={() => void later()} className="underline underline-offset-4 hover:text-[var(--c-ink)]">Finish later</button></span>
+            {phase === "chat" && (
+              <span className="shrink-0 text-[12.5px] text-[var(--c-ink-3)]">{saved ? "Saved" : ""}{saved && !flow.quick ? " · " : ""}{!flow.quick && <button type="button" onClick={skipRest} disabled={busy} className="underline underline-offset-4 hover:text-[var(--c-ink)] disabled:opacity-50">Skip the rest</button>}</span>
             )}
           </div>
           <div className="mt-3 flex gap-1 md:hidden">{CHAPTERS.map((c, k) => <span key={c} className={cn("h-1 flex-1 rounded-full", k < at ? "bg-[var(--c-solid)]" : k === at ? "bg-[var(--c-accent)]" : "bg-[var(--c-card)]")} />)}</div>
@@ -577,13 +600,13 @@ export function OnboardingChat() {
                 onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void send(); } }}
                 placeholder={rec === "recording" ? "Listening… tap stop when done" : rec === "reading" ? "Writing down what you said…" : narrow ? "Type or talk…" : turn?.placeholder || "Type your answer…"}
                 aria-label="Your answer" className="min-h-10 min-w-0 flex-1 resize-none overflow-hidden bg-transparent py-2.5 text-[15px] outline-none placeholder:truncate placeholder:text-[var(--c-ink-3)]" />
-              <button type="button" onClick={() => fileRef.current?.click()} disabled={busy || !answers.persons.length} aria-label="Send a photo of a prescription" className="flex h-10 w-10 items-center justify-center rounded-full text-[var(--c-ink-2)] hover:bg-[var(--c-card)] disabled:opacity-40"><Camera size={19} /></button>
+              <button type="button" onClick={() => fileRef.current?.click()} disabled={busy || !answers.persons.length} aria-label="Attach a prescription photo or PDF" title={answers.persons.length ? "Attach a prescription photo or PDF" : "Attach a prescription once you've told me who I'll look after"} className="flex h-10 w-10 items-center justify-center rounded-full text-[var(--c-ink-2)] hover:bg-[var(--c-card)] disabled:opacity-40"><Paperclip size={19} /></button>
               <button type="button" onClick={() => void toggleMic()} disabled={busy || rec === "reading"} aria-label={rec === "recording" ? "Stop recording" : "Talk to Saheli"}
                 className={cn("flex h-10 w-10 items-center justify-center rounded-full", rec === "recording" ? "animate-pulse bg-[var(--c-danger)] text-white" : "bg-[var(--c-card)]")}>
                 {rec === "reading" ? <CircleNotch size={18} className="animate-spin" /> : rec === "recording" ? <Stop size={17} weight="fill" /> : <Microphone size={19} />}
               </button>
               <button type="button" onClick={() => void send()} disabled={busy || !text.trim()} aria-label="Send" className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--c-accent)] text-[var(--c-accent-ink)] disabled:opacity-40"><ArrowUp size={17} weight="bold" /></button>
-              <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) void scanPhoto(f); e.target.value = ""; }} />
+              <input ref={fileRef} type="file" accept="image/*,application/pdf" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) void scanPhoto(f); e.target.value = ""; }} />
             </div>
             <p className={cn("mt-2 text-center text-[11.5px]", notice ? "text-[var(--c-danger)]" : "text-[var(--c-ink-3)]")}>{notice || "Tap an answer, type, or tap the mic and just talk — in English, Hindi or your own bhasha."}</p>
           </footer>
@@ -598,6 +621,17 @@ export function OnboardingChat() {
       </aside>
     </div>
   );
+}
+
+/** Calls run once, after it first shows. */
+function RunOnce({ run }: { run: () => void }) {
+  const ran = useRef(false);
+  useEffect(() => {
+    if (ran.current) return;
+    ran.current = true;
+    run();
+  }, [run]);
+  return null;
 }
 
 /** "+919829041123" → "+91 98290 41123" (other numbers as they are). */

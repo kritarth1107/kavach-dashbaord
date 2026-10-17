@@ -121,11 +121,11 @@ export function MedicinesAsk({ busy, onPhoto, onType, onNone, self }: { busy: bo
   return (
     <div className="flex flex-wrap gap-2">
       <button type="button" disabled={busy} onClick={() => file.current?.click()} className="inline-flex h-11 items-center gap-2 rounded-full bg-[var(--c-accent)] px-5 text-[14px] font-medium text-[var(--c-accent-ink)] disabled:opacity-50">
-        {busy ? <CircleNotch size={16} className="animate-spin" /> : <Camera size={18} />} Photo of prescription or strips
+        {busy ? <CircleNotch size={16} className="animate-spin" /> : <Camera size={18} />} Photo or PDF of prescription
       </button>
       <button type="button" onClick={onType} className={GHOST}>Type them</button>
       <button type="button" onClick={onNone} className="h-11 rounded-full px-3 text-[14px] text-[var(--c-ink-2)] hover:text-[var(--c-ink)]">{self ? "I don't take any" : "No regular medicines"}</button>
-      <input ref={file} type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) onPhoto(f); e.target.value = ""; }} />
+      <input ref={file} type="file" accept="image/*,application/pdf" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) onPhoto(f); e.target.value = ""; }} />
     </div>
   );
 }

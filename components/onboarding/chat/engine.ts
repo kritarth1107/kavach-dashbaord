@@ -12,8 +12,11 @@ export const CHAPTERS: Chapter[] = ["You", "Who", "Their day", "Health", "Connec
 
 export type Msg = { id: string; from: "saheli" | "you"; text: string; why?: string; kind?: "text" | "photo" | "welcome" | "progress"; voice?: boolean };
 export type Extra = { id: string; q: string; options: string[]; after: string; person?: number; source: "ai" | "nurse" };
-/** done: answered slots; extra: Saheli's own follow-ups; editing: a slot reopened from the summary; asked: the question on screen. */
-export type Flow = { done: string[]; extra: Extra[]; editing?: string | null; nurse?: "asked" | "none"; asked?: string };
+/**
+ * done: answered slots; extra: Saheli's own follow-ups; editing: a slot reopened from the summary; asked: the question on
+ * screen; quick: they skipped the rest, so only what setup needs is asked and Saheli learns the rest on WhatsApp.
+ */
+export type Flow = { done: string[]; extra: Extra[]; editing?: string | null; nurse?: "asked" | "none"; asked?: string; quick?: boolean };
 export const emptyFlow = (): Flow => ({ done: [], extra: [] });
 
 export type Option = { id: string; label: string; icon?: string; hint?: string };
@@ -169,7 +172,51 @@ export function plan(c: Ctx): Slot[] {
     while (pos < out.length && out[pos].base === "extra") pos++;
     out.splice(pos, 0, ins);
   }
-  return out;
+  return flow.quick ? out.filter((s) => isEssential(s, c)) : out;
+}
+
+/**
+ * What setup cannot run without, so Saheli can reach them on WhatsApp: who they are, who she looks after, that person's
+ * name and WhatsApp, and the caregiver's WhatsApp when they didn't sign in with it. Everything else she asks there.
+ */
+function isEssential(s: Slot, c: Ctx): boolean {
+  const self = isSelf(c.a);
+  switch (s.base) {
+    case "you_name": return !c.a.you.name && !c.accountName;
+    case "care_for": case "p_name": case "you_whatsapp": return true;
+    case "p_whatsapp": return !self || !c.myPhone;
+    default: return false;
+  }
+}
+
+/** The answers as setup needs them: blanks filled from what is known, unnamed medicines dropped. */
+export function forSetup(c: Ctx): Answers {
+  const { a } = c;
+  const self = isSelf(a);
+  const you = { ...a.you, name: a.you.name || c.accountName || "" };
+  const persons = a.persons.map((p) => ({
+    ...p,
+    name: self ? p.name || you.name : p.name || p.callThem || p.addressAs || RELATION_LABEL[p.relation] || p.relation,
+    medicines: p.medicines.filter((m) => m.name.trim()),
+  }));
+  return { ...a, you, persons };
+}
+const RELATION_LABEL: Record<string, string> = { Mother: "Maa", Father: "Papa", Grandmother: "Dadi", Grandfather: "Dadaji", Spouse: "Partner" };
+
+/** The essential questions still open in quick mode, in words ("Papa ji's WhatsApp number"). */
+export function quickNeeds(c: Ctx): string[] {
+  const q: Ctx = { ...c, flow: { ...c.flow, quick: true } };
+  return plan(q).filter((s) => !isDone(s, q)).map((s) => {
+    const p = s.person !== undefined ? c.a.persons[s.person] : undefined;
+    switch (s.base) {
+      case "you_name": return "your name";
+      case "care_for": return "who I'll look after";
+      case "p_name": return `${p && !isSelf(c.a) ? `your ${p.relation.toLowerCase()}'s` : "their"} name`;
+      case "p_whatsapp": return isSelf(c.a) ? "your WhatsApp number" : `${callOf(p)}'s WhatsApp number`;
+      case "you_whatsapp": return "your WhatsApp number";
+      default: return "";
+    }
+  }).filter(Boolean);
 }
 
 /** Answered already, by a tap or because they mentioned it earlier. */
