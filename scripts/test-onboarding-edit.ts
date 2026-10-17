@@ -120,6 +120,8 @@ check(plainPersonName("Kamla Devi", said) === "Kamla Devi", "a plain name inside
   const after = { ...open, a: r.a, flow: r.flow };
   check(nextSlot(after)?.key === "p_home:0", "the city is still asked after With me");
   check(/which city or town/i.test(ask(home, after).bubbles.join(" ")), "the re-ask names the city");
+  check(fallbackUnderstood(home, "He lives with me and mom and wife right now", after) === null, "a sentence is not stored as the city");
+  check(fallbackUnderstood(home, "Jodhpur", after)?.a.persons[0].city === "Jodhpur", "a place name is stored as the city");
 }
 
 if (problems.length) {

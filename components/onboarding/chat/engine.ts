@@ -693,7 +693,8 @@ export function fallbackUnderstood(s: Slot, text: string, c: Ctx): { a: Answers;
       return { a: setP(a, i, { name }), flow: c.flow };
     }
     case "p_call": return { a: setP(a, i, { addressAs: t.slice(0, 60), callThem: a.persons[i].callThem || t.slice(0, 40) }), flow: done(c.flow, s.key) };
-    case "p_home": return { a: setP(a, i, { city: t.slice(0, 80) }), flow: c.flow };
+    // Only a place name is a city; a sentence ("he lives with me and mom…") waits for the backend, and the city is asked again.
+    case "p_home": return isSentenceName(t) || t.split(/\s+/).length > 3 ? null : { a: setP(a, i, { city: t.slice(0, 80) }), flow: c.flow };
     case "p_day": return { a: setP(a, i, { day: { ...a.persons[i].day, notes: t.slice(0, 500) } }), flow: done(c.flow, s.key) };
     case "p_conditions": return { a: setP(a, i, { conditionsOther: t.slice(0, 300) }), flow: done(c.flow, s.key) };
     case "p_allergies": return { a: setP(a, i, { allergies: { items: [t.slice(0, 60)] } }), flow: done(c.flow, s.key) };
