@@ -935,7 +935,7 @@ export async function onboardingFood(browser, width = 1440) {
     check(!/on (your|the) dashboard/i.test(t.split("What kind of food")[0].slice(-400)), "the tracking line points at a dashboard page that may be off");
     check(t.includes("What kind of food does Maa eat?"), "no diet question");
     for (const o of ["Vegetarian", "Eggetarian", "Non-vegetarian", "Vegan", "Jain", "Skip"]) {
-      check(await v.page.getByRole("button", { name: new RegExp(`^${o}`) }).count() === 1, `no "${o}" choice`);
+      check(await v.page.getByRole("button", { name: new RegExp(o === "Skip" ? "^Skip$" : `^${o}`) }).count() === 1, `no "${o}" choice`);
     }
     check(!/keep track of (food|meals)\?|want (me|saheli) to (keep track|track)/i.test(t), "food tracking is asked as an opt-in question");
     await veg.click();
