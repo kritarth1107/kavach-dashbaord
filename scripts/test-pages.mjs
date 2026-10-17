@@ -7,6 +7,7 @@
 //
 //   PAGES_BASE=http://localhost:3123 node scripts/test-pages.mjs        (a running `next start` or `next dev`)
 //   PAGES_FAMILIES=40 PAGES_WIDTHS=1440,390 PAGES_ONLY=home,care ...
+//   PAGES_SHARD=2/6: only every 6th page load starting at the 2nd (CI runs six at once); the one-off views run in part 1.
 import fs from "node:fs";
 import path from "node:path";
 import zlib from "node:zlib";
@@ -19,6 +20,9 @@ const FAMILIES = Number(process.env.PAGES_FAMILIES || 12);
 const WIDTHS = (process.env.PAGES_WIDTHS || "1440,390").split(",").map(Number);
 const PARALLEL = Number(process.env.PAGES_PARALLEL || 4);
 const THEMES = (process.env.PAGES_THEMES || "light").split(",");
+const [SHARD, SHARDS] = (process.env.PAGES_SHARD || "1/1").split("/").map(Number);
+/** A one-off view (onboarding, person scope…): asked for (PAGES_ONLY) and in this part (part 1 of the CI run). */
+const wants = (name) => SHARD === 1 && (!process.env.PAGES_ONLY || process.env.PAGES_ONLY.split(",").includes(name));
 const OUT = process.env.PAGES_OUT || path.join(here, "out", "pages");
 // PAGES_WORLD=<file.json[.gz]> replays another world: families whose `routes` map answers /api paths exactly as recorded
 // (a read-only capture of production stays in /tmp and is never committed)
@@ -1332,7 +1336,8 @@ export async function onboardingName(browser, width = 1440) {
   }
   // the engine down: every data call fails for one family of each world, every page at 1440 (PAGES_DOWN=0 skips)
   if (process.env.PAGES_DOWN !== "0") for (const fam of worlds.map((w, i) => fams.find((f) => (i === 0 ? !f.now : f.now)))) if (fam) for (const pg of PAGES) if (!pg.public && (!pg.engine || hasView(fam, pg.engine))) jobs.push({ fam, pg, w: 1440, person: null, theme: "light", fail: true });
-  console.log(`${jobs.length} page loads: ${fams.length} families (${worldFiles.map((f) => path.basename(f)).join(", ")}) x ${PAGES.length} pages, ${PARALLEL} at a time`);
+  if (SHARDS > 1) jobs.splice(0, jobs.length, ...jobs.filter((_, k) => k % SHARDS === SHARD - 1));
+  console.log(`${SHARDS > 1 ? `part ${SHARD} of ${SHARDS}: ` : ""}${jobs.length} page loads: ${fams.length} families (${worldFiles.map((f) => path.basename(f)).join(", ")}) x ${PAGES.length} pages, ${PARALLEL} at a time`);
   const browser = await chromium.launch();
   const failures = [];
   const missingAll = new Map();
@@ -1354,52 +1359,52 @@ export async function onboardingName(browser, width = 1440) {
     }
   }
   await Promise.all(Array.from({ length: PARALLEL }, worker));
-  if (!process.env.PAGES_ONLY || process.env.PAGES_ONLY.split(",").includes("person-scope")) {
+  if (wants("person-scope")) {
     const scope = await personScope(browser);
     console.log(scope.length ? `person scope: ${scope.length} problems` : "person scope: every page showed only the selected person's");
     for (const pr of scope) failures.push(`person-scope: ${pr}`);
   }
-  if (!process.env.PAGES_ONLY || process.env.PAGES_ONLY.split(",").includes("conversations")) {
+  if (wants("conversations")) {
     const view = (await Promise.all(WIDTHS.map((w) => conversationsView(browser, w)))).flat();
     console.log(view.length ? `conversations: ${view.length} problems` : "conversations: one person, empty, closed window, an answer opens it, unknown kinds");
     failures.push(...view);
   }
-  if (!process.env.PAGES_ONLY || process.env.PAGES_ONLY.split(",").includes("nutrition-late")) {
+  if (wants("nutrition-late")) {
     const late = (await Promise.all(WIDTHS.map((w) => nutritionLate(browser, w)))).flat();
     console.log(late.length ? `nutrition late: ${late.length} problems` : "nutrition late: Late night shows, an unknown slot falls back");
     failures.push(...late);
   }
-  if (!process.env.PAGES_ONLY || process.env.PAGES_ONLY.split(",").includes("learned")) {
+  if (wants("learned")) {
     const view = (await Promise.all(WIDTHS.map((w) => learnedView(browser, w)))).flat();
     console.log(view.length ? `learned view: ${view.length} problems` : "learned view: one person, empty, undo, unknown key");
     failures.push(...view);
   }
-  if (!process.env.PAGES_ONLY || process.env.PAGES_ONLY.split(",").includes("learned-card")) {
+  if (wants("learned-card")) {
     const learned = (await Promise.all(WIDTHS.map((w) => learnedCard(browser, w)))).flat();
     console.log(learned.length ? `learned card: ${learned.length} problems` : "learned card: the person page reads Saheli's care record (facts, proposals, usuals, notes)");
     failures.push(...learned);
   }
-  if (!process.env.PAGES_ONLY || process.env.PAGES_ONLY.split(",").includes("public-card")) {
+  if (wants("public-card")) {
     const pc = await publicCard(browser);
     console.log(pc.length ? `public card: ${pc.length} problems` : "public card: no ID number, allergies only as told, fits a phone");
     failures.push(...pc);
   }
-  if (!process.env.PAGES_ONLY || process.env.PAGES_ONLY.split(",").includes("onboarding-name")) {
+  if (wants("onboarding-name")) {
     const named = (await Promise.all(WIDTHS.map((w) => onboardingName(browser, w)))).flat();
     console.log(named.length ? `onboarding name: ${named.length} problems` : "onboarding name: a sentence becomes a name, and a failed setup is said once");
     failures.push(...named);
   }
-  if (!process.env.PAGES_ONLY || process.env.PAGES_ONLY.split(",").includes("onboarding-edit")) {
+  if (wants("onboarding-edit")) {
     const edit = (await Promise.all(WIDTHS.map((w) => onboardingEdit(browser, w)))).flat();
     console.log(edit.length ? `onboarding edit: ${edit.length} problems` : "onboarding edit: a finished edit returns to the summary, and a stuck draft opens there");
     failures.push(...edit);
   }
-  if (!process.env.PAGES_ONLY || process.env.PAGES_ONLY.split(",").includes("onboarding-done")) {
+  if (wants("onboarding-done")) {
     const end = (await Promise.all(WIDTHS.map((w) => onboardingDone(browser, w)))).flat();
     console.log(end.length ? `onboarding done: ${end.length} problems` : "onboarding done: the Send hi to Saheli button ends the web setup");
     failures.push(...end);
   }
-  if (!process.env.PAGES_ONLY || process.env.PAGES_ONLY.split(",").includes("onboarding-food")) {
+  if (wants("onboarding-food")) {
     const food = (await Promise.all(WIDTHS.map((w) => onboardingFood(browser, w)))).flat();
     console.log(food.length ? `onboarding food: ${food.length} problems` : "onboarding food: diet taps with the tracking line, Food & nutrition for self care, both sent with the answers");
     failures.push(...food);

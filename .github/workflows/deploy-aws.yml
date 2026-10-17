@@ -33,7 +33,23 @@ jobs:
           npm run test:records
           npm run test:memory
           npm run test:nutrition
-      - name: Every page for synthetic world families
+
+  # Every page for synthetic world families, in six parts at once (each its own production build); part 1 also runs the
+  # one-off views (onboarding, person scope, conversations…).
+  pages:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        part: [1, 2, 3, 4, 5, 6]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Every page for synthetic world families (part ${{ matrix.part }} of 6)
         env:
           AUTH_SECRET: ci-page-test-only
           AUTH_URL: http://localhost:3123
@@ -43,10 +59,10 @@ jobs:
           npx next build
           (TZ=UTC npx next start -p 3123 > /tmp/next.log 2>&1 &)
           for i in $(seq 1 45); do curl -sf -o /dev/null http://localhost:3123/auth/login && break; sleep 2; done
-          PAGES_BASE=http://localhost:3123 PAGES_FAMILIES=12 PAGES_PARALLEL=6 node scripts/test-pages.mjs
+          PAGES_BASE=http://localhost:3123 PAGES_FAMILIES=12 PAGES_PARALLEL=6 PAGES_SHARD=${{ matrix.part }}/6 node scripts/test-pages.mjs
 
-  deploy:
-    needs: test
+  # The image is built and pushed while the tests run; deploy rolls it out only after every test part passed.
+  build:
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -64,6 +80,19 @@ jobs:
           aws ecr get-login-password --region "$AWS_REGION" | docker login --username AWS --password-stdin "${ECR%/*}"
           docker build --build-arg NEXT_PUBLIC_API_URL=https://api.brainbehindkavach.me -t "$IMAGE" .
           docker push "$IMAGE"
+
+  deploy:
+    needs: [test, pages, build]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::743887469650:role/gh-deploy-kavach-dashbaord
+          aws-region: ap-south-1
       - name: Roll the live service
         env:
           IMAGE: ${{ env.ECR }}:${{ github.sha }}
